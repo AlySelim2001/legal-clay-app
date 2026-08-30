@@ -2,8 +2,6 @@ import { useState } from "react";
 import {
   Settings as SettingsIcon,
   Bell,
-  Moon,
-  Globe,
   User,
   Shield,
   Save,

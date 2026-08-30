@@ -14,7 +14,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Scale,
 } from "lucide-react";
 
 interface NavItem {

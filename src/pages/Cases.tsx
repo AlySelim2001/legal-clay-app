@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router";
-import { Search, Filter, SortAsc, SortDesc, Plus, FolderOpen } from "lucide-react";
+import { Search, SortAsc, SortDesc, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mockCases, type CaseStatus, type CasePriority } from "@/data/mock";
 
@@ -27,12 +27,12 @@ export default function Cases() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CaseStatus | "الكل">("الكل");
   const [priorityFilter, setPriorityFilter] = useState<CasePriority | "الكل">("الكل");
-  const [sortField, setSortField] = useState<"filingDate" | "nextHearing" | "priority">("filingDate");
+  const [sortField] = useState<"filingDate" | "nextHearing" | "priority">("filingDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [view, setView] = useState<"table" | "grid">("table");
 
   const filtered = useMemo(() => {
-    let result = mockCases.filter((c) => {
+    const result = mockCases.filter((c) => {
       const matchSearch =
         search === "" ||
         c.caseCode.includes(search) ||

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Search, Bell, ChevronDown, LogOut, User, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { mockDeadlines } from "@/data/mock";
 
 export function TopBar() {

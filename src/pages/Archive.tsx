@@ -6,7 +6,6 @@ import {
   File,
   Download,
   Trash2,
-  Filter,
   FolderOpen,
   Upload,
 } from "lucide-react";

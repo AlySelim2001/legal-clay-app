@@ -1,5 +1,4 @@
-import { BookOpen, Scale, AlertTriangle, ExternalLink, FileText, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Scale, AlertTriangle, FileText, Search } from "lucide-react";
 import { useState } from "react";
 
 const laws = [

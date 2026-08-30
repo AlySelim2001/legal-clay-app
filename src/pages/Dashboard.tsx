@@ -3,10 +3,8 @@ import {
   FolderOpen,
   Users,
   AlertTriangle,
-  TrendingUp,
   Clock,
   CheckCircle,
-  FileText,
 } from "lucide-react";
 import {
   BarChart,

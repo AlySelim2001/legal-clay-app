@@ -4,7 +4,6 @@ import {
   Clock,
   CheckCircle,
   Filter,
-  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mockDeadlines, type UrgencyLevel } from "@/data/mock";

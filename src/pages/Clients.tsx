@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router";
-import { Search, Plus, Users, Phone, Mail, FolderOpen } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Search, Plus, Phone, Mail, FolderOpen } from "lucide-react";
 import { mockClients } from "@/data/mock";
 
 export default function Clients() {

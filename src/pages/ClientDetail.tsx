@@ -6,7 +6,6 @@ import {
   MapPin,
   CreditCard,
   Briefcase,
-  Globe,
   FolderOpen,
   Calendar,
   Edit,
