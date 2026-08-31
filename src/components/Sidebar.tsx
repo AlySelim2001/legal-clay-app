@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import { cn } from "@/lib/utils";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import {
   Gavel,
   LayoutDashboard,
@@ -44,6 +45,8 @@ const bottomItems: NavItem[] = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { user } = useSupabaseAuth();
+  const isAdmin = user?.role === "admin";
 
   return (
     <aside
@@ -99,7 +102,7 @@ export function Sidebar() {
         {/* Divider */}
         <div className="my-3 border-t border-sidebar-border/30" />
 
-        {bottomItems.map((item) => {
+        {bottomItems.filter((item) => !item.adminOnly || isAdmin).map((item) => {
           const Icon = item.icon;
           const isActive =
             location.pathname === item.path;

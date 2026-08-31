@@ -3,7 +3,7 @@ import { Search, Bell, ChevronDown, LogOut, User, Settings, Globe } from "lucide
 import { useUpcomingHearings } from "@/hooks/useSupabaseData";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useI18n } from "@/contexts/I18nContext";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { supabase } from "@/lib/supabase";
 
 interface SearchResult {
@@ -171,14 +171,14 @@ export function TopBar() {
           </button>
           {profileOpen && (
             <div className="absolute start-0 top-full mt-2 w-56 clay-card p-2 animate-fade-in z-50">
-              <a href="/app/settings" className="flex items-center gap-2 px-3 py-2.5 text-sm text-foreground hover:bg-muted rounded-xl transition-colors">
+              <Link to="/app/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 text-sm text-foreground hover:bg-muted rounded-xl transition-colors">
                 <User className="w-4 h-4" />
                 {lang === "ar" ? "الملف الشخصي" : "Profile"}
-              </a>
-              <a href="/app/settings" className="flex items-center gap-2 px-3 py-2.5 text-sm text-foreground hover:bg-muted rounded-xl transition-colors">
+              </Link>
+              <Link to="/app/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 text-sm text-foreground hover:bg-muted rounded-xl transition-colors">
                 <Settings className="w-4 h-4" />
                 {lang === "ar" ? "الإعدادات" : "Settings"}
-              </a>
+              </Link>
               <div className="my-1 border-t border-border" />
               <button
                 onClick={handleSignOut}

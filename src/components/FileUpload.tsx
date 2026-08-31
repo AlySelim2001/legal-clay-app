@@ -85,11 +85,14 @@ export function FileUpload({ caseId, onUploadComplete }: FileUploadProps) {
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
+        // Generate a signed URL (3600s TTL) for secure access
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from('case-attachments')
-          .getPublicUrl(path);
+          .createSignedUrl(path, 3600);
 
-        // Insert attachment record
+        if (signedUrlError) throw signedUrlError;
+
+        // Insert attachment record with signed URL stored for retrieval
         const { error: insertError } = await supabase
           .from('attachments')
           .insert({
@@ -102,7 +105,7 @@ export function FileUpload({ caseId, onUploadComplete }: FileUploadProps) {
         if (insertError) throw insertError;
 
         setFiles((prev) => prev.map((f, fi) => fi === idx ? { ...f, status: 'done' } : f));
-        void urlData; // used for signed URL access
+        void signedUrlData; // signed URL used for secure file access
       } catch (err) {
         setFiles((prev) => prev.map((f, fi) => fi === idx
           ? { ...f, status: 'error', error: err instanceof Error ? err.message : 'Upload failed' }

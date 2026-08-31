@@ -205,3 +205,48 @@ export interface CaseWithRelations extends CaseRow {
   schedules?: ScheduleRow[];
   attachments?: AttachmentRow[];
 }
+
+// ---- audit_log (Migration 003) ----
+export interface AuditLogRow {
+  id: string;
+  table_name: string;
+  record_id: string;
+  changed_by: string | null;
+  changed_at: string;
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown> | null;
+}
+
+// ---- legal_precedents (Migration 005) ----
+export interface LegalPrecedentRow {
+  id: string;
+  title: string;
+  court: string;
+  ruling_date: string;
+  principle_summary: string;
+  full_text: string | null;
+  defense_category_id: string | null;
+  crime_type: string | null;
+  created_at: string;
+}
+
+export type LegalPrecedentInsert = Omit<LegalPrecedentRow, 'id' | 'created_at'>;
+
+// ---- ocr_logs (Migration 005) ----
+export interface OCRLogRow {
+  id: string;
+  attachment_id: string;
+  extracted_text: string;
+  confidence_score: number | null;
+  processed_at: string;
+}
+
+// ---- entity_links (Migration 005) ----
+export interface EntityLinkRow {
+  id: string;
+  source_case_id: string;
+  target_case_id: string;
+  match_reason: string;
+  confidence: number | null;
+  created_at: string;
+}
