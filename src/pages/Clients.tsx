@@ -1,21 +1,39 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router";
-import { Search, Plus, Phone, Mail, FolderOpen } from "lucide-react";
-import { mockClients } from "@/data/mock";
+import { Search, Plus, Phone, Mail, Loader2 } from "lucide-react";
+import { useClients } from "@/hooks/useSupabaseData";
 
 export default function Clients() {
+  const { data: clients, loading, error } = useClients();
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    if (!search) return mockClients;
-    return mockClients.filter(
+    if (!clients) return [];
+    if (!search) return clients;
+    return clients.filter(
       (c) =>
-        c.name.includes(search) ||
-        c.clientCode.includes(search) ||
-        c.nationalId.includes(search) ||
-        c.phone.includes(search)
+        c.full_name.includes(search) ||
+        c.client_code.includes(search) ||
+        c.national_id.includes(search) ||
+        (c.phone ?? "").includes(search)
     );
-  }, [search]);
+  }, [clients, search]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-sm text-red-500">خطأ في تحميل البيانات: {error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -49,7 +67,7 @@ export default function Clients() {
 
       {/* Results count */}
       <p className="text-sm text-muted-foreground">
-        عرض {filtered.length} من {mockClients.length} عميل
+        عرض {filtered.length} من {clients?.length ?? 0} عميل
       </p>
 
       {/* Grid */}
@@ -57,42 +75,44 @@ export default function Clients() {
         {filtered.map((client) => (
           <Link
             key={client.id}
-            to={`/app/clients/${client.clientCode}`}
+            to={`/app/clients/${client.client_code}`}
             className="clay-card p-5 hover:scale-[1.01] transition-transform block"
           >
             {/* Avatar + Name */}
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-2xl bg-clay-teal/15 flex items-center justify-center shrink-0">
                 <span className="text-lg font-bold text-clay-teal">
-                  {client.name.charAt(0)}
+                  {client.full_name.charAt(0)}
                 </span>
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm font-bold text-foreground truncate">{client.name}</h3>
-                <p className="text-xs text-muted-foreground font-mono">{client.clientCode}</p>
+                <h3 className="text-sm font-bold text-foreground truncate">{client.full_name}</h3>
+                <p className="text-xs text-muted-foreground font-mono">{client.client_code}</p>
               </div>
             </div>
 
             {/* Info */}
             <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Phone className="w-3 h-3 shrink-0" />
-                <span dir="ltr">{client.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Mail className="w-3 h-3 shrink-0" />
-                <span className="truncate">{client.email}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <FolderOpen className="w-3 h-3 shrink-0" />
-                <span>{client.caseCount} قضية</span>
-              </div>
+              {client.phone && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Phone className="w-3 h-3 shrink-0" />
+                  <span dir="ltr">{client.phone}</span>
+                </div>
+              )}
+              {client.email && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Mail className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{client.email}</span>
+                </div>
+              )}
             </div>
 
             {/* Footer */}
             <div className="flex items-center justify-between pt-3 border-t border-border/50">
-              <span className="text-xs text-muted-foreground">{client.occupation}</span>
-              <span className="text-xs text-muted-foreground">انضمام: {client.joinDate}</span>
+              <span className="text-xs text-muted-foreground">{client.national_id}</span>
+              <span className="text-xs text-muted-foreground">
+                {client.created_at.split("T")[0]}
+              </span>
             </div>
           </Link>
         ))}

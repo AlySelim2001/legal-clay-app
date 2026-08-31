@@ -1,16 +1,29 @@
 import { useState } from "react";
 import { Search, Bell, ChevronDown, LogOut, User, Settings } from "lucide-react";
-import { mockDeadlines } from "@/data/mock";
+import { useUpcomingHearings } from "@/hooks/useSupabaseData";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { useNavigate } from "react-router";
 
 export function TopBar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const { user, signOut } = useSupabaseAuth();
+  const navigate = useNavigate();
+  const { data: hearings } = useUpcomingHearings();
 
-  const criticalDeadlines = mockDeadlines.filter(
-    (d) => d.urgency === "critical" && d.status !== "مكتمل"
-  );
+  // Get critical deadlines (within 3 days)
+  const now = new Date();
+  const criticalDeadlines = (hearings ?? []).filter((h) => {
+    const days = Math.ceil((new Date(h.session_date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return days >= 0 && days <= 3;
+  });
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
   return (
     <header className="clay-topbar sticky top-0 z-30 h-16 flex items-center justify-between px-6">
@@ -63,9 +76,9 @@ export function TopBar() {
                     <p className="text-xs font-semibold text-urgency-critical mb-1">
                       ⚠ موعد نهائي حرج
                     </p>
-                    <p className="text-sm font-medium text-foreground">{d.description}</p>
+                    <p className="text-sm font-medium text-foreground">{d.session_type}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {d.caseCode} — الموعد النهائي: {d.dueDate}
+                      {d.case?.case_code ?? "—"} — الموعد: {d.session_date}
                     </p>
                   </div>
                 ))}
@@ -89,11 +102,11 @@ export function TopBar() {
             className="clay-button flex items-center gap-2 px-3 py-2 bg-card rounded-xl"
           >
             <div className="w-8 h-8 rounded-xl bg-clay-blue/20 flex items-center justify-center">
-              <span className="text-sm font-bold text-clay-blue">م</span>
+              <span className="text-sm font-bold text-clay-blue">{user?.email?.charAt(0)?.toUpperCase() ?? "م"}</span>
             </div>
             <div className="text-end hidden sm:block">
-              <p className="text-sm font-semibold text-foreground leading-tight">محمد فتحي</p>
-              <p className="text-[10px] text-muted-foreground">محامٍ رئيسي</p>
+              <p className="text-sm font-semibold text-foreground leading-tight">{user?.email ?? "مستخدم"}</p>
+              <p className="text-[10px] text-muted-foreground">{user?.role === "admin" ? "مدير" : "مساعد"}</p>
             </div>
             <ChevronDown className="w-4 h-4 text-muted-foreground" />
           </button>
@@ -114,13 +127,13 @@ export function TopBar() {
                 الإعدادات
               </a>
               <div className="my-1 border-t border-border" />
-              <a
-                href="/login"
-                className="flex items-center gap-2 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/5 rounded-xl transition-colors"
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/5 rounded-xl transition-colors"
               >
                 <LogOut className="w-4 h-4" />
                 تسجيل الخروج
-              </a>
+              </button>
             </div>
           )}
         </div>

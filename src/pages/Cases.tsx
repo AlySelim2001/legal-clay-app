@@ -1,67 +1,83 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router";
-import { Search, SortAsc, SortDesc, Plus } from "lucide-react";
+import { Search, SortAsc, SortDesc, Plus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockCases, type CaseStatus, type CasePriority } from "@/data/mock";
+import { useCases } from "@/hooks/useSupabaseData";
+import type { ProceduralStatus } from "@/types/database";
 
-const statusStyles: Record<CaseStatus, string> = {
-  "活跃": "bg-urgency-normal/10 text-urgency-normal",
-  "معلق": "bg-urgency-high/10 text-urgency-high",
-  "منتهي": "bg-muted text-muted-foreground",
-  "طعن": "bg-clay-purple/10 text-clay-purple",
-};
+function getPriorityForStatus(status: ProceduralStatus | null): "حرج" | "مرتفع" | "عادي" {
+  if (status === "تأجلت الجلسة" || status === "جاري تنفيذ الحكم") return "حرج";
+  if (status === "محدد لها جلسة معارضة") return "مرتفع";
+  return "عادي";
+}
 
-const priorityStyles: Record<CasePriority, string> = {
+function getStatusLabel(status: ProceduralStatus | null): string {
+  return status ?? "أخرى";
+}
+
+const priorityStyles: Record<string, string> = {
   "حرج": "bg-urgency-critical/10 text-urgency-critical",
   "مرتفع": "bg-urgency-high/10 text-urgency-high",
   "عادي": "bg-urgency-normal/10 text-urgency-normal",
 };
 
-const urgencyBorder: Record<CasePriority, string> = {
+const urgencyBorder: Record<string, string> = {
   "حرج": "urgency-border-critical",
   "مرتفع": "urgency-border-high",
   "عادي": "urgency-border-normal",
 };
 
 export default function Cases() {
+  const { data: cases, loading, error } = useCases();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<CaseStatus | "الكل">("الكل");
-  const [priorityFilter, setPriorityFilter] = useState<CasePriority | "الكل">("الكل");
-  const [sortField] = useState<"filingDate" | "nextHearing" | "priority">("filingDate");
+  const [statusFilter, setStatusFilter] = useState<ProceduralStatus | "الكل">("الكل");
+  const [priorityFilter, setPriorityFilter] = useState<"حرج" | "مرتفع" | "عادي" | "الكل">("الكل");
+  const [sortField] = useState<"filing_date" | "procedural_status">("filing_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [view, setView] = useState<"table" | "grid">("table");
 
   const filtered = useMemo(() => {
-    const result = mockCases.filter((c) => {
+    if (!cases) return [];
+    const result = cases.filter((c) => {
+      const clientName = c.client?.full_name ?? "";
       const matchSearch =
         search === "" ||
-        c.caseCode.includes(search) ||
-        c.title.includes(search) ||
-        c.clientName.includes(search) ||
-        c.crimeType.includes(search);
-      const matchStatus = statusFilter === "الكل" || c.status === statusFilter;
-      const matchPriority = priorityFilter === "الكل" || c.priority === priorityFilter;
+        c.case_code.includes(search) ||
+        c.case_no.includes(search) ||
+        clientName.includes(search) ||
+        (c.tactical_classification ?? "").includes(search);
+      const matchStatus = statusFilter === "الكل" || c.procedural_status === statusFilter;
+      const priority = getPriorityForStatus(c.procedural_status);
+      const matchPriority = priorityFilter === "الكل" || priority === priorityFilter;
       return matchSearch && matchStatus && matchPriority;
     });
 
     result.sort((a, b) => {
-      if (sortField === "priority") {
-        const order = { "حرج": 3, "مرتفع": 2, "عادي": 1 };
-        return sortDir === "asc"
-          ? order[a.priority] - order[b.priority]
-          : order[b.priority] - order[a.priority];
-      }
       const aVal = a[sortField];
       const bVal = b[sortField];
-      if (aVal === "—") return 1;
-      if (bVal === "—") return -1;
       return sortDir === "asc"
-        ? aVal.localeCompare(bVal)
-        : bVal.localeCompare(aVal);
+        ? String(aVal ?? "").localeCompare(String(bVal ?? ""))
+        : String(bVal ?? "").localeCompare(String(aVal ?? ""));
     });
 
     return result;
-  }, [search, statusFilter, priorityFilter, sortField, sortDir]);
+  }, [cases, search, statusFilter, priorityFilter, sortField, sortDir]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-sm text-red-500">خطأ في تحميل البيانات: {error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -87,7 +103,7 @@ export default function Cases() {
             <Search className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="بحث بالكود، الاسم، أو نوع الجريمة..."
+              placeholder="بحث بالكود، الاسم، أو التصنيف..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="clay-input w-full pe-10 ps-4 py-2.5 text-sm bg-background"
@@ -97,20 +113,24 @@ export default function Cases() {
           {/* Status filter */}
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as CaseStatus | "الكل")}
+            onChange={(e) => setStatusFilter(e.target.value as ProceduralStatus | "الكل")}
             className="clay-input px-4 py-2.5 text-sm bg-background min-w-[140px]"
           >
             <option value="الكل">جميع الحالات</option>
-            <option value="活跃">نشط</option>
-            <option value="معلق">معلق</option>
-            <option value="منتهي">منتهي</option>
-            <option value="طعن">طعن</option>
+            <option value="محدد لها جلسة معارضة">محدد لها جلسة معارضة</option>
+            <option value="تم قبول المعارضة">تم قبول المعارضة</option>
+            <option value="تم رفض المعارضة">تم رفض المعارضة</option>
+            <option value="صدر الحكم بالبراءة">صدر الحكم بالبراءة</option>
+            <option value="صدر الحكم بالإدانة">صدر الحكم بالإدانة</option>
+            <option value="تأجلت الجلسة">تأجلت الجلسة</option>
+            <option value="جاري تنفيذ الحكم">جاري تنفيذ الحكم</option>
+            <option value="أخرى">أخرى</option>
           </select>
 
           {/* Priority filter */}
           <select
             value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value as CasePriority | "الكل")}
+            onChange={(e) => setPriorityFilter(e.target.value as "حرج" | "مرتفع" | "عادي" | "الكل")}
             className="clay-input px-4 py-2.5 text-sm bg-background min-w-[140px]"
           >
             <option value="الكل">جميع الأولويات</option>
@@ -154,7 +174,7 @@ export default function Cases() {
 
       {/* Results count */}
       <p className="text-sm text-muted-foreground">
-        عرض {filtered.length} من {mockCases.length} قضية
+        عرض {filtered.length} من {cases?.length ?? 0} قضية
       </p>
 
       {/* Table View */}
@@ -164,64 +184,51 @@ export default function Cases() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-                    كود القضية
-                  </th>
-                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-                    العنوان
-                  </th>
-                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-                    العميل
-                  </th>
-                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-                    الحالة
-                  </th>
-                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-                    الأولوية
-                  </th>
-                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-                    الجلسة القادمة
-                  </th>
-                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-                    الموعد النهائي
-                  </th>
+                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">كود القضية</th>
+                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">رقم القضية</th>
+                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">العميل</th>
+                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">الحالة</th>
+                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">الأولوية</th>
+                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">تاريخ التقديم</th>
+                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">المحكمة</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((c) => (
-                  <tr
-                    key={c.id}
-                    className={cn(
-                      "border-b border-border/50 hover:bg-muted/30 transition-colors",
-                      urgencyBorder[c.priority]
-                    )}
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        to={`/app/cases/${c.caseCode}`}
-                        className="font-mono text-xs font-semibold text-clay-blue hover:underline"
-                      >
-                        {c.caseCode}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 max-w-[200px] truncate font-medium text-foreground">
-                      {c.title}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{c.clientName}</td>
-                    <td className="px-4 py-3">
-                      <span className={cn("clay-badge text-[10px] font-bold px-2.5 py-1", statusStyles[c.status])}>
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={cn("clay-badge text-[10px] font-bold px-2.5 py-1", priorityStyles[c.priority])}>
-                        {c.priority}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{c.nextHearing}</td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{c.deadline}</td>
-                  </tr>
-                ))}
+                {filtered.map((c) => {
+                  const priority = getPriorityForStatus(c.procedural_status);
+                  return (
+                    <tr
+                      key={c.id}
+                      className={cn(
+                        "border-b border-border/50 hover:bg-muted/30 transition-colors",
+                        urgencyBorder[priority]
+                      )}
+                    >
+                      <td className="px-4 py-3">
+                        <Link
+                          to={`/app/cases/${c.case_code}`}
+                          className="font-mono text-xs font-semibold text-clay-blue hover:underline"
+                        >
+                          {c.case_code}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 font-medium text-foreground">{c.case_no}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{c.client?.full_name ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className={cn("clay-badge text-[10px] font-bold px-2.5 py-1", "bg-clay-blue/10 text-clay-blue")}>
+                          {getStatusLabel(c.procedural_status)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={cn("clay-badge text-[10px] font-bold px-2.5 py-1", priorityStyles[priority])}>
+                          {priority}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{c.filing_date}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{c.court_name}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -231,33 +238,37 @@ export default function Cases() {
       {/* Grid View */}
       {view === "grid" && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((c) => (
-            <Link
-              key={c.id}
-              to={`/app/cases/${c.caseCode}`}
-              className={cn(
-                "clay-card p-5 hover:scale-[1.01] transition-transform block",
-                urgencyBorder[c.priority]
-              )}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <span className="font-mono text-xs font-semibold text-clay-blue">
-                  {c.caseCode}
-                </span>
-                <span className={cn("clay-badge text-[10px] font-bold px-2 py-0.5", statusStyles[c.status])}>
-                  {c.status}
-                </span>
-              </div>
-              <h3 className="text-sm font-bold text-foreground mb-1 line-clamp-2">{c.title}</h3>
-              <p className="text-xs text-muted-foreground mb-3">{c.clientName}</p>
-              <div className="flex items-center justify-between">
-                <span className={cn("clay-badge text-[10px] font-bold px-2 py-0.5", priorityStyles[c.priority])}>
-                  {c.priority}
-                </span>
-                <span className="text-xs text-muted-foreground">📅 {c.nextHearing}</span>
-              </div>
-            </Link>
-          ))}
+          {filtered.map((c) => {
+            const priority = getPriorityForStatus(c.procedural_status);
+            const clientName = c.client?.full_name ?? "—";
+            return (
+              <Link
+                key={c.id}
+                to={`/app/cases/${c.case_code}`}
+                className={cn(
+                  "clay-card p-5 hover:scale-[1.01] transition-transform block",
+                  urgencyBorder[priority]
+                )}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <span className="font-mono text-xs font-semibold text-clay-blue">
+                    {c.case_code}
+                  </span>
+                  <span className={cn("clay-badge text-[10px] font-bold px-2 py-0.5", "bg-clay-blue/10 text-clay-blue")}>
+                    {getStatusLabel(c.procedural_status)}
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-foreground mb-1 line-clamp-2">{c.case_no}</h3>
+                <p className="text-xs text-muted-foreground mb-3">{clientName}</p>
+                <div className="flex items-center justify-between">
+                  <span className={cn("clay-badge text-[10px] font-bold px-2 py-0.5", priorityStyles[priority])}>
+                    {priority}
+                  </span>
+                  <span className="text-xs text-muted-foreground">📅 {c.filing_date}</span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,4 +1,3 @@
-
 import {
   Users,
   Plus,
@@ -10,7 +9,66 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockTeam } from "@/data/mock";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+
+// Team data remains mock since there is no team_users table in the schema
+const mockTeam = [
+  {
+    id: "1",
+    name: "محمد فتحي",
+    role: "محامٍ رئيسي",
+    email: "mohamed.fathi@crimsys.com",
+    phone: "01012345678",
+    joinedDate: "2024-01-01",
+    activeCases: 4,
+    avatar: "م",
+    isAdmin: true,
+  },
+  {
+    id: "2",
+    name: "نورا سعيد",
+    role: "محامية",
+    email: "noura.saeed@crimsys.com",
+    phone: "01123456789",
+    joinedDate: "2024-06-15",
+    activeCases: 3,
+    avatar: "ن",
+    isAdmin: false,
+  },
+  {
+    id: "3",
+    name: "حسين عادل",
+    role: "مساعد قانوني",
+    email: "hussein.adel@crimsys.com",
+    phone: "01234567890",
+    joinedDate: "2025-03-01",
+    activeCases: 5,
+    avatar: "ح",
+    isAdmin: false,
+  },
+  {
+    id: "4",
+    name: "فاطمة الزهراء",
+    role: "باحثة قانونية",
+    email: "fatma.z@crimsys.com",
+    phone: "01098765432",
+    joinedDate: "2025-09-01",
+    activeCases: 2,
+    avatar: "ف",
+    isAdmin: false,
+  },
+  {
+    id: "5",
+    name: "عمر حسن",
+    role: "مدير مكتب",
+    email: "omar.hassan@crimsys.com",
+    phone: "01187654321",
+    joinedDate: "2024-03-01",
+    activeCases: 0,
+    avatar: "ع",
+    isAdmin: true,
+  },
+];
 
 const roleColors: Record<string, string> = {
   "محامٍ رئيسي": "bg-clay-blue/15 text-clay-blue",
@@ -21,6 +79,19 @@ const roleColors: Record<string, string> = {
 };
 
 export default function AdminTeam() {
+  const { user } = useSupabaseAuth();
+
+  if (user?.role !== "admin") {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Shield className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">غير مصرح لك بالوصول إلى هذه الصفحة</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -74,7 +145,7 @@ export default function AdminTeam() {
                   <h3 className="text-sm font-bold text-foreground">{member.name}</h3>
                   {member.isAdmin && (
                     <span className="clay-badge text-[9px] font-bold bg-clay-purple/10 text-clay-purple px-1.5 py-0.5">
-                     مدير
+                      مدير
                     </span>
                   )}
                 </div>

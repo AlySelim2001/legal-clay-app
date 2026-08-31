@@ -1,10 +1,10 @@
-import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
-import type { ReactNode } from "react";
-import { Navigate, useLocation } from "react-router";
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { Loader2 } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Navigate, useLocation } from 'react-router';
 
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated } = useSupabaseAuth();
   const location = useLocation();
 
   if (isLoading) {

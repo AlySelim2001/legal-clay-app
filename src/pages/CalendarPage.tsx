@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Calendar,
   Clock,
@@ -6,13 +6,13 @@ import {
   Gavel,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockHearings } from "@/data/mock";
+import { useAllSchedules } from "@/hooks/useSupabaseData";
 
 const daysOfWeek = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
-// Generate a simple month calendar for Sep 2026
 function generateMonth(year: number, month: number) {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -23,24 +23,27 @@ function generateMonth(year: number, month: number) {
 }
 
 export default function CalendarPage() {
+  const { data: allSchedules, loading } = useAllSchedules();
   const [year, setYear] = useState(2026);
   const [month, setMonth] = useState(8); // September (0-indexed)
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-  const cells = generateMonth(year, month);
+  const cells = useMemo(() => generateMonth(year, month), [year, month]);
   const monthName = new Date(year, month).toLocaleDateString("ar-EG", {
     year: "numeric",
     month: "long",
   });
 
   // Map hearings to dates
-  const hearingsByDate: Record<string, typeof mockHearings> = {};
-  mockHearings.forEach((h) => {
-    const day = h.date.split("-")[2];
-    const key = `${year}-${String(month + 1).padStart(2, "0")}-${day.padStart(2, "0")}`;
-    if (!hearingsByDate[key]) hearingsByDate[key] = [];
-    hearingsByDate[key].push(h);
-  });
+  const hearingsByDate = useMemo(() => {
+    const map: Record<string, typeof allSchedules> = {};
+    (allSchedules ?? []).forEach((h) => {
+      const key = h.session_date;
+      if (!map[key]) map[key] = [];
+      map[key]!.push(h);
+    });
+    return map;
+  }, [allSchedules]);
 
   const prevMonth = () => {
     if (month === 0) {
@@ -64,7 +67,15 @@ export default function CalendarPage() {
     ? `${year}-${String(month + 1).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`
     : null;
 
-  const selectedHearings = selectedDate ? hearingsByDate[selectedDate] || [] : [];
+  const selectedHearings = selectedDate ? (hearingsByDate[selectedDate] ?? []) : [];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -81,17 +92,11 @@ export default function CalendarPage() {
         <div className="lg:col-span-2 clay-card p-6">
           {/* Month Navigation */}
           <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={prevMonth}
-              className="clay-button p-2 bg-card rounded-xl"
-            >
+            <button onClick={prevMonth} className="clay-button p-2 bg-card rounded-xl">
               <ChevronRight className="w-4 h-4" />
             </button>
             <h2 className="text-lg font-bold text-foreground">{monthName}</h2>
-            <button
-              onClick={nextMonth}
-              className="clay-button p-2 bg-card rounded-xl"
-            >
+            <button onClick={nextMonth} className="clay-button p-2 bg-card rounded-xl">
               <ChevronLeft className="w-4 h-4" />
             </button>
           </div>
@@ -99,10 +104,7 @@ export default function CalendarPage() {
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {daysOfWeek.map((day) => (
-              <div
-                key={day}
-                className="text-center text-xs font-semibold text-muted-foreground py-2"
-              >
+              <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-2">
                 {day}
               </div>
             ))}
@@ -114,12 +116,8 @@ export default function CalendarPage() {
               if (day === null) return <div key={`empty-${idx}`} />;
 
               const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-              const dayHearings = hearingsByDate[dateKey] || [];
+              const dayHearings = hearingsByDate[dateKey] ?? [];
               const isSelected = selectedDay === day;
-              const isToday =
-                day === 30 &&
-                month === 8 &&
-                year === 2026; // Aug 30 = today
 
               return (
                 <button
@@ -129,8 +127,6 @@ export default function CalendarPage() {
                     "relative aspect-square flex flex-col items-center justify-center rounded-xl text-sm transition-all",
                     isSelected
                       ? "bg-clay-blue text-white font-bold shadow-lg"
-                      : isToday
-                      ? "bg-primary/10 text-primary font-bold ring-2 ring-primary/30"
                       : dayHearings.length > 0
                       ? "bg-clay-purple/10 text-foreground font-medium hover:bg-clay-purple/20"
                       : "text-foreground hover:bg-muted/50"
@@ -140,10 +136,7 @@ export default function CalendarPage() {
                   {dayHearings.length > 0 && !isSelected && (
                     <div className="flex gap-0.5 mt-0.5">
                       {dayHearings.slice(0, 3).map((_, i) => (
-                        <span
-                          key={i}
-                          className="w-1 h-1 rounded-full bg-clay-purple"
-                        />
+                        <span key={i} className="w-1 h-1 rounded-full bg-clay-purple" />
                       ))}
                     </div>
                   )}
@@ -170,51 +163,49 @@ export default function CalendarPage() {
                       <Gavel className="w-4 h-4 text-clay-blue" />
                     </div>
                     <span className="clay-badge text-[10px] font-bold bg-clay-purple/10 text-clay-purple px-2 py-0.5">
-                      {h.type}
+                      {h.session_type}
                     </span>
                   </div>
                   <p className="text-sm font-semibold text-foreground mb-1">
-                    {h.caseTitle}
+                    {h.case?.case_code ?? "—"} — {h.case?.client?.full_name ?? "—"}
                   </p>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Clock className="w-3 h-3" />
-                      <span>{h.time}</span>
+                      <span>{h.session_date}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <MapPin className="w-3 h-3" />
-                      <span>{h.court}</span>
+                      <span>{h.case?.court_name ?? "—"}</span>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                    {h.notes}
-                  </p>
+                  {h.required_action && (
+                    <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                      {h.required_action}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
           ) : selectedDay ? (
             <div className="text-center py-8">
               <Calendar className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">
-                لا توجد جلسات في هذا اليوم
-              </p>
+              <p className="text-sm text-muted-foreground">لا توجد جلسات في هذا اليوم</p>
             </div>
           ) : (
             <div className="text-center py-8">
               <Calendar className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">
-                حدد يومًا في التقويم لعرض الجلسات
-              </p>
+              <p className="text-sm text-muted-foreground">حدد يومًا في التقويم لعرض الجلسات</p>
             </div>
           )}
 
           {/* Upcoming All */}
           <div className="mt-6 pt-4 border-t border-border">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
-              جميع الجلسات القادمة
+              جميع الجلسات
             </h4>
             <div className="space-y-2">
-              {mockHearings.map((h) => (
+              {(allSchedules ?? []).slice(0, 10).map((h) => (
                 <div
                   key={h.id}
                   className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/30 transition-colors"
@@ -222,10 +213,10 @@ export default function CalendarPage() {
                   <div className="w-2 h-2 rounded-full bg-clay-purple shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-foreground truncate">
-                      {h.caseTitle}
+                      {h.case?.case_code ?? "—"} — {h.case?.client?.full_name ?? "—"}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {h.date} — {h.time}
+                      {h.session_date} — {h.session_type}
                     </p>
                   </div>
                 </div>

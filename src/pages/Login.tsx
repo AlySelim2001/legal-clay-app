@@ -1,16 +1,38 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
-import { Gavel, Eye, EyeOff } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { Gavel, Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { signIn } = useSupabaseAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const returnTo = searchParams.get("returnTo") || "/app/dashboard";
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/app/dashboard");
+    setIsLoading(true);
+    setError(null);
+
+    const { error: signInError } = await signIn(email, password);
+
+    if (signInError) {
+      setError(
+        signInError.message.includes("Invalid login")
+          ? "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+          : signInError.message,
+      );
+      setIsLoading(false);
+      return;
+    }
+
+    navigate(returnTo);
   };
 
   return (
@@ -41,6 +63,12 @@ export default function Login() {
             أدخل بياناتك للوصول إلى النظام
           </p>
 
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-600 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
@@ -54,6 +82,8 @@ export default function Login() {
                 className="clay-input w-full px-4 py-3 text-sm bg-background"
                 dir="ltr"
                 style={{ textAlign: "right" }}
+                required
+                disabled={isLoading}
               />
             </div>
 
@@ -70,6 +100,8 @@ export default function Login() {
                   className="clay-input w-full px-4 py-3 ps-10 text-sm bg-background"
                   dir="ltr"
                   style={{ textAlign: "right" }}
+                  required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
@@ -97,9 +129,17 @@ export default function Login() {
 
             <button
               type="submit"
-              className="clay-button w-full py-3 bg-primary text-primary-foreground font-semibold text-sm rounded-xl hover:opacity-90 transition-opacity"
+              disabled={isLoading}
+              className="clay-button w-full py-3 bg-primary text-primary-foreground font-semibold text-sm rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
             >
-              تسجيل الدخول
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  جاري تسجيل الدخول...
+                </>
+              ) : (
+                "تسجيل الدخول"
+              )}
             </button>
           </form>
         </div>

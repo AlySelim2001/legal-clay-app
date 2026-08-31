@@ -1,5 +1,6 @@
-import { Scale, AlertTriangle, FileText, Search } from "lucide-react";
-import { useState } from "react";
+import { Scale, AlertTriangle, FileText, Search, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { useLegalDeadlines } from "@/hooks/useSupabaseData";
 
 const laws = [
   {
@@ -36,7 +37,7 @@ const laws = [
     name: "قانون مكافحة غسل الأموال",
     number: "ل.غ.أ. 80 لسنة 2018",
     description:
-      "يحدد الجرائم المتعلقة بغسل الأموال وتمويل الإرهاب، وión الإجراءات الخاصة بالتحري والتحقيق في هذه الجرائم.",
+      "يحدد الجرائم المتعلقة بغسل الأموال وتمويل الإرهاب، والإجراءات الخاصة بالتحري والتحقيق في هذه الجرائم.",
     articles: [
       "المادة 2 — تعريف غسل الأموال",
       "المادة 5 — العقوبات",
@@ -49,7 +50,7 @@ const laws = [
     name: "قانون مكافحة المخدرات",
     number: "ل.م. 182 لسنة 1960",
     description:
-      "ينظم جرائم اتجار المخدرات والمؤثرات العقلية، وiones العقوبات الخاصة بها، وإجراءات التحقيق والمحاكمة.",
+      "ينظم جرائم اتجار المخدرات والمؤثرات العقلية، والعقوبات الخاصة بها، وإجراءات التحقيق والمحاكمة.",
     articles: [
       "المادة 2 — تعريف المخدرات",
       "المادة 6 — العقوبات على الاتجار",
@@ -69,7 +70,7 @@ const updates = [
     changes: [
       "تعزيز حق المحامي في الحضور أثناء التحقيقات",
       "تحديد مدد التحقيقات الإلزامية",
-      "تحسين إجراءاتɝature الصادرة عن المحاكم",
+      "تحسين إجراءات المحاكمات",
       "تنظيم استخدام التقنيات الحديثة في المحاكمات",
     ],
     impact: "مرتفع",
@@ -77,9 +78,9 @@ const updates = [
   {
     id: "2",
     date: "2025-06-01",
-    title: " Decision constitutional على المادة 137",
+    title: "قرار دستوري على المادة 137",
     description:
-      "قرار المحكمة الدستورية العليا بشأن تفسير المادة 137 من قانون الإجراءات الجنائية liên.borderColor بطلان الإجراءات.",
+      "قرار المحكمة الدستورية العليا بشأن تفسير المادة 137 من قانون الإجراءات الجنائية liênactive بطلان الإجراءات.",
     changes: [
       "توسيع نطاق البطلان للإجراءات الجذرية فقط",
       "تأكيد مبدأ النسبة في تطبيق البطلان",
@@ -89,14 +90,19 @@ const updates = [
 ];
 
 export default function LegalFramework() {
+  const { data: legalDeadlines, loading: deadlinesLoading } = useLegalDeadlines();
   const [search, setSearch] = useState("");
 
-  const filteredLaws = laws.filter(
-    (l) =>
-      !search ||
-      l.name.includes(search) ||
-      l.description.includes(search) ||
-      l.number.includes(search)
+  const filteredLaws = useMemo(
+    () =>
+      laws.filter(
+        (l) =>
+          !search ||
+          l.name.includes(search) ||
+          l.description.includes(search) ||
+          l.number.includes(search)
+      ),
+    [search]
   );
 
   return (
@@ -160,17 +166,13 @@ export default function LegalFramework() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-bold text-foreground">{law.name}</h3>
-                <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                  {law.number}
-                </p>
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">{law.number}</p>
               </div>
               <span className="clay-badge text-[10px] font-bold bg-urgency-normal/10 text-urgency-normal px-2 py-0.5">
                 {law.status}
               </span>
             </div>
-            <p className="text-xs text-foreground/70 leading-relaxed mb-3">
-              {law.description}
-            </p>
+            <p className="text-xs text-foreground/70 leading-relaxed mb-3">{law.description}</p>
             <div className="clay-inset p-3 rounded-xl">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold mb-2">
                 مواد مرجعية
@@ -188,6 +190,38 @@ export default function LegalFramework() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Legal Deadlines Reference from DB */}
+      <div>
+        <h2 className="text-lg font-bold text-foreground mb-4">المدد القانونية المرجعية</h2>
+        {deadlinesLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {(legalDeadlines ?? []).map((dl) => (
+              <div key={dl.id} className="clay-card-soft p-4 flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-clay-blue/10 shrink-0">
+                  <FileText className="w-4 h-4 text-clay-blue" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-[10px] font-semibold text-clay-purple">{dl.code}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">{dl.procedure_name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{dl.legal_basis}</p>
+                  {dl.duration_value && (
+                    <span className="clay-badge text-[10px] font-bold bg-urgency-high/10 text-urgency-high px-2 py-0.5 mt-1 inline-block">
+                      {dl.duration_value} {dl.duration_unit}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Updates */}
@@ -208,21 +242,14 @@ export default function LegalFramework() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mb-2">{update.date}</p>
-                  <p className="text-xs text-foreground/70 leading-relaxed">
-                    {update.description}
-                  </p>
+                  <p className="text-xs text-foreground/70 leading-relaxed">{update.description}</p>
                 </div>
               </div>
               <div className="me-8">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">
-                  أبرز التعديلات:
-                </p>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">أبرز التعديلات:</p>
                 <ul className="space-y-1.5">
                   {update.changes.map((change, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2 text-xs text-foreground/70"
-                    >
+                    <li key={i} className="flex items-start gap-2 text-xs text-foreground/70">
                       <span className="text-clay-blue mt-0.5">•</span>
                       {change}
                     </li>

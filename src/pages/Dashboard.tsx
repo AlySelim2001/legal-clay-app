@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Clock,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
 import {
   BarChart,
@@ -18,14 +19,8 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { mockCases, mockClients, mockHearings, mockDeadlines } from "@/data/mock";
+import { useDashboardStats, useUpcomingHearings } from "@/hooks/useSupabaseData";
 import { cn } from "@/lib/utils";
-
-const statusColors: Record<string, string> = {
-  حرج: "bg-urgency-critical/10 text-urgency-critical",
-  مرتفع: "bg-urgency-high/10 text-urgency-high",
-  عادي: "bg-urgency-normal/10 text-urgency-normal",
-};
 
 const urgencyBg: Record<string, string> = {
   critical: "bg-urgency-critical/10 border-urgency-critical/20",
@@ -50,45 +45,65 @@ const typeData = [
   { name: "أخرى", value: 10, color: "#C47F9B" },
 ];
 
+function getUrgencyForDueDate(dueDate: string): "critical" | "high" | "normal" {
+  const now = new Date();
+  const due = new Date(dueDate);
+  const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 3) return "critical";
+  if (diffDays <= 7) return "high";
+  return "normal";
+}
+
+function daysUntil(dateStr: string): number {
+  const now = new Date();
+  const target = new Date(dateStr);
+  return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 export default function Dashboard() {
-  const activeCases = mockCases.filter((c) => c.status === "活跃");
-  const criticalDeadlines = mockDeadlines.filter(
-    (d) => d.urgency === "critical" && d.status !== "مكتمل"
-  );
-  const upcomingHearings = mockHearings.slice(0, 4);
+  const { data: stats, loading: statsLoading } = useDashboardStats();
+  const { data: hearings, loading: hearingsLoading } = useUpcomingHearings();
+
+  if (statsLoading || hearingsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const kpis = [
     {
       label: "القضايا النشطة",
-      value: activeCases.length,
+      value: stats?.totalCases ?? 0,
       icon: FolderOpen,
       color: "bg-clay-blue/15 text-clay-blue",
-      change: "+2 هذا الشهر",
+      change: "إجمالي",
       changeUp: true,
     },
     {
       label: "إجمالي العملاء",
-      value: mockClients.length,
+      value: stats?.totalClients ?? 0,
       icon: Users,
       color: "bg-clay-teal/15 text-clay-teal",
-      change: "+1 هذا الشهر",
+      change: "مسجل",
       changeUp: true,
     },
     {
-      label: "المواعيد الحرجة",
-      value: criticalDeadlines.length,
+      label: "مواعيد هذا الأسبوع",
+      value: stats?.upcomingCount ?? 0,
       icon: AlertTriangle,
-      color: "bg-urgency-critical/10 text-urgency-critical",
+      color: "bg-urgency-high/10 text-urgency-high",
       change: "تحتاج متابعة",
       changeUp: false,
     },
     {
-      label: "القضايا المنتهية",
-      value: mockCases.filter((c) => c.status === "منتهي").length,
+      label: "مواعيد حرجة",
+      value: stats?.urgentCount ?? 0,
       icon: CheckCircle,
-      color: "bg-clay-mint/15 text-clay-mint",
-      change: "هذا العام",
-      changeUp: true,
+      color: "bg-urgency-critical/10 text-urgency-critical",
+      change: "خلال 3 أيام",
+      changeUp: false,
     },
   ];
 
@@ -204,7 +219,7 @@ export default function Dashboard() {
             </a>
           </div>
           <div className="space-y-3">
-            {upcomingHearings.map((h) => (
+            {(hearings ?? []).slice(0, 4).map((h) => (
               <div
                 key={h.id}
                 className="clay-card-soft p-3 flex items-start gap-3"
@@ -214,23 +229,25 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">
-                    {h.caseTitle}
+                    {h.case?.case_code ?? "—"} — {h.case?.client?.full_name ?? "—"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {h.court}
+                    {h.case?.court_name ?? "—"}
                   </p>
                   <div className="flex items-center gap-2 mt-1.5">
                     <span className="text-xs font-medium text-clay-blue">
-                      📅 {h.date}
+                      📅 {h.session_date}
                     </span>
-                    <span className="text-xs text-muted-foreground">⏰ {h.time}</span>
                   </div>
                 </div>
                 <span className="clay-badge text-[10px] font-semibold bg-clay-purple/10 text-clay-purple px-2 py-1 shrink-0">
-                  {h.type}
+                  {h.session_type}
                 </span>
               </div>
             ))}
+            {(!hearings || hearings.length === 0) && (
+              <p className="text-sm text-muted-foreground text-center py-4">لا توجد جلسات قادمة</p>
+            )}
           </div>
         </div>
 
@@ -243,47 +260,57 @@ export default function Dashboard() {
             </a>
           </div>
           <div className="space-y-3">
-            {mockDeadlines
-              .filter((d) => d.status !== "مكتمل")
+            {(hearings ?? [])
+              .filter((h) => {
+                const days = daysUntil(h.session_date);
+                return days >= 0 && days <= 7;
+              })
               .slice(0, 5)
-              .map((d) => (
-                <div
-                  key={d.id}
-                  className={cn(
-                    "clay-card-soft p-3 border-2",
-                    urgencyBg[d.urgency]
-                  )}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">
-                        {d.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {d.caseCode}
-                      </p>
+              .map((h) => {
+                const urgency = getUrgencyForDueDate(h.session_date);
+                return (
+                  <div
+                    key={h.id}
+                    className={cn(
+                      "clay-card-soft p-3 border-2",
+                      urgencyBg[urgency]
+                    )}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {h.case?.case_code ?? "—"} — {h.case?.client?.full_name ?? "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {h.session_type}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          "clay-badge text-[10px] font-bold px-2 py-1 shrink-0",
+                          urgency === "critical"
+                            ? "bg-urgency-critical/10 text-urgency-critical"
+                            : urgency === "high"
+                            ? "bg-urgency-high/10 text-urgency-high"
+                            : "bg-urgency-normal/10 text-urgency-normal"
+                        )}
+                      >
+                        {urgency === "critical"
+                          ? "حرج"
+                          : urgency === "high"
+                          ? "مرتفع"
+                          : "عادي"}
+                      </span>
                     </div>
-                    <span
-                      className={cn(
-                        "clay-badge text-[10px] font-bold px-2 py-1 shrink-0",
-                        statusColors[d.urgency === "critical" ? "حرج" : d.urgency === "high" ? "مرتفع" : "عادي"]
-                      )}
-                    >
-                      {d.urgency === "critical"
-                        ? "حرج"
-                        : d.urgency === "high"
-                        ? "مرتفع"
-                        : "عادي"}
-                    </span>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        الموعد: {h.session_date}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Clock className="w-3 h-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">
-                      الموعد النهائي: {d.dueDate}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
           </div>
         </div>
       </div>

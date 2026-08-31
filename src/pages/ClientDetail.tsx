@@ -3,20 +3,35 @@ import {
   ArrowRight,
   Phone,
   Mail,
-  MapPin,
   CreditCard,
-  Briefcase,
   FolderOpen,
-  Calendar,
   Edit,
+  Loader2,
 } from "lucide-react";
-import { mockClients, mockCases } from "@/data/mock";
+import { useClient } from "@/hooks/useSupabaseData";
 import { cn } from "@/lib/utils";
 
 export default function ClientDetail() {
   const { clientCode } = useParams();
-  const client = mockClients.find((c) => c.clientCode === clientCode) || mockClients[0];
-  const clientCases = mockCases.filter((c) => c.clientCode === client.clientCode);
+  const { data: client, loading, error } = useClient(clientCode ?? "");
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error || !client) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-sm text-red-500">خطأ في تحميل البيانات: {error ?? "لم يتم العثور على العميل"}</p>
+      </div>
+    );
+  }
+
+  const clientCases = client.cases ?? [];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -26,7 +41,7 @@ export default function ClientDetail() {
           العملاء
         </Link>
         <ArrowRight className="w-3 h-3" />
-        <span className="text-foreground font-medium">{client.name}</span>
+        <span className="text-foreground font-medium">{client.full_name}</span>
       </div>
 
       {/* Profile Card */}
@@ -34,18 +49,18 @@ export default function ClientDetail() {
         <div className="flex flex-col md:flex-row md:items-center gap-6">
           {/* Avatar */}
           <div className="w-20 h-20 rounded-3xl bg-clay-teal/15 flex items-center justify-center shrink-0">
-            <span className="text-3xl font-bold text-clay-teal">{client.name.charAt(0)}</span>
+            <span className="text-3xl font-bold text-clay-teal">{client.full_name.charAt(0)}</span>
           </div>
 
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-xl font-bold text-foreground">{client.name}</h1>
+              <h1 className="text-xl font-bold text-foreground">{client.full_name}</h1>
               <span className="font-mono text-xs font-semibold text-clay-blue bg-clay-blue/10 px-2 py-0.5 rounded-lg">
-                {client.clientCode}
+                {client.client_code}
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              {client.occupation} — {client.nationality}
+              مسجل منذ {client.created_at.split("T")[0]}
             </p>
           </div>
 
@@ -58,12 +73,9 @@ export default function ClientDetail() {
         {/* Contact Info Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
           {[
-            { icon: CreditCard, label: "رقم الهوية", value: client.nationalId },
-            { icon: Phone, label: "الهاتف", value: client.phone, dir: "ltr" },
-            { icon: Mail, label: "البريد الإلكتروني", value: client.email, dir: "ltr" },
-            { icon: MapPin, label: "العنوان", value: client.address },
-            { icon: Briefcase, label: "المهنة", value: client.occupation },
-            { icon: Calendar, label: "تاريخ الانضمام", value: client.joinDate },
+            { icon: CreditCard, label: "رقم الهوية", value: client.national_id },
+            { icon: Phone, label: "الهاتف", value: client.phone ?? "—" },
+            { icon: Mail, label: "البريد الإلكتروني", value: client.email ?? "—" },
           ].map((info) => {
             const Icon = info.icon;
             return (
@@ -73,10 +85,7 @@ export default function ClientDetail() {
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
                     {info.label}
                   </p>
-                  <p
-                    className="text-sm font-medium text-foreground"
-                    dir={info.dir}
-                  >
+                  <p className="text-sm font-medium text-foreground">
                     {info.value}
                   </p>
                 </div>
@@ -97,14 +106,10 @@ export default function ClientDetail() {
           {clientCases.map((c) => (
             <Link
               key={c.id}
-              to={`/app/cases/${c.caseCode}`}
+              to={`/app/cases/${c.case_code}`}
               className={cn(
                 "clay-card-soft p-4 flex items-start gap-4 hover:scale-[1.005] transition-transform block",
-                c.priority === "حرج"
-                  ? "urgency-border-critical"
-                  : c.priority === "مرتفع"
-                  ? "urgency-border-high"
-                  : "urgency-border-normal"
+                "urgency-border-high"
               )}
             >
               <div className="p-2.5 rounded-2xl bg-clay-blue/10 shrink-0">
@@ -113,23 +118,16 @@ export default function ClientDetail() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-mono text-xs font-semibold text-clay-blue">
-                    {c.caseCode}
+                    {c.case_code}
                   </span>
-                  <span
-                    className={cn(
-                      "clay-badge text-[10px] font-bold px-2 py-0.5",
-                      c.status === "活跃"
-                        ? "bg-urgency-normal/10 text-urgency-normal"
-                        : "bg-urgency-high/10 text-urgency-high"
-                    )}
-                  >
-                    {c.status}
+                  <span className="clay-badge text-[10px] font-bold px-2 py-0.5 bg-clay-blue/10 text-clay-blue">
+                    {c.procedural_status ?? "أخرى"}
                   </span>
                 </div>
-                <p className="text-sm font-semibold text-foreground">{c.title}</p>
+                <p className="text-sm font-semibold text-foreground">{c.case_no}</p>
                 <div className="flex items-center gap-4 mt-1.5">
-                  <span className="text-xs text-muted-foreground">📅 {c.filingDate}</span>
-                  <span className="text-xs text-muted-foreground">⚖ {c.court}</span>
+                  <span className="text-xs text-muted-foreground">📅 {c.filing_date}</span>
+                  <span className="text-xs text-muted-foreground">⚖ {c.court_name}</span>
                 </div>
               </div>
             </Link>

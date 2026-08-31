@@ -4,9 +4,12 @@ import {
   Clock,
   CheckCircle,
   Filter,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockDeadlines, type UrgencyLevel } from "@/data/mock";
+import { useUpcomingHearings } from "@/hooks/useSupabaseData";
+
+type UrgencyLevel = "critical" | "high" | "normal";
 
 const urgencyConfig: Record<UrgencyLevel, { label: string; color: string; bgColor: string; borderColor: string }> = {
   critical: {
@@ -30,40 +33,71 @@ const urgencyConfig: Record<UrgencyLevel, { label: string; color: string; bgColo
 };
 
 function daysUntil(dateStr: string): number {
-  const now = new Date("2026-08-30");
+  const now = new Date();
   const target = new Date(dateStr);
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+function getUrgency(days: number): UrgencyLevel {
+  if (days <= 3) return "critical";
+  if (days <= 7) return "high";
+  return "normal";
+}
+
 export default function Deadlines() {
+  const { data: hearings, loading } = useUpcomingHearings();
   const [filterUrgency, setFilterUrgency] = useState<UrgencyLevel | "all">("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const deadlines = useMemo(() => {
-    let result = [...mockDeadlines];
+    if (!hearings) return [];
+    let result = hearings.map((h) => {
+      const days = daysUntil(h.session_date);
+      return {
+        id: h.id,
+        caseCode: h.case?.case_code ?? "—",
+        clientName: h.case?.client?.full_name ?? "—",
+        description: h.required_action ?? h.session_type,
+        dueDate: h.session_date,
+        type: h.session_type,
+        days,
+        urgency: getUrgency(days),
+        completed: days < 0,
+      };
+    });
+
     if (filterUrgency !== "all") {
-      result = result.filter((d) => d.urgency === filterUrgency);
+      result = result.filter((d) => d.urgency === filterUrgency && !d.completed);
     }
-    if (filterStatus !== "all") {
-      result = result.filter((d) => d.status === filterStatus);
-    }
-    // Sort by urgency then by days until
+
     const urgencyOrder = { critical: 0, high: 1, normal: 2 };
     result.sort((a, b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1;
       if (urgencyOrder[a.urgency] !== urgencyOrder[b.urgency]) {
         return urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
       }
-      return daysUntil(a.dueDate) - daysUntil(b.dueDate);
+      return a.days - b.days;
     });
     return result;
-  }, [filterUrgency, filterStatus]);
+  }, [hearings, filterUrgency]);
 
-  const stats = {
-    critical: mockDeadlines.filter((d) => d.urgency === "critical" && d.status !== "مكتمل").length,
-    high: mockDeadlines.filter((d) => d.urgency === "high" && d.status !== "مكتمل").length,
-    normal: mockDeadlines.filter((d) => d.urgency === "normal" && d.status !== "مكتمل").length,
-    completed: mockDeadlines.filter((d) => d.status === "مكتمل").length,
-  };
+  const stats = useMemo(() => {
+    if (!hearings) return { critical: 0, high: 0, normal: 0, completed: 0 };
+    const active = hearings.filter((h) => daysUntil(h.session_date) >= 0);
+    return {
+      critical: active.filter((h) => daysUntil(h.session_date) <= 3).length,
+      high: active.filter((h) => daysUntil(h.session_date) <= 7 && daysUntil(h.session_date) > 3).length,
+      normal: active.filter((h) => daysUntil(h.session_date) > 7).length,
+      completed: hearings.filter((h) => daysUntil(h.session_date) < 0).length,
+    };
+  }, [hearings]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -101,7 +135,7 @@ export default function Deadlines() {
         <div className="clay-card p-4">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-4 h-4 text-clay-teal" />
-            <span className="text-xs font-semibold text-muted-foreground">مكتمل</span>
+            <span className="text-xs font-semibold text-muted-foreground">منتهي</span>
           </div>
           <p className="text-2xl font-bold text-clay-teal">{stats.completed}</p>
         </div>
@@ -123,108 +157,77 @@ export default function Deadlines() {
           <option value="high">مرتفع</option>
           <option value="normal">عادي</option>
         </select>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="clay-input px-3 py-2 text-sm bg-background min-w-[140px]"
-        >
-          <option value="all">جميع الحالات</option>
-          <option value="معلق">معلق</option>
-          <option value="مكتمل">مكتمل</option>
-          <option value="متأخر">متأخر</option>
-        </select>
       </div>
 
       {/* Deadlines List */}
       <div className="space-y-3">
         {deadlines.map((d) => {
           const config = urgencyConfig[d.urgency];
-          const days = daysUntil(d.dueDate);
           const daysLabel =
-            d.status === "مكتمل"
-              ? "مكتمل"
-              : days < 0
-              ? `متأخر ${Math.abs(days)} يوم`
-              : days === 0
+            d.completed
+              ? "منتهي"
+              : d.days < 0
+              ? `متأخر ${Math.abs(d.days)} يوم`
+              : d.days === 0
               ? "اليوم!"
-              : days === 1
+              : d.days === 1
               ? "غدًا"
-              : `${days} يوم متبقي`;
+              : `${d.days} يوم متبقي`;
 
           return (
             <div
               key={d.id}
               className={cn(
                 "clay-card p-5 border-2 transition-all hover:scale-[1.002]",
-                config.borderColor
+                d.completed ? "border-border/50 opacity-60" : config.borderColor
               )}
             >
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                {/* Urgency indicator */}
-                <div className={cn("p-3 rounded-2xl shrink-0", config.bgColor)}>
-                  <AlertTriangle className={cn("w-5 h-5", config.color)} />
-                </div>
+                {/* Urgency dot */}
+                {!d.completed && (
+                  <div className={cn("w-3 h-3 rounded-full shrink-0", config.bgColor)} />
+                )}
 
-                {/* Content */}
+                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-bold text-foreground">
-                      {d.description}
-                    </h3>
-                    <span className={cn("clay-badge text-[10px] font-bold px-2 py-0.5", config.bgColor, config.color)}>
-                      {config.label}
+                    <span className="font-mono text-xs font-semibold text-clay-blue">
+                      {d.caseCode}
+                    </span>
+                    <span className="text-xs text-muted-foreground">— {d.clientName}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">{d.description}</p>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <span className="text-xs text-muted-foreground">📅 {d.dueDate}</span>
+                    <span className="clay-badge text-[10px] bg-card text-muted-foreground px-2 py-0.5">
+                      {d.type}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {d.caseCode} — النوع: {d.type}
-                  </p>
                 </div>
 
-                {/* Due date + status */}
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className="text-end">
-                    <p className="text-xs text-muted-foreground">الموعد النهائي</p>
-                    <p className="text-sm font-semibold text-foreground">{d.dueDate}</p>
-                  </div>
+                {/* Days remaining */}
+                <div className="flex items-center gap-3 shrink-0">
                   <span
                     className={cn(
-                      "clay-badge text-xs font-bold px-3 py-1.5 min-w-[80px] text-center",
-                      d.status === "مكتمل"
+                      "clay-badge text-xs font-bold px-3 py-1.5",
+                      d.completed
                         ? "bg-urgency-normal/10 text-urgency-normal"
-                        : days <= 3
-                        ? "bg-urgency-critical/10 text-urgency-critical animate-pulse-glow"
-                        : days <= 7
-                        ? "bg-urgency-high/10 text-urgency-high"
-                        : "bg-urgency-normal/10 text-urgency-normal"
+                        : config.bgColor + " " + config.color
                     )}
                   >
                     {daysLabel}
                   </span>
-                </div>
-              </div>
-
-              {/* Progress bar */}
-              <div className="mt-3 clay-inset rounded-full h-2 overflow-hidden">
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all",
-                    d.status === "مكتمل"
-                      ? "bg-urgency-normal"
-                      : days <= 3
-                      ? "bg-urgency-critical"
-                      : days <= 7
-                      ? "bg-urgency-high"
-                      : "bg-urgency-normal"
+                  {!d.completed && (
+                    <span
+                      className={cn(
+                        "clay-badge text-[10px] font-bold px-2 py-1",
+                        config.bgColor + " " + config.color
+                      )}
+                    >
+                      {config.label}
+                    </span>
                   )}
-                  style={{
-                    width:
-                      d.status === "مكتمل"
-                        ? "100%"
-                        : days <= 0
-                        ? "100%"
-                        : `${Math.max(5, 100 - (days / 30) * 100)}%`,
-                  }}
-                />
+                </div>
               </div>
             </div>
           );
