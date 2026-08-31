@@ -3,7 +3,6 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { MobileQuickActions } from "./MobileQuickActions";
 import { useState, useEffect } from "react";
-import { PanelRightOpen, PanelRightClose } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function AppLayout() {

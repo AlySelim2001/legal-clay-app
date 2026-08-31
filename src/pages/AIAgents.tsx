@@ -6,13 +6,10 @@ import {
   Scale,
   Loader2,
   AlertTriangle,
-  BookOpen,
-  Phone,
   Briefcase,
   Heart,
   Building2,
   HardHat,
-  MessageCircle,
   ChevronLeft,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
