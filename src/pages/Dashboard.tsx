@@ -4,7 +4,6 @@ import {
   FolderOpen,
   Users,
   AlertTriangle,
-  Clock,
   Loader2,
   Shield,
   Calendar,
@@ -41,14 +40,7 @@ const monthlyData = [
   { name: "يونيو", القضايا: 4, المنتهية: 1 },
 ];
 
-function getUrgencyForDate(dateStr: string): "critical" | "high" | "normal" {
-  const now = new Date();
-  const target = new Date(dateStr);
-  const diffDays = Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays <= 3) return "critical";
-  if (diffDays <= 7) return "high";
-  return "normal";
-}
+
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -65,9 +57,11 @@ export default function Dashboard() {
 
   // Initial fetch + auto-refresh every 60 seconds
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     fetchStats();
     const interval = setInterval(fetchStats, 60_000);
     return () => clearInterval(interval);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [fetchStats]);
 
   if (statsLoading || hearingsLoading) {

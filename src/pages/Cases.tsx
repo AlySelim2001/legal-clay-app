@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router";
-import { Search, SortAsc, SortDesc, Plus, Loader2, FileSpreadsheet, Upload } from "lucide-react";
+import { Search, SortAsc, SortDesc, Plus, Loader2, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCases, useAllClients } from "@/hooks/useSupabaseData";
 import { exportCases } from "@/lib/open-source/excel-bridge";

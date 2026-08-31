@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Network, Loader2, AlertTriangle, FolderOpen } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { cn } from "@/lib/utils";
 
 interface EntityLink {
   source_case_code: string;

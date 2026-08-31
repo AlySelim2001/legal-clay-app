@@ -69,13 +69,13 @@ export function BackupPanel() {
         return;
       }
 
-      const result = await restoreFromBackup(text, (stage, _progress) => {
+      const result = await restoreFromBackup(text, (stage) => {
         setRestoreProgress(stage);
       });
 
       setRestoreResult(result);
-    } catch (err) {
-      setFileError(`خطأ في الاستعادة: ${err instanceof Error ? err.message : "خطأ"}`);
+    } catch (restoreErr) {
+      setFileError(`خطأ في الاستعادة: ${restoreErr instanceof Error ? restoreErr.message : "خطأ"}`);
     } finally {
       setRestoring(false);
       // Reset file input
@@ -89,7 +89,7 @@ export function BackupPanel() {
     try {
       const result = await sanitizeStorage();
       setSanitizeResult(result);
-    } catch (err) {
+    } catch {
       setSanitizeResult({
         cleared: [],
         preserved: [],

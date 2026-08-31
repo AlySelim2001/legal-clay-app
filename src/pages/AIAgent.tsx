@@ -54,7 +54,8 @@ export default function AIAgent() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { data: legalDeadlines } = useLegalDeadlines();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { data: _legalDeadlines } = useLegalDeadlines();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

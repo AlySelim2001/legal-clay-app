@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Clock, User, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { cn } from "@/lib/utils";
 
 interface AuditEntry {
   id: string;

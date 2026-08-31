@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import {
   Search,
   FileText,
@@ -9,7 +9,6 @@ import {
   Loader2,
   ScanLine,
   CheckCircle,
-  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAllAttachments } from "@/hooks/useSupabaseData";

@@ -12,7 +12,6 @@ import {
   Loader2,
   Clock,
   Upload,
-  Download,
   FileDown,
   ScanLine,
   History,
@@ -50,12 +49,6 @@ function getUrgencyStyle(urgency: string) {
   return "bg-urgency-normal/10 text-urgency-normal border-urgency-normal/20";
 }
 
-function getUrgencyLabel(urgency: string) {
-  if (urgency === "critical") return "حرج";
-  if (urgency === "high") return "مرتفع";
-  return "عادي";
-}
-
 export default function CaseDetail() {
   const { caseCode } = useParams();
   const { data: caseData, loading, error } = useCase(caseCode ?? "");
@@ -69,14 +62,19 @@ export default function CaseDetail() {
 
   // Fetch appeal deadlines when procedural tab is active
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (activeTab === "deadlines" || activeTab === "procedural") {
+      let cancelled = false;
       setLoadingAppeals(true);
       supabase.rpc("get_appeal_deadlines", { p_case_id: caseData?.id })
         .then(({ data, error: rpcError }) => {
+          if (cancelled) return;
           if (!rpcError && data) setAppealDeadlines(data as AppealDeadline[]);
           setLoadingAppeals(false);
         });
+      return () => { cancelled = true; };
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [activeTab, caseData?.id]);
 
   if (loading) {

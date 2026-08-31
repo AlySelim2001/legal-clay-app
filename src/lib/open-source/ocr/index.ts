@@ -32,13 +32,13 @@ const patterns = {
   // Case numbers: various formats like "ج/12345/2026" or "12345/2026"
   caseNo: /\b(?:ج|م|ع|ق)\/?\s*\d{1,5}\/?\s*\d{4}\b/gi,
   // Bail amounts: "الكفالة" followed by numbers
-  bailAmount: /(?:الكفالة|كفالة|مبلغ)\s*[:：]?\s*(\d[\d,\.]*)\s*(?:ج\.?م|جنيه|EGP)?/gi,
+  bailAmount: /(?:الكفالة|كفالة|مبلغ)\s*[:：]?\s*(\d[\d,.]*)\s*(?:ج.م|جنيه|EGP)?/gi,
   // Judge names: "القاضي" or "فضيلة" followed by name
   judgeName: /(?:القاضي|فضيلة السيد|المستشار|المحامى)\s+(.+)/gi,
   // Court names
   courtName: /(?:محكمة|نيابة|قسم)\s+(?:ال\w+\s*)+/gi,
   // Dates in DD/MM/YYYY or DD-MM-YYYY format
-  date: /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/g,
+  date: /\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/g,
 };
 
 // ---- Field Extraction ----
@@ -54,7 +54,7 @@ export function extractFields(text: string): ExtractedFields {
   // Extract bail amount as number
   let bailAmount: number | null = null;
   if (bailMatch?.[0]) {
-    const amountStr = bailMatch[0].replace(/[^\d,\.]/g, "").replace(/,/g, "");
+    const amountStr = bailMatch[0].replace(/[^\d,.]/g, "").replace(/,/g, "");
     const parsed = parseFloat(amountStr);
     if (!isNaN(parsed)) bailAmount = parsed;
   }
@@ -62,7 +62,7 @@ export function extractFields(text: string): ExtractedFields {
   // Parse date (first found)
   let filingDate: string | null = null;
   if (dateMatch?.[0]) {
-    const [, day, month, year] = dateMatch[0].match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/) ?? [];
+    const [, day, month, year] = dateMatch[0].match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/) ?? [];
     if (day && month && year) {
       filingDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
     }

@@ -5,7 +5,7 @@
 // ============================================================
 
 import { openDB, type IDBPDatabase } from "idb";
-import type { OfflineStoreName, OfflineSyncConfig, CachedQuery } from "@/lib/open-source";
+import type { OfflineStoreName } from "@/lib/open-source";
 
 // ---- Database Constants ----
 

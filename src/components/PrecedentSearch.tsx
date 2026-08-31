@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, Scale, Loader2, Calendar, BookOpen } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { cn } from "@/lib/utils";
 import { useDefenses } from "@/hooks/useSupabaseData";
 
 interface Precedent {
@@ -40,12 +39,17 @@ export function PrecedentSearch() {
 
   // Initial load of all precedents
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    let cancelled = false;
     setLoading(true);
-    supabase.rpc("search_precedents", {})
-      .then(({ data, error }) => {
-        if (!error && data) setResults(data as Precedent[]);
-        setLoading(false);
-      });
+    void (async () => {
+      const { data, error } = await supabase.rpc("search_precedents", {});
+      if (cancelled) return;
+      if (!error && data) setResults(data as Precedent[]);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   return (

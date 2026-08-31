@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Scan, FileText, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Scan, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +23,7 @@ interface OCRScannerProps {
   onExtracted?: (data: ExtractedData) => void;
 }
 
-export function OCRScanner({ attachmentId, filePath, onExtracted }: OCRScannerProps) {
+export function OCRScanner({ attachmentId, onExtracted }: OCRScannerProps) {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [scanning, setScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

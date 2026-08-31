@@ -128,7 +128,6 @@ export async function generateCaseSummaryPDF(data: CasePDFData): Promise<Blob> {
 
   await loadArabicFont(doc);
 
-  const pageWidth = doc.internal.pageSize.getWidth();
   let y = PAGE_MARGIN;
 
   // Header
