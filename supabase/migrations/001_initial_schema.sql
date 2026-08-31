@@ -392,3 +392,121 @@ INSERT INTO public.legal_deadlines_reference (code, procedure_name, duration_val
   ('DL-06', 'مدة حبس المتهم احتياطيًا',          45,  'يوم',  'المادة 134 من قانون الإجراءات الجنائية', 'admin'),
   ('DL-07', 'مدة سماع الدعوى أمام محكمة النقض',  NULL, NULL, 'المادة 422 من قانون الإجراءات الجنائية', 'admin'),
   ('DL-08', 'مدة تقديم التظلم على قرار الاحتباس', 3,   'يوم',  'المادة 134 مكرر من قانون الإجراءات الجنائية', 'admin');
+
+-- ============================================================
+-- PL/pgSQL FUNCTIONS & TRIGGERS
+-- ============================================================
+
+-- Dynamic Deadline Calculator
+CREATE OR REPLACE FUNCTION public.compute_deadline(
+  start_date date,
+  deadline_code text
+)
+RETURNS date
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+  ref RECORD;
+BEGIN
+  SELECT duration_value, duration_unit INTO ref
+  FROM public.legal_deadlines_reference
+  WHERE code = deadline_code;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'deadline code % not found', deadline_code;
+  END IF;
+
+  IF ref.duration_value IS NULL THEN
+    RETURN NULL; -- open-ended, no fixed deadline
+  ELSIF ref.duration_unit = 'يوم' THEN
+    RETURN start_date + (ref.duration_value || ' days')::interval;
+  ELSIF ref.duration_unit = 'شهر' THEN
+    RETURN start_date + (ref.duration_value || ' months')::interval;
+  ELSIF ref.duration_unit = 'سنة' THEN
+    RETURN start_date + (ref.duration_value || ' years')::interval;
+  ELSE
+    RAISE EXCEPTION 'unknown duration unit: %', ref.duration_unit;
+  END IF;
+END;
+$$;
+
+COMMENT ON FUNCTION public.compute_deadline(date, text)
+  IS 'Computes a deadline date from a start_date using the legal_deadlines_reference table.';
+
+-- Helper: classify urgency based on days remaining
+CREATE OR REPLACE FUNCTION public.classify_urgency(
+  target_date date
+)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT CASE
+    WHEN target_date IS NULL           THEN 'normal'
+    WHEN target_date - CURRENT_DATE <= 3 THEN 'critical'
+    WHEN target_date - CURRENT_DATE <= 7 THEN 'high'
+    ELSE 'normal'
+  END;
+$$;
+
+COMMENT ON FUNCTION public.classify_urgency(date)
+  IS 'Returns urgency level: critical (<=3 days), high (<=7 days), normal (>7 days).';
+
+-- Auto-update updated_at on row changes
+CREATE OR REPLACE FUNCTION public.update_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_cases_updated_at
+  BEFORE UPDATE ON public.cases
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at();
+
+CREATE TRIGGER trg_procedural_stages_updated_at
+  BEFORE UPDATE ON public.procedural_stages
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at();
+
+-- Auto-create a procedural_stages row when a case is inserted
+CREATE OR REPLACE FUNCTION public.auto_create_procedural_stage()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  INSERT INTO public.procedural_stages (case_id)
+  VALUES (NEW.id);
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_cases_auto_stage
+  AFTER INSERT ON public.cases
+  FOR EACH ROW
+  EXECUTE FUNCTION public.auto_create_procedural_stage();
+
+-- View: cases with computed days until next hearing
+CREATE OR REPLACE VIEW public.cases_with_deadlines AS
+SELECT
+  c.*,
+  cl.full_name AS client_name,
+  cl.client_code,
+  s.session_date AS next_hearing_date,
+  (s.session_date - CURRENT_DATE) AS days_until_hearing,
+  public.classify_urgency(s.session_date) AS hearing_urgency
+FROM public.cases c
+LEFT JOIN public.clients cl ON cl.id = c.client_id
+LEFT JOIN LATERAL (
+  SELECT session_date
+  FROM public.schedule
+  WHERE case_id = c.id
+    AND session_date >= CURRENT_DATE
+  ORDER BY session_date ASC
+  LIMIT 1
+) s ON true;
