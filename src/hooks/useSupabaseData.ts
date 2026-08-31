@@ -418,3 +418,7 @@ export function useDashboardStats() {
 
   return { data, error, loading };
 }
+
+// Aliases for convenience
+export const useAllClients = useClients;
+export const useAllCases = useCases;

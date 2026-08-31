@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router";
-import { Search, SortAsc, SortDesc, Plus, Loader2 } from "lucide-react";
+import { Search, SortAsc, SortDesc, Plus, Loader2, FileSpreadsheet, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCases } from "@/hooks/useSupabaseData";
+import { useCases, useAllClients } from "@/hooks/useSupabaseData";
+import { exportCases } from "@/lib/open-source/excel-bridge";
 import type { ProceduralStatus } from "@/types/database";
 
 function getPriorityForStatus(status: ProceduralStatus | null): "حرج" | "مرتفع" | "عادي" {
@@ -29,6 +30,7 @@ const urgencyBorder: Record<string, string> = {
 
 export default function Cases() {
   const { data: cases, loading, error } = useCases();
+  const { data: allClients } = useAllClients();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProceduralStatus | "الكل">("الكل");
   const [priorityFilter, setPriorityFilter] = useState<"حرج" | "مرتفع" | "عادي" | "الكل">("الكل");
@@ -89,10 +91,23 @@ export default function Cases() {
             إدارة ومتابعة جميع القضايا الجنائية
           </p>
         </div>
-        <button className="clay-button flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl">
-          <Plus className="w-4 h-4" />
-          قضية جديدة
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              if (cases && cases.length > 0) {
+                exportCases(cases, allClients ?? []);
+              }
+            }}
+            className="clay-button flex items-center gap-2 px-4 py-2.5 bg-clay-teal/10 text-clay-teal text-sm font-semibold rounded-xl hover:bg-clay-teal/20"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            تصدير Excel
+          </button>
+          <button className="clay-button flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl">
+            <Plus className="w-4 h-4" />
+            قضية جديدة
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

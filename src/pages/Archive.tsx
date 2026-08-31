@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Search,
   FileText,
@@ -7,9 +7,14 @@ import {
   Trash2,
   Upload,
   Loader2,
+  ScanLine,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAllAttachments } from "@/hooks/useSupabaseData";
+import { processDocument } from "@/lib/open-source/ocr";
+import type { OCRProcessingLog } from "@/lib/open-source";
 
 const typeColors: Record<string, string> = {
   "صورة محضر الجلسة": "bg-clay-blue/10 text-clay-blue",
@@ -26,6 +31,10 @@ export default function Archive() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("الكل");
   const [caseFilter, setCaseFilter] = useState<string>("الكل");
+  const [ocrFiles, setOcrFiles] = useState<(File | Blob)[]>([]);
+  const [ocrResults, setOcrResults] = useState<OCRProcessingLog[]>([]);
+  const [ocrProcessing, setOcrProcessing] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState<string>("");
 
   const caseCodes = useMemo(() => {
     if (!documents) return ["الكل"];
@@ -85,10 +94,55 @@ export default function Archive() {
             إدارة وتخزين الوثائق والمرفقات
           </p>
         </div>
-        <button className="clay-button flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl">
-          <Upload className="w-4 h-4" />
-          رفع وثيقة
-        </button>
+        <div className="flex gap-2">
+          <label className="clay-button flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl cursor-pointer">
+            <Upload className="w-4 h-4" />
+            رفع وثيقة
+            <input
+              type="file"
+              multiple
+              accept="image/*,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []);
+                if (files.length > 0) setOcrFiles((prev) => [...prev, ...files]);
+              }}
+            />
+          </label>
+          {ocrFiles.length > 0 && (
+            <button
+              onClick={async () => {
+                setOcrProcessing(true);
+                setOcrResults([]);
+                const results: OCRProcessingLog[] = [];
+                for (let i = 0; i < ocrFiles.length; i++) {
+                  setOcrProgress(`جاري معالجة ${i + 1} من ${ocrFiles.length}...`);
+                  try {
+                    const result = await processDocument(ocrFiles[i], (p) => {
+                      setOcrProgress(`جاري معالجة ${i + 1} من ${ocrFiles.length}... ${(p * 100).toFixed(0)}%`);
+                    });
+                    results.push(result);
+                  } catch {
+                    // Skip failed files
+                  }
+                }
+                setOcrResults(results);
+                setOcrFiles([]);
+                setOcrProcessing(false);
+                setOcrProgress("");
+              }}
+              disabled={ocrProcessing}
+              className="clay-button flex items-center gap-2 px-4 py-2.5 bg-clay-purple/10 text-clay-purple text-sm font-semibold rounded-xl disabled:opacity-50"
+            >
+              {ocrProcessing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ScanLine className="w-4 h-4" />
+              )}
+              مسح OCR ({ocrFiles.length})
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
@@ -145,6 +199,74 @@ export default function Archive() {
           ))}
         </select>
       </div>
+
+      {/* OCR Processing Progress */}
+      {ocrProcessing && (
+        <div className="clay-card p-4">
+          <div className="flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin text-clay-purple" />
+            <span className="text-sm text-foreground font-medium">{ocrProgress}</span>
+          </div>
+        </div>
+      )}
+
+      {/* OCR Results */}
+      {ocrResults.length > 0 && (
+        <div className="clay-card p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <ScanLine className="w-4 h-4 text-clay-purple" />
+            نتائج المسح الضوئي ({ocrResults.length})
+          </h3>
+          {ocrResults.map((result, idx) => (
+            <div key={idx} className="clay-card-soft p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-4 h-4 text-urgency-normal" />
+                <span className="text-sm font-medium text-foreground">
+                  نتيجة #{idx + 1}
+                </span>
+                <span className="clay-badge text-[10px] bg-clay-blue/10 text-clay-blue px-2 py-0.5">
+                  ثقة: {result.confidenceScore.toFixed(1)}%
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                {result.extractedFields.nationalId && (
+                  <div>
+                    <span className="text-muted-foreground">رقم قومي:</span>
+                    <span className="font-medium text-foreground me-1">{result.extractedFields.nationalId}</span>
+                  </div>
+                )}
+                {result.extractedFields.caseNo && (
+                  <div>
+                    <span className="text-muted-foreground">رقم القضية:</span>
+                    <span className="font-medium text-foreground me-1">{result.extractedFields.caseNo}</span>
+                  </div>
+                )}
+                {result.extractedFields.bailAmount && (
+                  <div>
+                    <span className="text-muted-foreground">الكفالة:</span>
+                    <span className="font-medium text-foreground me-1">{result.extractedFields.bailAmount.toLocaleString("ar-EG")} ج.م</span>
+                  </div>
+                )}
+                {result.extractedFields.judgeName && (
+                  <div>
+                    <span className="text-muted-foreground">القاضي:</span>
+                    <span className="font-medium text-foreground me-1">{result.extractedFields.judgeName}</span>
+                  </div>
+                )}
+                {result.extractedFields.courtName && (
+                  <div>
+                    <span className="text-muted-foreground">المحكمة:</span>
+                    <span className="font-medium text-foreground me-1">{result.extractedFields.courtName}</span>
+                  </div>
+                )}
+              </div>
+              <pre className="mt-2 text-[10px] text-muted-foreground max-h-20 overflow-y-auto p-2 clay-inset rounded-lg">
+                {result.extractedText.slice(0, 300)}
+              </pre>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Documents Table */}
       <div className="clay-card overflow-hidden">

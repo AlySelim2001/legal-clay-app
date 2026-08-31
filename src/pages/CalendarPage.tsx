@@ -4,70 +4,31 @@ import {
   Clock,
   MapPin,
   Gavel,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAllSchedules } from "@/hooks/useSupabaseData";
-
-const daysOfWeek = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-
-function generateMonth(year: number, month: number) {
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  return cells;
-}
+import { useAllSchedules, useAllCases, useAllClients } from "@/hooks/useSupabaseData";
+import {
+  FullCalendar,
+  dayGridPlugin,
+  timeGridPlugin,
+  schedulesToEvents,
+  getCalendarOptions,
+  type CalendarEvent,
+} from "@/lib/open-source/calendar-engine";
 
 export default function CalendarPage() {
   const { data: allSchedules, loading } = useAllSchedules();
-  const [year, setYear] = useState(2026);
-  const [month, setMonth] = useState(8); // September (0-indexed)
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const { data: allCases } = useAllCases();
+  const { data: allClients } = useAllClients();
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
-  const cells = useMemo(() => generateMonth(year, month), [year, month]);
-  const monthName = new Date(year, month).toLocaleDateString("ar-EG", {
-    year: "numeric",
-    month: "long",
-  });
+  const events = useMemo(
+    () => schedulesToEvents(allSchedules ?? [], allCases ?? [], allClients ?? []),
+    [allSchedules, allCases, allClients]
+  );
 
-  // Map hearings to dates
-  const hearingsByDate = useMemo(() => {
-    const map: Record<string, typeof allSchedules> = {};
-    (allSchedules ?? []).forEach((h) => {
-      const key = h.session_date;
-      if (!map[key]) map[key] = [];
-      map[key]!.push(h);
-    });
-    return map;
-  }, [allSchedules]);
-
-  const prevMonth = () => {
-    if (month === 0) {
-      setMonth(11);
-      setYear(year - 1);
-    } else {
-      setMonth(month - 1);
-    }
-  };
-
-  const nextMonth = () => {
-    if (month === 11) {
-      setMonth(0);
-      setYear(year + 1);
-    } else {
-      setMonth(month + 1);
-    }
-  };
-
-  const selectedDate = selectedDay
-    ? `${year}-${String(month + 1).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`
-    : null;
-
-  const selectedHearings = selectedDate ? (hearingsByDate[selectedDate] ?? []) : [];
+  const calendarOptions = useMemo(() => getCalendarOptions(events), [events]);
 
   if (loading) {
     return (
@@ -88,138 +49,213 @@ export default function CalendarPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar Grid */}
-        <div className="lg:col-span-2 clay-card p-6">
-          {/* Month Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <button onClick={prevMonth} className="clay-button p-2 bg-card rounded-xl">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <h2 className="text-lg font-bold text-foreground">{monthName}</h2>
-            <button onClick={nextMonth} className="clay-button p-2 bg-card rounded-xl">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {daysOfWeek.map((day) => (
-              <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-2">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Cells */}
-          <div className="grid grid-cols-7 gap-1">
-            {cells.map((day, idx) => {
-              if (day === null) return <div key={`empty-${idx}`} />;
-
-              const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-              const dayHearings = hearingsByDate[dateKey] ?? [];
-              const isSelected = selectedDay === day;
-
-              return (
-                <button
-                  key={day}
-                  onClick={() => setSelectedDay(day)}
-                  className={cn(
-                    "relative aspect-square flex flex-col items-center justify-center rounded-xl text-sm transition-all",
-                    isSelected
-                      ? "bg-clay-blue text-white font-bold shadow-lg"
-                      : dayHearings.length > 0
-                      ? "bg-clay-purple/10 text-foreground font-medium hover:bg-clay-purple/20"
-                      : "text-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <span>{day}</span>
-                  {dayHearings.length > 0 && !isSelected && (
-                    <div className="flex gap-0.5 mt-0.5">
-                      {dayHearings.slice(0, 3).map((_, i) => (
-                        <span key={i} className="w-1 h-1 rounded-full bg-clay-purple" />
-                      ))}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+        {/* FullCalendar */}
+        <div className="lg:col-span-2 clay-card p-6 overflow-hidden">
+          <style>{`
+            .fc {
+              direction: rtl;
+              font-family: 'Noto Sans Arabic', 'Inter', sans-serif;
+            }
+            .fc .fc-toolbar-title {
+              font-size: 1.2rem;
+              font-weight: 700;
+            }
+            .fc .fc-button {
+              background: var(--clay-blue, #6C5CE7);
+              border: none;
+              border-radius: 0.75rem;
+              padding: 0.4rem 0.8rem;
+              font-size: 0.75rem;
+              font-weight: 600;
+              box-shadow: 2px 2px 6px rgba(0,0,0,0.08), -2px -2px 6px rgba(255,255,255,0.8);
+            }
+            .fc .fc-button:hover {
+              opacity: 0.9;
+              transform: translateY(-1px);
+            }
+            .fc .fc-button-active {
+              background: var(--clay-purple, #553C9A);
+            }
+            .fc .fc-button-primary:not(:disabled).fc-button-active,
+            .fc .fc-button-primary:not(:disabled):active {
+              background: var(--clay-purple, #553C9A);
+            }
+            .fc td, .fc th {
+              border: 1px solid var(--border, rgba(0,0,0,0.08));
+              border-radius: 0.5rem;
+            }
+            .fc .fc-daygrid-day {
+              min-height: 80px;
+            }
+            .fc .fc-daygrid-day-number {
+              padding: 4px 8px;
+              font-size: 0.85rem;
+              font-weight: 500;
+            }
+            .fc .fc-event {
+              border-radius: 0.5rem;
+              padding: 2px 6px;
+              font-size: 0.7rem;
+              font-weight: 500;
+              margin: 1px 2px;
+            }
+            .fc .fc-col-header-cell {
+              padding: 8px 4px;
+              font-weight: 600;
+              font-size: 0.8rem;
+              color: var(--muted-foreground, #636E72);
+            }
+            .fc .fc-scrollgrid {
+              border: 1px solid var(--border, rgba(0,0,0,0.08));
+              border-radius: 1rem;
+              overflow: hidden;
+            }
+            .fc .fc-scrollgrid td {
+              border-color: var(--border, rgba(0,0,0,0.08));
+            }
+            .fc .fc-daygrid-day.fc-day-today {
+              background: rgba(108, 92, 231, 0.05);
+            }
+            .fc .fc-more-link {
+              background: rgba(108, 92, 231, 0.1);
+              border-radius: 0.5rem;
+              padding: 2px 8px;
+              font-size: 0.7rem;
+              font-weight: 600;
+              color: var(--clay-purple, #553C9A);
+            }
+          `}</style>
+          <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin]}
+            initialView="dayGridMonth"
+            locale="ar-eg"
+            direction="rtl"
+            events={events.map((e) => ({
+              id: e.id,
+              title: e.title,
+              start: e.start,
+              end: e.end,
+              allDay: e.allDay,
+              color: e.color,
+              extendedProps: e.extendedProps,
+            }))}
+            headerToolbar={calendarOptions.headerToolbar}
+            firstDay={calendarOptions.firstDay}
+            height="auto"
+            editable={false}
+            selectable={true}
+            dayMaxEvents={3}
+            eventDisplay="block"
+            eventClick={(info) => {
+              const event = events.find((e) => e.id === info.event.id);
+              if (event) setSelectedEvent(event);
+            }}
+          />
         </div>
 
-        {/* Selected Day Panel */}
+        {/* Event Detail Panel */}
         <div className="clay-card p-6">
           <h3 className="text-base font-bold text-foreground mb-4">
-            {selectedDay
-              ? `جلسات ${selectedDay} / ${month + 1}`
-              : "اختر يومًا لعرض الجلسات"}
+            {selectedEvent
+              ? `تفاصيل الجلسة`
+              : "اختر جلسة لعرض التفاصيل"}
           </h3>
 
-          {selectedHearings.length > 0 ? (
-            <div className="space-y-3">
-              {selectedHearings.map((h) => (
-                <div key={h.id} className="clay-card-soft p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 rounded-xl bg-clay-blue/10">
-                      <Gavel className="w-4 h-4 text-clay-blue" />
-                    </div>
-                    <span className="clay-badge text-[10px] font-bold bg-clay-purple/10 text-clay-purple px-2 py-0.5">
-                      {h.session_type}
-                    </span>
+          {selectedEvent ? (
+            <div className="space-y-4">
+              <div className="clay-card-soft p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-2xl bg-clay-blue/10">
+                    <Gavel className="w-5 h-5 text-clay-blue" />
                   </div>
-                  <p className="text-sm font-semibold text-foreground mb-1">
-                    {h.case?.case_code ?? "—"} — {h.case?.client?.full_name ?? "—"}
-                  </p>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      <span>{h.session_date}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <MapPin className="w-3 h-3" />
-                      <span>{h.case?.court_name ?? "—"}</span>
-                    </div>
-                  </div>
-                  {h.required_action && (
-                    <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                      {h.required_action}
-                    </p>
-                  )}
+                  <span className="clay-badge text-[10px] font-bold bg-clay-purple/10 text-clay-purple px-2.5 py-1">
+                    {selectedEvent.extendedProps.sessionType}
+                  </span>
                 </div>
-              ))}
-            </div>
-          ) : selectedDay ? (
-            <div className="text-center py-8">
-              <Calendar className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">لا توجد جلسات في هذا اليوم</p>
+                <h4 className="text-sm font-bold text-foreground mb-1">
+                  {selectedEvent.extendedProps.caseNo || "قضية"}
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  {selectedEvent.extendedProps.clientName || "—"}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 text-sm">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-foreground">{selectedEvent.start}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <MapPin className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-foreground">{selectedEvent.extendedProps.courtName || "—"}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-foreground">{selectedEvent.extendedProps.caseCode || "—"}</span>
+                </div>
+              </div>
+
+              {selectedEvent.extendedProps.requiredAction && (
+                <div className="clay-inset p-3 rounded-xl">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">الإجراء المطلوب</p>
+                  <p className="text-sm text-foreground">{selectedEvent.extendedProps.requiredAction}</p>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                {selectedEvent.extendedProps.caseCode && (
+                  <a
+                    href={`/app/cases/${selectedEvent.extendedProps.caseCode}`}
+                    className="clay-button flex items-center gap-2 px-3 py-2 bg-clay-blue/10 text-clay-blue text-xs font-semibold rounded-xl"
+                  >
+                    عرض القضية
+                  </a>
+                )}
+                <button
+                  onClick={() => setSelectedEvent(null)}
+                  className="clay-button px-3 py-2 text-xs text-muted-foreground"
+                >
+                  إغلاق
+                </button>
+              </div>
             </div>
           ) : (
             <div className="text-center py-8">
               <Calendar className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">حدد يومًا في التقويم لعرض الجلسات</p>
+              <p className="text-sm text-muted-foreground">
+                حدد جلسة في التقويم لعرض تفاصيلها
+              </p>
             </div>
           )}
 
-          {/* Upcoming All */}
+          {/* Upcoming hearings summary */}
           <div className="mt-6 pt-4 border-t border-border">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
-              جميع الجلسات
+              الجلسات القادمة
             </h4>
             <div className="space-y-2">
-              {(allSchedules ?? []).slice(0, 10).map((h) => (
-                <div
-                  key={h.id}
-                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/30 transition-colors"
+              {events.slice(0, 8).map((e) => (
+                <button
+                  key={e.id}
+                  onClick={() => setSelectedEvent(e)}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-2 rounded-xl hover:bg-muted/30 transition-colors text-end",
+                    selectedEvent?.id === e.id && "bg-muted/30"
+                  )}
                 >
-                  <div className="w-2 h-2 rounded-full bg-clay-purple shrink-0" />
+                  <div
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: e.color }}
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-foreground truncate">
-                      {h.case?.case_code ?? "—"} — {h.case?.client?.full_name ?? "—"}
+                      {e.extendedProps.caseCode || "—"} — {e.extendedProps.clientName || e.title}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {h.session_date} — {h.session_type}
+                      {e.start} — {e.extendedProps.sessionType}
                     </p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>

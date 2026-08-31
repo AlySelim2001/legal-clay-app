@@ -12,6 +12,10 @@ import {
   Loader2,
   Clock,
   Upload,
+  Download,
+  FileDown,
+  ScanLine,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCase } from "@/hooks/useSupabaseData";
@@ -19,7 +23,8 @@ import { supabase } from "@/lib/supabase";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { FileUpload } from "@/components/FileUpload";
 import { AuditTimeline } from "@/components/AuditTimeline";
-import { History } from "lucide-react";
+import { generatePDF, downloadPDF } from "@/lib/open-source/pdf-generator";
+import { processDocument } from "@/lib/open-source/ocr";
 
 const tabs = [
   { id: "overview", label: "نظرة عامة", icon: FileText },
@@ -57,6 +62,10 @@ export default function CaseDetail() {
   const [activeTab, setActiveTab] = useState("overview");
   const [appealDeadlines, setAppealDeadlines] = useState<AppealDeadline[]>([]);
   const [loadingAppeals, setLoadingAppeals] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [pdfFormat, setPdfFormat] = useState<"case-summary" | "bail-receipt" | "legal-memo" | "hearing-report">("case-summary");
+  const [ocrProcessing, setOcrProcessing] = useState(false);
+  const [ocrResult, setOcrResult] = useState<string | null>(null);
 
   // Fetch appeal deadlines when procedural tab is active
   useEffect(() => {
@@ -123,7 +132,55 @@ export default function CaseDetail() {
               <h1 className="text-xl font-bold text-foreground">{caseData.case_no}</h1>
               <p className="text-sm text-muted-foreground mt-1">{caseData.memo_notes ?? ""}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {/* PDF Export */}
+              <div className="relative">
+                <select
+                  value={pdfFormat}
+                  onChange={(e) => setPdfFormat(e.target.value as typeof pdfFormat)}
+                  className="clay-input text-[10px] py-1 px-2 bg-background absolute -top-8 end-0 opacity-0 pointer-events-none"
+                />
+                <button
+                  onClick={async () => {
+                    if (!caseData) return;
+                    setGeneratingPdf(true);
+                    try {
+                      const blob = await generatePDF(pdfFormat, {
+                        case: caseData,
+                        client: caseData.client ?? {
+                          id: "",
+                          client_code: "",
+                          full_name: "",
+                          national_id: "",
+                          phone: null,
+                          email: null,
+                          created_at: "",
+                          created_by: null,
+                        },
+                        defense: caseData.defense,
+                        stage: caseData.procedural_stage,
+                        memoTitle: "مذكرة دفاعية",
+                        memoBody: caseData.memo_notes ?? "لا توجد ملاحظات",
+                        authorName: "المحامي",
+                      });
+                      downloadPDF(blob, `CRIM-SYS-${caseData.case_code}-${pdfFormat}.pdf`);
+                    } catch (err) {
+                      console.error("PDF generation failed:", err);
+                    } finally {
+                      setGeneratingPdf(false);
+                    }
+                  }}
+                  disabled={generatingPdf}
+                  className="clay-button flex items-center gap-2 px-3 py-2 bg-clay-blue/10 text-clay-blue text-sm rounded-xl hover:bg-clay-blue/20 disabled:opacity-50"
+                >
+                  {generatingPdf ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileDown className="w-4 h-4" />
+                  )}
+                  تصدير PDF
+                </button>
+              </div>
               <button className="clay-button flex items-center gap-2 px-3 py-2 bg-card text-sm rounded-xl text-muted-foreground hover:text-foreground">
                 <Printer className="w-4 h-4" />
                 طباعة
@@ -249,6 +306,58 @@ export default function CaseDetail() {
                     رفع وثائق جديدة
                   </h4>
                   <FileUpload caseId={caseData.id} onUploadComplete={() => window.location.reload()} />
+                </div>
+
+                {/* OCR Scanner */}
+                <div className="clay-card-soft p-4">
+                  <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <ScanLine className="w-4 h-4 text-clay-purple" />
+                    مسح المستندات OCR
+                  </h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    ارفع صورة أو PDF لاستخراج البيانات تلقائياً (الرقم القومي، رقم القضية، مبلغ الكفالة)
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="block w-full text-sm text-muted-foreground file:me-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-clay-purple/10 file:text-clay-purple hover:file:bg-clay-purple/20 file:cursor-pointer"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setOcrProcessing(true);
+                      setOcrResult(null);
+                      try {
+                        const result = await processDocument(file);
+                        const fields = result.extractedFields;
+                        const summary = [
+                          fields.nationalId && `الرقم القومي: ${fields.nationalId}`,
+                          fields.caseNo && `رقم القضية: ${fields.caseNo}`,
+                          fields.bailAmount && `مبلغ الكفالة: ${fields.bailAmount.toLocaleString("ar-EG")} ج.م`,
+                          fields.judgeName && `القاضي: ${fields.judgeName}`,
+                          fields.courtName && `المحكمة: ${fields.courtName}`,
+                          fields.filingDate && `التاريخ: ${fields.filingDate}`,
+                        ].filter(Boolean).join("\n");
+                        setOcrResult(
+                          `الثقة: ${result.confidenceScore.toFixed(1)}%\n\n${summary || "لم يتم العثور على بيانات مُعرفة"}\n\nالنص المستخرج:\n${result.extractedText.slice(0, 500)}`
+                        );
+                      } catch (err) {
+                        setOcrResult(`خطأ في المعالجة: ${err instanceof Error ? err.message : "خطأ غير معروف"}`);
+                      } finally {
+                        setOcrProcessing(false);
+                      }
+                    }}
+                  />
+                  {ocrProcessing && (
+                    <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      جاري معالجة المستند...
+                    </div>
+                  )}
+                  {ocrResult && (
+                    <pre className="mt-3 p-3 clay-inset rounded-xl text-xs text-foreground whitespace-pre-wrap max-h-48 overflow-y-auto">
+                      {ocrResult}
+                    </pre>
+                  )}
                 </div>
 
                 {/* Existing documents */}
