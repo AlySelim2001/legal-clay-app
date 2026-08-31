@@ -29,6 +29,8 @@ const LegalFramework = lazy(() => import("./pages/LegalFramework.tsx"));
 const AdminTeam = lazy(() => import("./pages/AdminTeam.tsx"));
 const Settings = lazy(() => import("./pages/Settings.tsx"));
 const AIAgent = lazy(() => import("./pages/AIAgent.tsx"));
+const AIAgents = lazy(() => import("./pages/AIAgents.tsx"));
+const About = lazy(() => import("./pages/About.tsx"));
 
 import { AppLayout } from "@/components/AppLayout";
 
@@ -160,6 +162,8 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="legal-framework" element={<LegalFramework />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="ai-agent" element={<AIAgent />} />
+                <Route path="ai-agents" element={<AIAgents />} />
+                <Route path="about" element={<About />} />
               </Route>
 
               {/* Admin routes */}

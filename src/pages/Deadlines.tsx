@@ -47,9 +47,33 @@ function getUrgency(days: number): UrgencyLevel {
   return "normal";
 }
 
+const LAW_CATEGORYFilters = [
+  { value: "all", label: "الكل" },
+  { value: "criminal", label: "جنائي" },
+  { value: "civil", label: "مدني" },
+  { value: "administrative", label: "إداري" },
+  { value: "family", label: "أحوال شخصية" },
+  { value: "labor", label: "عمل" },
+];
+
+function getDeadlineCategory(code: string): string {
+  if (code.startsWith("DL-")) {
+    const n = parseInt(code.split("-")[1], 10);
+    if (n <= 8) return "criminal";
+  }
+  if (code.startsWith("DL-CIV-")) return "civil";
+  if (code.startsWith("DL-ADM-")) return "administrative";
+  if (code.startsWith("DL-FAM-")) return "family";
+  if (code.startsWith("DL-LAB-")) return "labor";
+  return "criminal";
+}
+
 export default function Deadlines() {
   const { data: hearings, loading: hearingsLoading } = useUpcomingHearings();
   const { data: legalDeadlines, loading: deadlinesLoading } = useLegalDeadlines();
+
+  // Category filter
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   // Calculator state
   const [calcStartDate, setCalcStartDate] = useState("");
@@ -59,6 +83,7 @@ export default function Deadlines() {
     days_remaining: number | null;
     urgency: UrgencyLevel;
     legal_basis: string;
+    procedure_name: string;
   } | null>(null);
   const [calcLoading, setCalcLoading] = useState(false);
 
@@ -78,13 +103,15 @@ export default function Deadlines() {
           days_remaining: days,
           urgency: getUrgency(days),
           legal_basis: dl?.legal_basis ?? "—",
+          procedure_name: dl?.procedure_name ?? "—",
         });
       } else {
         setCalcResult({
           deadline_date: null,
           days_remaining: null,
           urgency: "normal",
-          legal_basis: dl?.legal_basis ?? "إجراءات مفتوحة без مدة محددة",
+          legal_basis: dl?.legal_basis ?? "إجراءات مفتوحة — لا يوجد مدة محددة",
+          procedure_name: dl?.procedure_name ?? "—",
         });
       }
     } catch {
@@ -93,6 +120,7 @@ export default function Deadlines() {
         days_remaining: null,
         urgency: "normal",
         legal_basis: "خطأ في حساب الموعد — تأكد من صحة البيانات المدخلة",
+        procedure_name: "—",
       });
     } finally {
       setCalcLoading(false);
@@ -129,10 +157,9 @@ export default function Deadlines() {
       <LegalDisclaimer />
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">المواعيد النهائية</h1>
+      <div>            <h1 className="text-2xl font-bold text-foreground">المواعيد النهائية</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          حاسبة المواعيد القانونية ومتابعة الجلسات القادمة
+          حاسبة المواعيد القانونية ومتابعة الجلسات القادمة — جميع المجالات القانونية
         </p>
       </div>
 
@@ -193,7 +220,9 @@ export default function Deadlines() {
               className="clay-input w-full px-4 py-3 text-sm bg-background"
             >
               <option value="">اختر نوع الإجراء...</option>
-              {(legalDeadlines ?? []).map((dl) => (
+              {(legalDeadlines ?? [])
+                .filter((dl) => categoryFilter === "all" || getDeadlineCategory(dl.code) === categoryFilter)
+                .map((dl) => (
                 <option key={dl.code} value={dl.code}>
                   {dl.code} — {dl.procedure_name}
                   {dl.duration_value ? ` (${dl.duration_value} ${dl.duration_unit})` : " (مفتوح)"}
@@ -215,6 +244,28 @@ export default function Deadlines() {
               احتساب الموعد
             </button>
           </div>
+        </div>
+
+        {/* Category filter chips */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {LAW_CATEGORYFilters.map((cat) => (
+            <button
+              key={cat.value}
+              onClick={() => {
+                setCategoryFilter(cat.value);
+                setCalcCode("");
+                setCalcResult(null);
+              }}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-bold border-2 transition-all",
+                categoryFilter === cat.value
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-clay-surface text-clay-text-secondary border-clay-border hover:border-primary/40"
+              )}
+            >
+              {cat.label}
+            </button>
+          ))}
         </div>
 
         {/* Calculator Result */}
