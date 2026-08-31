@@ -491,6 +491,44 @@ CREATE TRIGGER trg_cases_auto_stage
   FOR EACH ROW
   EXECUTE FUNCTION public.auto_create_procedural_stage();
 
+-- Auto-calculate prescription_date (3-year prescription DL-06) on procedural_stages
+CREATE OR REPLACE FUNCTION public.auto_compute_prescription_date()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  filing_d date;
+  presc_d date;
+BEGIN
+  SELECT c.filing_date INTO filing_d
+  FROM public.cases c
+  WHERE c.id = NEW.case_id;
+
+  IF filing_d IS NULL THEN
+    NEW.prescription_date := NULL;
+    RETURN NEW;
+  END IF;
+
+  presc_d := public.compute_deadline(filing_d, 'DL-06');
+
+  -- Fallback: 3-year misdemeanor prescription if DL-06 is missing
+  IF presc_d IS NULL THEN
+    presc_d := filing_d + INTERVAL '3 years';
+  END IF;
+
+  NEW.prescription_date := presc_d;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_procedural_stages_prescription
+  BEFORE INSERT OR UPDATE ON public.procedural_stages
+  FOR EACH ROW
+  EXECUTE FUNCTION public.auto_compute_prescription_date();
+
+COMMENT ON TRIGGER trg_procedural_stages_prescription ON public.procedural_stages
+  IS 'Auto-computes prescription_date from cases.filing_date using DL-06 (3-year prescription).';
+
 -- View: cases with computed days until next hearing
 CREATE OR REPLACE VIEW public.cases_with_deadlines AS
 SELECT

@@ -1,11 +1,13 @@
+import { useState, useEffect, useCallback } from "react";
 import {
   Gavel,
   FolderOpen,
   Users,
   AlertTriangle,
   Clock,
-  CheckCircle,
   Loader2,
+  Shield,
+  Calendar,
 } from "lucide-react";
 import {
   BarChart,
@@ -15,18 +17,20 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
-import { useDashboardStats, useUpcomingHearings } from "@/hooks/useSupabaseData";
+import { supabase } from "@/lib/supabase";
+import { useUpcomingHearings } from "@/hooks/useSupabaseData";
 import { cn } from "@/lib/utils";
 
-const urgencyBg: Record<string, string> = {
-  critical: "bg-urgency-critical/10 border-urgency-critical/20",
-  high: "bg-urgency-high/10 border-urgency-high/20",
-  normal: "bg-urgency-normal/10 border-urgency-normal/20",
-};
+interface DashboardStats {
+  total_cases: number;
+  active_cases: number;
+  total_clients: number;
+  urgent_deadlines: number;
+  total_bail_unpaid: number;
+  nearest_prescription_date: string | null;
+  nearest_prescription_case: string | null;
+}
 
 const monthlyData = [
   { name: "يناير", القضايا: 4, المنتهية: 1 },
@@ -37,32 +41,34 @@ const monthlyData = [
   { name: "يونيو", القضايا: 4, المنتهية: 1 },
 ];
 
-const typeData = [
-  { name: "اختلاس", value: 25, color: "#6B8FB5" },
-  { name: "تزوير", value: 30, color: "#7FC4AD" },
-  { name: "سرقة", value: 20, color: "#9B7FC4" },
-  { name: "مخدرات", value: 15, color: "#C49B7F" },
-  { name: "أخرى", value: 10, color: "#C47F9B" },
-];
-
-function getUrgencyForDueDate(dueDate: string): "critical" | "high" | "normal" {
+function getUrgencyForDate(dateStr: string): "critical" | "high" | "normal" {
   const now = new Date();
-  const due = new Date(dueDate);
-  const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const target = new Date(dateStr);
+  const diffDays = Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays <= 3) return "critical";
   if (diffDays <= 7) return "high";
   return "normal";
 }
 
-function daysUntil(dateStr: string): number {
-  const now = new Date();
-  const target = new Date(dateStr);
-  return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-}
-
 export default function Dashboard() {
-  const { data: stats, loading: statsLoading } = useDashboardStats();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const { data: hearings, loading: hearingsLoading } = useUpcomingHearings();
+
+  const fetchStats = useCallback(async () => {
+    const { data, error } = await supabase.rpc("get_dashboard_stats");
+    if (!error && data && data.length > 0) {
+      setStats(data[0] as DashboardStats);
+    }
+    setStatsLoading(false);
+  }, []);
+
+  // Initial fetch + auto-refresh every 60 seconds
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchStats]);
 
   if (statsLoading || hearingsLoading) {
     return (
@@ -75,35 +81,32 @@ export default function Dashboard() {
   const kpis = [
     {
       label: "القضايا النشطة",
-      value: stats?.totalCases ?? 0,
+      value: stats?.active_cases ?? 0,
       icon: FolderOpen,
       color: "bg-clay-blue/15 text-clay-blue",
-      change: "إجمالي",
-      changeUp: true,
+      sub: `${stats?.total_cases ?? 0} إجمالي`,
     },
     {
       label: "إجمالي العملاء",
-      value: stats?.totalClients ?? 0,
+      value: stats?.total_clients ?? 0,
       icon: Users,
       color: "bg-clay-teal/15 text-clay-teal",
-      change: "مسجل",
-      changeUp: true,
-    },
-    {
-      label: "مواعيد هذا الأسبوع",
-      value: stats?.upcomingCount ?? 0,
-      icon: AlertTriangle,
-      color: "bg-urgency-high/10 text-urgency-high",
-      change: "تحتاج متابعة",
-      changeUp: false,
+      sub: "مسجل",
     },
     {
       label: "مواعيد حرجة",
-      value: stats?.urgentCount ?? 0,
-      icon: CheckCircle,
+      value: stats?.urgent_deadlines ?? 0,
+      icon: AlertTriangle,
       color: "bg-urgency-critical/10 text-urgency-critical",
-      change: "خلال 3 أيام",
-      changeUp: false,
+      sub: "خلال 3 أيام",
+    },
+    {
+      label: "الكفالة غير المسددة",
+      value: stats?.total_bail_unpaid ? `${Math.abs(Number(stats.total_bail_unpaid)).toLocaleString()}` : "0",
+      suffix: "ج.م",
+      icon: Shield,
+      color: "bg-urgency-high/10 text-urgency-high",
+      sub: "إجمالي",
     },
   ];
 
@@ -113,7 +116,7 @@ export default function Dashboard() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">لوحة التحكم</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          نظرة عامة على حال القضايا والمواعيد
+          نظرة عامة على حال القضايا والمواعيد — تحديث تلقائي كل 60 ثانية
         </p>
       </div>
 
@@ -130,27 +133,37 @@ export default function Dashboard() {
                 <div className={cn("p-2.5 rounded-2xl", kpi.color)}>
                   <Icon className="w-5 h-5" />
                 </div>
-                <span
-                  className={cn(
-                    "text-xs font-medium px-2 py-1 rounded-xl",
-                    kpi.changeUp
-                      ? "bg-urgency-normal/10 text-urgency-normal"
-                      : "bg-urgency-critical/10 text-urgency-critical"
-                  )}
-                >
-                  {kpi.changeUp ? "↑" : "↓"} {kpi.change}
-                </span>
+                <span className="text-[10px] text-muted-foreground">{kpi.sub}</span>
               </div>
-              <p className="text-3xl font-bold text-foreground">{kpi.value}</p>
+              <p className="text-3xl font-bold text-foreground">
+                {kpi.value}
+                {kpi.suffix && <span className="text-lg ms-1">{kpi.suffix}</span>}
+              </p>
               <p className="text-sm text-muted-foreground mt-1">{kpi.label}</p>
             </div>
           );
         })}
       </div>
 
+      {/* Prescription Warning */}
+      {stats?.nearest_prescription_date && (
+        <div className="clay-card p-4 border-2 border-urgency-critical/20">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-urgency-critical shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-urgency-critical">
+                ⚠️ أقرب موعد تقادم: {stats.nearest_prescription_date}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                القضية: {stats.nearest_prescription_case} — يجب اتخاذ إجراء قبل انتهاء المدة
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Bar Chart */}
         <div className="lg:col-span-2 clay-card p-6">
           <h3 className="text-base font-bold text-foreground mb-4">القضايا الشهرية</h3>
           <div className="h-64">
@@ -174,43 +187,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Pie Chart */}
-        <div className="clay-card p-6">
-          <h3 className="text-base font-bold text-foreground mb-4">توزيع الجرائم</h3>
-          <div className="h-64 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={typeData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {typeData.map((entry, idx) => (
-                    <Cell key={idx} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            {typeData.map((d) => (
-              <div key={d.name} className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
-                {d.name}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Row: Hearings + Critical Deadlines */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming Hearings */}
+        {/* Upcoming hearings */}
         <div className="clay-card p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-bold text-foreground">الجلسات القادمة</h3>
@@ -219,25 +196,21 @@ export default function Dashboard() {
             </a>
           </div>
           <div className="space-y-3">
-            {(hearings ?? []).slice(0, 4).map((h) => (
-              <div
-                key={h.id}
-                className="clay-card-soft p-3 flex items-start gap-3"
-              >
+            {(hearings ?? []).slice(0, 5).map((h) => (
+              <div key={h.id} className="clay-card-soft p-3 flex items-start gap-3">
                 <div className="p-2 rounded-xl bg-clay-blue/10 shrink-0">
                   <Gavel className="w-4 h-4 text-clay-blue" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">
-                    {h.case?.case_code ?? "—"} — {h.case?.client?.full_name ?? "—"}
+                    {h.case?.case_code ?? "—"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {h.case?.court_name ?? "—"}
+                    {h.case?.client?.full_name ?? "—"}
                   </p>
                   <div className="flex items-center gap-2 mt-1.5">
-                    <span className="text-xs font-medium text-clay-blue">
-                      📅 {h.session_date}
-                    </span>
+                    <Calendar className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{h.session_date}</span>
                   </div>
                 </div>
                 <span className="clay-badge text-[10px] font-semibold bg-clay-purple/10 text-clay-purple px-2 py-1 shrink-0">
@@ -248,69 +221,6 @@ export default function Dashboard() {
             {(!hearings || hearings.length === 0) && (
               <p className="text-sm text-muted-foreground text-center py-4">لا توجد جلسات قادمة</p>
             )}
-          </div>
-        </div>
-
-        {/* Critical Deadlines */}
-        <div className="clay-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-foreground">المواعيد الحرجة</h3>
-            <a href="/app/deadlines" className="text-xs text-clay-blue hover:underline">
-              عرض الكل
-            </a>
-          </div>
-          <div className="space-y-3">
-            {(hearings ?? [])
-              .filter((h) => {
-                const days = daysUntil(h.session_date);
-                return days >= 0 && days <= 7;
-              })
-              .slice(0, 5)
-              .map((h) => {
-                const urgency = getUrgencyForDueDate(h.session_date);
-                return (
-                  <div
-                    key={h.id}
-                    className={cn(
-                      "clay-card-soft p-3 border-2",
-                      urgencyBg[urgency]
-                    )}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">
-                          {h.case?.case_code ?? "—"} — {h.case?.client?.full_name ?? "—"}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {h.session_type}
-                        </p>
-                      </div>
-                      <span
-                        className={cn(
-                          "clay-badge text-[10px] font-bold px-2 py-1 shrink-0",
-                          urgency === "critical"
-                            ? "bg-urgency-critical/10 text-urgency-critical"
-                            : urgency === "high"
-                            ? "bg-urgency-high/10 text-urgency-high"
-                            : "bg-urgency-normal/10 text-urgency-normal"
-                        )}
-                      >
-                        {urgency === "critical"
-                          ? "حرج"
-                          : urgency === "high"
-                          ? "مرتفع"
-                          : "عادي"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        الموعد: {h.session_date}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
           </div>
         </div>
       </div>
