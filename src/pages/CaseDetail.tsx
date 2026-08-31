@@ -18,6 +18,8 @@ import { useCase } from "@/hooks/useSupabaseData";
 import { supabase } from "@/lib/supabase";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { FileUpload } from "@/components/FileUpload";
+import { AuditTimeline } from "@/components/AuditTimeline";
+import { History } from "lucide-react";
 
 const tabs = [
   { id: "overview", label: "نظرة عامة", icon: FileText },
@@ -25,6 +27,7 @@ const tabs = [
   { id: "documents", label: "الوثائق", icon: Paperclip },
   { id: "procedural", label: "الإجراءات", icon: AlertTriangle },
   { id: "deadlines", label: "المواعيد", icon: Clock },
+  { id: "timeline", label: "السجل", icon: History },
   { id: "notes", label: "الملاحظات", icon: MessageSquare },
 ];
 
@@ -339,6 +342,14 @@ export default function CaseDetail() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Timeline Tab */}
+            {activeTab === "timeline" && (
+              <AuditTimeline
+                tableName="cases"
+                recordId={caseData.id}
+              />
             )}
 
             {/* Notes Tab */}
