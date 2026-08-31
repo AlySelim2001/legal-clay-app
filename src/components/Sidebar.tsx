@@ -14,6 +14,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Bot,
 } from "lucide-react";
 
 interface NavItem {
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { label: "الدفوعات الجنائية", path: "/app/defenses", icon: Shield },
   { label: "الأرشيف", path: "/app/archive", icon: Archive },
   { label: "الإطار القانوني", path: "/app/legal-framework", icon: BookOpen },
+  { label: "الوكيل القانوني الذكي", path: "/app/ai-agent", icon: Bot },
 ];
 
 const bottomItems: NavItem[] = [
