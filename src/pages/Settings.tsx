@@ -8,6 +8,7 @@ import {
   Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BackupPanel } from "@/components/BackupPanel";
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState("general");
@@ -386,6 +387,11 @@ export default function Settings() {
                   <Save className="w-4 h-4" />
                   تحديث كلمة المرور
                 </button>
+              </div>
+
+              {/* Backup & Restore Panel */}
+              <div className="border-t border-border pt-6">
+                <BackupPanel />
               </div>
             </div>
           )}

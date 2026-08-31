@@ -299,3 +299,87 @@
 .animate-pulse-glow {
   animation: pulseGlow 2s infinite;
 }
+
+/* ============================================================
+   Capacitor / PWA Safe-Area Padding Utilities
+   Ensures edge-to-edge Android layout with notch support
+   ============================================================ */
+
+/* Safe area padding classes */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-start {
+  padding-inline-start: env(safe-area-inset-left);
+}
+
+.safe-area-end {
+  padding-inline-end: env(safe-area-inset-right);
+}
+
+.safe-area-all {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Capacitor status bar overlay protection */
+.capacitor-safe-area {
+  padding-top: calc(env(safe-area-inset-top) + 1rem);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+}
+
+/* Touch-action for Capacitor native gestures */
+html, body {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+
+/* Prevent pull-to-refresh on mobile */
+body {
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* Capacitor keyboard adjustments */
+body.keyboard-open #root {
+  height: calc(100vh - var(--keyboard-height, 0px));
+  height: calc(100dvh - var(--keyboard-height, 0px));
+}
+
+/* Status bar background color for Android */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .clay-topbar {
+    padding-top: env(safe-area-inset-top);
+  }
+  .clay-sidebar {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* PWA standalone mode adjustments */
+@media (display-mode: standalone) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  body * {
+    -webkit-touch-callout: none;
+  }
+}
+
+/* Capacitor haptic feedback helper */
+.haptic-press:active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
+}
