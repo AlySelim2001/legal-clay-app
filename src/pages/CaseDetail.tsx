@@ -15,6 +15,7 @@ import {
   FileDown,
   ScanLine,
   History,
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCase } from "@/hooks/useSupabaseData";
@@ -22,6 +23,7 @@ import { supabase } from "@/lib/supabase";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { FileUpload } from "@/components/FileUpload";
 import { AuditTimeline } from "@/components/AuditTimeline";
+import { ColomboForensicDesk } from "@/components/ColomboForensicDesk";
 import { generatePDF, downloadPDF } from "@/lib/open-source/pdf-generator";
 import { processDocument } from "@/lib/open-source/ocr";
 
@@ -33,6 +35,7 @@ const tabs = [
   { id: "deadlines", label: "المواعيد", icon: Clock },
   { id: "timeline", label: "السجل", icon: History },
   { id: "notes", label: "الملاحظات", icon: MessageSquare },
+  { id: "colombo", label: "🔍 كولومبو التفتيشي", icon: Eye },
 ];
 
 interface AppealDeadline {
@@ -460,6 +463,9 @@ export default function CaseDetail() {
             )}
 
             {/* Notes Tab */}
+            {activeTab === "colombo" && caseData && (
+              <ColomboForensicDesk caseData={caseData} />
+            )}
             {activeTab === "notes" && (
               <div className="space-y-4">
                 <div className="clay-card-soft p-4">
