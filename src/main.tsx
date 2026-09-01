@@ -34,6 +34,8 @@ const AIAgent = lazy(() => import("./pages/AIAgent.tsx"));
 const AIAgents = lazy(() => import("./pages/AIAgents.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
 const ColomboAgent = lazy(() => import("./pages/ColomboAgent.tsx"));
+const SocialSearch = lazy(() => import("./pages/SocialSearch.tsx"));
+const OppositionGuide = lazy(() => import("./pages/OppositionGuide.tsx"));
 
 import { AppLayout } from "@/components/AppLayout";
 import { RouteLoading } from "@/components/RouteLoading";
@@ -140,6 +142,8 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="ai-agents" element={<AIAgents />} />
                 <Route path="about" element={<About />} />
                 <Route path="ai-agent/colombo" element={<ColomboAgent />} />
+                <Route path="social-search" element={<SocialSearch />} />
+                <Route path="guides/opposition" element={<OppositionGuide />} />
               </Route>
 
               {/* Admin routes */}

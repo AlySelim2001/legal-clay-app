@@ -15,6 +15,8 @@ import {
   ChevronLeft,
   HardHat,
   Eye,
+  Search,
+  Map,
 } from "lucide-react";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { cn } from "@/lib/utils";
@@ -32,6 +34,8 @@ const navItems = [
   { to: "/app/deadlines", icon: Clock, label: "المواعيد القانونية", labelEn: "Deadlines" },
   { to: "/app/ai-agents", icon: Bot, label: "الوكيل القانوني المتعدد", labelEn: "AI Agents Swarm", badge: "جديد" },
   { to: "/app/ai-agent/colombo", icon: Eye, label: "محرك كولومبو التفتيشي", labelEn: "Colombo Forensic Engine" },
+  { to: "/app/social-search", icon: Search, label: "بحث المحاكم الاجتماعية", labelEn: "Social Court Search" },
+  { to: "/app/guides/opposition", icon: Map, label: "دليل المعارض", labelEn: "Opposition Guide" },
   { to: "/app/defenses", icon: Shield, label: "الدفوع الجنائية", labelEn: "Defenses" },
   { to: "/app/archive", icon: Archive, label: "الأرشيف", labelEn: "Archive" },
   { to: "/app/legal-framework", icon: FileText, label: "الإطار القانوني", labelEn: "Legal Framework" },
