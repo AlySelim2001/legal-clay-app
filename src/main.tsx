@@ -6,9 +6,9 @@ import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 import { I18nProvider } from "@/contexts/I18nContext";
 import { QueryProvider } from "@/contexts/QueryProvider";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import React, { StrictMode, useEffect, lazy, Suspense } from "react";
+import React, { StrictMode, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { BrowserRouter, Route, Routes } from "react-router";
 import "./index.css";
 
 // Lazy load route components
@@ -36,15 +36,8 @@ const About = lazy(() => import("./pages/About.tsx"));
 const ColomboAgent = lazy(() => import("./pages/ColomboAgent.tsx"));
 
 import { AppLayout } from "@/components/AppLayout";
-
-// Loading fallback
-function RouteLoading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="animate-pulse text-muted-foreground font-arabic">جاري التحميل...</div>
-    </div>
-  );
-}
+import { RouteLoading } from "@/components/RouteLoading";
+import { RouteSyncer } from "@/components/RouteSyncer";
 
 /** Silent error boundary for VlyToolbar */
 class ToolbarErrorBoundary extends React.Component<
@@ -101,28 +94,6 @@ class RootErrorBoundary extends React.Component<
   }
 }
 
-function RouteSyncer() {
-  const location = useLocation();
-  useEffect(() => {
-    window.parent.postMessage(
-      { type: "iframe-route-change", path: location.pathname },
-      "*",
-    );
-  }, [location.pathname]);
-
-  useEffect(() => {
-    function handleMessage(event: MessageEvent) {
-      if (event.data?.type === "navigate") {
-        if (event.data.direction === "back") window.history.back();
-        if (event.data.direction === "forward") window.history.forward();
-      }
-    }
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
-  return null;
-}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
