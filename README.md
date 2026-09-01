@@ -1,272 +1,174 @@
-## Overview
+<p dir="rtl" align="center">
 
-This project uses the following tech stack:
-- Vite
-- Typescript
-- React Router v7 (all imports from `react-router` instead of `react-router-dom`)
-- React 19 (for frontend components)
-- Tailwind v4 (for styling)
-- Shadcn UI (for UI components library)
-- Lucide Icons (for icons)
-- Convex (for backend & database)
-- Convex Auth (for authentication)
-- Framer Motion (for animations)
-- Three js (for 3d models)
+# ⚖️ CRIM-SYS 2026 — منظومة إدارة القضايا الجنائية
 
-All relevant files live in the 'src' directory.
+### LAW-SYS 2026 Master Edition
 
-Use bun for the package manager.
+</p>
 
-## Setup
+<p align="center">
+  <a href="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/android-build.yml">
+    <img src="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/android-build.yml/badge.svg" alt="CI/CD Build Status">
+  </a>
+  <a href="https://github.com/AlySelim2001/legal-clay-app">
+    <img src="https://img.shields.io/badge/Version-2026.9-blue" alt="Version">
+  </a>
+  <a href="https://github.com/AlySelim2001/legal-clay-app">
+    <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Web-brightgreen" alt="Platform">
+  </a>
+  <a href="https://wa.me/201119886662">
+    <img src="https://img.shields.io/badge/WhatsApp-01119886662-25D366?style=flat&logo=whatsapp" alt="WhatsApp Support">
+  </a>
+</p>
 
-This project is set up already and running on a cloud environment, as well as a convex development in the sandbox.
+---
 
-## Environment Variables
+<p dir="rtl">
 
-The project is set up with project specific CONVEX_DEPLOYMENT and VITE_CONVEX_URL environment variables on the client side.
+## نظرة عامة
 
-The convex server has a separate set of environment variables that are accessible by the convex backend.
+منظومة شاملة لإدارة القضايا الجنائية والمدنية والتجارية وأحوال شخصية والقضاء الإداري والعمل — مصممة خصيصاً للممارسات القانونية المصرية. تتضمن نظام ذكاء اصطناعي متعدد التخصصات، حاسبة المواعيد النهائية، مسح المستندات بال	optical character recognition، وتصدير أندرويد أصلي.
 
-Currently, these variables include auth-specific keys: JWKS, JWT_PRIVATE_KEY, and SITE_URL.
+</p>
 
+---
 
-# Using Authentication (Important!)
+## ✨ الميزات الرئيسية
 
-You must follow these conventions when using authentication.
+### 🤖 وكيل الذكاء الاصطناعي المتعدد
 
-## Auth is already set up.
+| الوكيل | التخصص | القوانين المرجعية |
+|--------|--------|-------------------|
+| **مستشار الإجراءات والجنايات** | جنائي | قانون الإجراءات الجنائية 150/1950، القانون 174/2025 |
+| **مستشار المدني والتجاري** | مدني وتجاري | القانون المدني 131/1948، قانون الإجراءات المدنية 13/1968 |
+| **مستشار الأحوال الشخصية** | أسرة | القانون 25/1920، القانون 1/2000 |
+| **مستشار القضاء الإداري** | إداري | قانون مجلس الدولة 47/1972 |
+| **مستشار العمل والتأمينات** | عمل | قانون العمل 12/2003، التأمينات 148/2019 |
+| **وكيل كولومبو التفتيشي** | تدقيق جنائي | المواد 40، 41، 44، 137 إجراءات جنائية |
 
-All convex authentication functions are already set up. The auth currently uses email OTP and anonymous users, but can support more.
+### 📊 إدارة القضايا
 
-The email OTP configuration is defined in `src/convex/auth/emailOtp.ts`. DO NOT MODIFY THIS FILE.
+- **سجل القضايا** — بحث وفرز وتصنيف ذكي
+- **ملف القضية التفصيلي** — تبويبات: مراجعة، مراحل إجرائية، مرفقات، جدول زمني، كولومبو التفتيشي
+- **olverالعملاء** — ملفات شخصية مع شبكة العلاقات والتداخل
+- **حاسبة المواعيد** — جنائي، مدني، إداري، أحوال شخصية، عمل
+- **كتالوج الدفوع الجنائية** — 6 دفوع مع أحكام محكمة النقض
+- **محرك الأحكام القضائية** — بحث في أحكام محكمة النقض والمحكمة الإدارية العليا
 
-Also, DO NOT MODIFY THESE AUTH FILES: `src/convex/auth.config.ts` and `src/convex/auth.ts`.
+### 🔧 الأدوات التقنية
 
-## Using Convex Auth on the backend
+- **مسح المستندات (OCR)** — Tesseract.js للتعرف على النصوص العربية
+- **تصدير PDF** — جلسات، أحكام، مذكرات دفاع بالخط العربي (Amiri)
+- **استيراد/تصدير Excel** — SheetJS للتوافق مع الأعمال الورقية
+- **FullCalendar** — جدول جلسات المحاكم بدعم عربي RTL
+- **وضع عدم الاتصال** — IndexedDB + TanStack Query للعمل داخل قاعات المحاكم
+- **نسخ احتياطي واستعادة** — تصدير واستيراد شامل للبيانات
 
-On the `src/convex/users.ts` file, you can use the `getCurrentUser` function to get the current user's data.
+### 📱 أندرويد أصلي
 
-## Using Convex Auth on the frontend
+- **CapacitorJS** — تطبيق أصلي مع إشعارات دفع وتخزين محلي
+- **CI/CD** — GitHub Actions لبناء APK تلقائي عند كل دفع
 
-The `/auth` page is already set up to use auth. Navigate to `/auth` for all log in / sign up sequences.
+---
 
-You MUST use this hook to get user data. Never do this yourself without the hook:
-```typescript
-import { useAuth } from "@/hooks/use-auth";
+## 🛠️ التقنيات المستخدمة
 
-const { isLoading, isAuthenticated, user, signIn, signOut } = useAuth();
+| الطبقة | التقنيات |
+|--------|----------|
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
+| **State Management** | TanStack Query (cache + offline persistence), Zustand (UI state) |
+| **Backend** | Supabase (PostgreSQL + Auth + RLS + Storage) |
+| **AI/OCR** | Tesseract.js (client-side), multi-agent legal swarm architecture |
+| **PDF** | jsPDF + pdfmake (Amiri Arabic font) |
+| **Calendar** | FullCalendar (Arabic RTL, daygrid + timegrid) |
+| **Export** | SheetJS/xlsx (Excel import/export) |
+| **Mobile** | CapacitorJS (Android native), PWA manifest |
+| **CI/CD** | GitHub Actions (quality check + APK build) |
+
+---
+
+## 🚀 البدء السريع
+
+```bash
+# استنساخ المستودع
+git clone https://github.com/AlySelim2001/legal-clay-app.git
+cd legal-clay-app
+
+# تثبيت التبعيات
+bun install
+
+# تشغيل خادم التطوير
+bun run dev
+
+# بناء APK أندرويد
+bun run cap:sync
+bun run cap:open
 ```
 
-## Protected Routes
+> 📖 راجع [BUILD_GUIDE.md](BUILD_GUIDE.md) للتعليمات التفصيلية.
 
-The starter `/dashboard` route is protected with `RequireAuth`, which sends
-signed-out users to `/auth?returnTo=<current route>`. Extend that page for the
-product's authenticated experience, and reuse `RequireAuth` when adding another
-protected route.
+---
 
-## Auth Page
+## 📱 بناء APK أندرويد
 
-The auth page is defined in `src/pages/Auth.tsx`. Send sign-in and sign-up actions
-to `/auth`.
+### عبر GitHub Actions (تلقائي)
 
-## Authorization
+1. افتح [GitHub Actions](https://github.com/AlySelim2001/legal-clay-app/actions)
+2. اختر أحدث بناء ناجح
+3. حمّل `LAW-SYS-2026-Debug-APK`
 
-You can perform authorization checks on the frontend and backend.
+### عبر الخطوط الأوامر (محلي)
 
-On the frontend, you can use the `useAuth` hook to get the current user's data and authentication state.
-
-You should also be protecting queries, mutations, and actions at the base level, checking for authorization securely.
-
-## Adding a redirect after auth
-
-The `/auth` route in `src/main.tsx` redirects to `/dashboard` by default. If the
-product's main authenticated route is different, update `redirectAfterAuth` to
-that route. A validated same-origin `returnTo` query parameter takes priority so
-users can resume the protected page they originally requested. Never leave an
-authenticated product redirecting back to the public landing page.
-
-## Complete authenticated products
-
-When the requested product implies accounts, a workspace, a dashboard, or other
-signed-in functionality, the task is not complete with only a landing page and
-auth form. Build the main authenticated experience, protect its route, and verify
-that signing in reaches it.
-
-# Frontend Conventions
-
-You will be using the Vite frontend with React 19, Tailwind v4, and Shadcn UI.
-
-Generally, pages should be in the `src/pages` folder, and components should be in the `src/components` folder.
-
-Shadcn primitives are located in the `src/components/ui` folder and should be used by default.
-
-## Page routing
-
-Your page component should go under the `src/pages` folder.
-
-When adding a page, update the react router configuration in `src/main.tsx` to include the new route you just added.
-
-## Shad CN conventions
-
-Follow these conventions when using Shad CN components, which you should use by default.
-- Remember to use "cursor-pointer" to make the element clickable
-- For title text, use the "tracking-tight font-bold" class to make the text more readable
-- Always make apps MOBILE RESPONSIVE. This is important
-- AVOID NESTED CARDS. Try and not to nest cards, borders, components, etc. Nested cards add clutter and make the app look messy.
-- AVOID SHADOWS. Avoid adding any shadows to components. stick with a thin border without the shadow.
-- Avoid skeletons; instead, use the loader2 component to show a spinning loading state when loading data.
-
-
-## Landing Pages
-
-You must always create good-looking designer-level styles to your application. 
-- Make it well animated and fit a certain "theme", ie neo brutalist, retro, neumorphism, glass morphism, etc
-
-Use known images and emojis from online.
-
-If the user is logged in already, show the get started button to say "Dashboard" or "Profile" instead to take them there.
-
-## Responsiveness and formatting
-
-Make sure pages are wrapped in a container to prevent the width stretching out on wide screens. Always make sure they are centered aligned and not off-center.
-
-Always make sure that your designs are mobile responsive. Verify the formatting to ensure it has correct max and min widths as well as mobile responsiveness.
-
-- Always create sidebars for protected dashboard pages and navigate between pages
-- Always create navbars for landing pages
-- On these bars, the created logo should be clickable and redirect to the index page
-
-## Animating with Framer Motion
-
-You must add animations to components using Framer Motion. It is already installed and configured in the project.
-
-To use it, import the `motion` component from `framer-motion` and use it to wrap the component you want to animate.
-
-
-### Other Items to animate
-- Fade in and Fade Out
-- Slide in and Slide Out animations
-- Rendering animations
-- Button clicks and UI elements
-
-Animate for all components, including on landing page and app pages.
-
-## Three JS Graphics
-
-Your app comes with three js by default. You can use it to create 3D graphics for landing pages, games, etc.
-
-
-## Colors
-
-You can override colors in: `src/index.css`
-
-This uses the oklch color format for tailwind v4.
-
-Always use these color variable names.
-
-Make sure all ui components are set up to be mobile responsive and compatible with both light and dark mode.
-
-Set theme using `dark` or `light` variables at the parent className.
-
-## Styling and Theming
-
-When changing the theme, always change the underlying theme of the shad cn components app-wide under `src/components/ui` and the colors in the index.css file.
-
-Avoid hardcoding in colors unless necessary for a use case, and properly implement themes through the underlying shad cn ui components.
-
-When styling, ensure buttons and clickable items have pointer-click on them (don't by default).
-
-Always follow a set theme style and ensure it is tuned to the user's liking.
-
-## Toasts
-
-You should always use toasts to display results to the user, such as confirmations, results, errors, etc.
-
-Use the shad cn Sonner component as the toaster. For example:
-
-```
-import { toast } from "sonner"
-
-import { Button } from "@/components/ui/button"
-export function SonnerDemo() {
-  return (
-    <Button
-      variant="outline"
-      onClick={() =>
-        toast("Event has been created", {
-          description: "Sunday, December 03, 2023 at 9:00 AM",
-          action: {
-            label: "Undo",
-            onClick: () => console.log("Undo"),
-          },
-        })
-      }
-    >
-      Show Toast
-    </Button>
-  )
-}
+```bash
+bun run build
+bunx cap sync android
+cd android && ./gradlew assembleDebug
+# المسار: android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Remember to import { toast } from "sonner". Usage: `toast("Event has been created.")`
+---
 
-## Dialogs
+## 🔒 الأمان والخصوصية
 
-Always ensure your larger dialogs have a scroll in its content to ensure that its content fits the screen size. Make sure that the content is not cut off from the screen.
+- **RLS** — سياسات Row Level Security على جميع جداول PostgreSQL
+- **مصادقة** — Supabase Auth (بريد إلكتروني + كلمة مرور)
+- **أدوار** — `admin` (محامي رئيسي) و `assistant` (فريق قانوني)
+- **تخزين خاص** — ملفات محفوظة بعنوان URL مؤقت (3600 ثانية)
+- **عمل غير متصل** — IndexedDB محلي لبيانات قاعات المحاكم
+- **سجل المراجعة** — تتبع شامل لكل تعديل على البيانات
 
-Ideally, instead of using a new page, use a Dialog instead. 
+---
 
-# Using the Convex backend
+## ⚠️ إخلاء المسؤولية القانوني
 
-You will be implementing the convex backend. Follow your knowledge of convex and the documentation to implement the backend.
+> **⚠️ نتيجة تقديرية — يجب التحقق منها مع المحامي المختص قبل اتخاذ أي إجراء.**
 
-## The Convex Schema
+هذا النظام هو أداة مساعدة لإدارة المعلومات وتنظيم البيانات القانونية. لا يُغني بأي شكل من الأشكال عن الاستشارة القانونية المتخصصة. جميع حسابات المواعيد النهائية والنتائج والتصنيفات تقديرية ويجب مراجعتها والتحقق من صحتها مع المحامي المختص قبل اتخاذ أي إجراء قانوني.
 
-You must correctly follow the convex schema implementation.
+---
 
-The schema is defined in `src/convex/schema.ts`.
+## 📞 التواصل والدعم الفني
 
-Do not include the `_id` and `_creationTime` fields in your queries (it is included by default for each table).
-Do not index `_creationTime` as it is indexed for you. Never have duplicate indexes.
+<div dir="rtl">
 
+| القناة | التفاصيل |
+|--------|----------|
+| 📱 **واتساب** | [01119886662](https://wa.me/201119886662?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%20%D8%A3%D9%88%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%A8%D8%B4%D8%A3%D9%86%20%D9%86%D8%B8%D8%A7%D9%85%20%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D9%82%D8%B6%D9%8A%D8%A7%20%D9%88%D8%A7%D9%84%D9%85%D9%86%D8%B8%D9%88%D9%85%D8%A9%20%D8%A7%D9%84%D9%82%D8%A7%D9%86%D9%88%D9%86%D9%8A%D8%A9%20CRIM-SYS%202026.) |
+| 🔗 **GitHub** | [AlySelim2001/legal-clay-app](https://github.com/AlySelim2001/legal-clay-app) |
+| 🐛 **الأخطاء** | [Issues](https://github.com/AlySelim2001/legal-clay-app/issues) |
 
-## Convex Actions: Using CRUD operations
+</div>
 
-When running anything that involves external connections, you must use a convex action with "use node" at the top of the file.
+---
 
-You cannot have queries or mutations in the same file as a "use node" action file. Thus, you must use pre-built queries and mutations in other files.
+## 📄 الترخيص
 
-You can also use the pre-installed internal crud functions for the database:
+هذا المشروع خاص. جميع الحقوق محفوظة.
 
-```ts
-// in convex/users.ts
-import { crud } from "convex-helpers/server/crud";
-import schema from "./schema.ts";
+---
 
-export const { create, read, update, destroy } = crud(schema, "users");
+<p align="center">
 
-// in some file, in an action:
-const user = await ctx.runQuery(internal.users.read, { id: userId });
+**✨ صُنع بشغف للمجتمع القانوني المصري ✨**
 
-await ctx.runMutation(internal.users.update, {
-  id: userId,
-  patch: {
-    status: "inactive",
-  },
-});
-```
-
-
-## Common Convex Mistakes To Avoid
-
-When using convex, make sure:
-- Document IDs are referenced as `_id` field, not `id`.
-- Document ID types are referenced as `Id<"TableName">`, not `string`.
-- Document object types are referenced as `Doc<"TableName">`.
-- Keep schemaValidation to false in the schema file.
-- You must correctly type your code so that it passes the type checker.
-- You must handle null / undefined cases of your convex queries for both frontend and backend, or else it will throw an error that your data could be null or undefined.
-- Always use the `@/folder` path, with `@/convex/folder/file.ts` syntax for importing convex files.
-- This includes importing generated files like `@/convex/_generated/server`, `@/convex/_generated/api`
-- Remember to import functions like useQuery, useMutation, useAction, etc. from `convex/react`
-- NEVER have return type validators.
+</p>
