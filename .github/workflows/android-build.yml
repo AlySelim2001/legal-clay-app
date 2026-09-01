@@ -7,16 +7,15 @@ on:
 
 permissions:
   contents: write
-  actions: read
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Code Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js Environment
+      - name: Setup Node.js (v20)
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -27,24 +26,32 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install Dependencies
+      - name: Install Project Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build Web Production Bundle
+      - name: Verify or Add Capacitor Android Platform
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
+      - name: Build Web Application Bundle
         run: npm run build
 
-      - name: Synchronize Capacitor Assets
+      - name: Synchronize Web Assets to Capacitor Android
         run: npx cap sync android
 
-      - name: Grant Execution Rights to Gradle
-        run: chmod +x android/gradlew
+      - name: Make Gradle Wrapper Executable
+        run: |
+          cd android
+          chmod +x gradlew
 
-      - name: Build Android Debug APK
+      - name: Compile Debug APK
         run: |
           cd android
           ./gradlew assembleDebug --no-daemon
 
-      - name: Upload Debug APK Artifact
+      - name: Upload Compiled APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: LAW-SYS-2026-Debug-APK

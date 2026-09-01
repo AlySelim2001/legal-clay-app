@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CRIM-SYS 2026</string>
+    <string name="title_activity_main">CRIM-SYS 2026</string>
+    <string name="package_name">net.crimsys.app</string>
+    <string name="custom_url_scheme">net.crimsys.app</string>
+</resources>
