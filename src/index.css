@@ -2,6 +2,80 @@
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
 
+/* Dark mode color overrides */
+.dark {
+  --background: #1a1410;
+  --foreground: #e8ddd3;
+  --card: #2a2018;
+  --card-foreground: #e8ddd3;
+  --popover: #2a2018;
+  --popover-foreground: #e8ddd3;
+  --primary: #b8d4e3;
+  --primary-foreground: #1a1410;
+  --secondary: #3d3529;
+  --secondary-foreground: #e8ddd3;
+  --muted: #2a2018;
+  --muted-foreground: #a89b8c;
+  --accent: #3d3529;
+  --accent-foreground: #e8ddd3;
+  --destructive: #e74c3c;
+  --border: #3d3529;
+  --input: #2a2018;
+  --ring: #6b8fb5;
+  --clay: #2a2018;
+  --clay-light: #3d3529;
+  --clay-dark: #1a1410;
+  --clay-surface: #1a1410;
+  --clay-blue: #4a6a80;
+  --clay-teal: #3a6a5a;
+  --clay-purple: #5a4a7a;
+  --clay-rose: #7a4a5a;
+  --clay-amber: #7a6a3a;
+  --clay-mint: #3a7a5a;
+  --sidebar: #0f0b08;
+  --sidebar-foreground: #e8ddd3;
+  --sidebar-primary: #4a6a80;
+  --sidebar-primary-foreground: #e8ddd3;
+  --sidebar-accent: #1a1410;
+  --sidebar-accent-foreground: #e8ddd3;
+  --sidebar-border: #2a2018;
+  --sidebar-ring: #4a6a80;
+}
+
+.dark .clay-card {
+  box-shadow:
+    8px 8px 16px rgba(0, 0, 0, 0.3),
+    -4px -4px 12px rgba(60, 50, 40, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dark .clay-card-soft {
+  box-shadow:
+    6px 6px 12px rgba(0, 0, 0, 0.25),
+    -3px -3px 8px rgba(60, 50, 40, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.dark .clay-topbar {
+  background: rgba(26, 20, 16, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(61, 53, 41, 0.5);
+}
+
+.dark .clay-sidebar {
+  box-shadow:
+    -6px 0 16px rgba(0, 0, 0, 0.3),
+    inset -1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
+.dark .urgency-border-critical,
+.dark .urgency-border-high,
+.dark .urgency-border-normal {
+  border-right-color: var(--clay-dark);
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

@@ -60,6 +60,7 @@ export const test = base.extend<CrimsysFixtures>({
     const gotoFn = async (path: string) => {
       await navigateTo(page, path);
     };
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(gotoFn);
   },
 });

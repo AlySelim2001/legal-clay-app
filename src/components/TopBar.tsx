@@ -1,8 +1,9 @@
 import { useState, useCallback } from "react";
-import { Search, Bell, ChevronDown, LogOut, User, Settings, Globe } from "lucide-react";
+import { Search, Bell, ChevronDown, LogOut, User, Settings, Globe, Sun, Moon } from "lucide-react";
 import { useUpcomingHearings } from "@/hooks/useSupabaseData";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useI18n } from "@/contexts/I18nContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useNavigate, Link } from "react-router";
 import { supabase } from "@/lib/supabase";
 
@@ -22,6 +23,7 @@ export function TopBar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const { user, signOut } = useSupabaseAuth();
   const { t, lang, toggleLang } = useI18n();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { data: hearings } = useUpcomingHearings();
 
@@ -106,6 +108,19 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Dark Mode Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="clay-button p-2.5 bg-card rounded-xl"
+          title={theme === "dark" ? (lang === "ar" ? "الوضع الفاتح" : "Light Mode") : (lang === "ar" ? "الوضع الداكن" : "Dark Mode")}
+        >
+          {theme === "dark" ? (
+            <Sun className="w-4 h-4 text-clay-amber" />
+          ) : (
+            <Moon className="w-4 h-4 text-muted-foreground" />
+          )}
+        </button>
+
         {/* i18n Toggle */}
         <button
           onClick={toggleLang}
