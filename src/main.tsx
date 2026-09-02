@@ -17,7 +17,7 @@ const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Login = lazy(() => import("./pages/Login.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
-// App pages
+// App pages — Legacy
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Cases = lazy(() => import("./pages/Cases.tsx"));
 const CaseDetail = lazy(() => import("./pages/CaseDetail.tsx"));
@@ -36,6 +36,15 @@ const About = lazy(() => import("./pages/About.tsx"));
 const ColomboAgent = lazy(() => import("./pages/ColomboAgent.tsx"));
 const SocialSearch = lazy(() => import("./pages/SocialSearch.tsx"));
 const OppositionGuide = lazy(() => import("./pages/OppositionGuide.tsx"));
+
+// Enterprise pages
+const EnterpriseDashboard = lazy(() => import("./pages/EnterpriseDashboard.tsx"));
+const EnterpriseCases = lazy(() => import("./pages/EnterpriseCases.tsx"));
+const EnterpriseCaseDetail = lazy(() => import("./pages/EnterpriseCaseDetail.tsx"));
+const EnterprisePersons = lazy(() => import("./pages/EnterprisePersons.tsx"));
+const EnterpriseActions = lazy(() => import("./pages/EnterpriseActions.tsx"));
+const EnterpriseAuditLog = lazy(() => import("./pages/EnterpriseAuditLog.tsx"));
+const EnterpriseExcelImport = lazy(() => import("./pages/EnterpriseExcelImport.tsx"));
 
 import { AppLayout } from "@/components/AppLayout";
 import { RouteLoading } from "@/components/RouteLoading";
@@ -127,9 +136,18 @@ createRoot(document.getElementById("root")!).render(
                   </RequireAuth>
                 }
               >
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="cases" element={<Cases />} />
-                <Route path="cases/:caseCode" element={<CaseDetail />} />
+                {/* Enterprise routes (new data model) */}
+                <Route path="dashboard" element={<EnterpriseDashboard />} />
+                <Route path="cases" element={<EnterpriseCases />} />
+                <Route path="cases/:caseCode" element={<EnterpriseCaseDetail />} />
+                <Route path="persons" element={<EnterprisePersons />} />
+                <Route path="actions" element={<EnterpriseActions />} />
+                <Route path="audit" element={<EnterpriseAuditLog />} />
+                <Route path="import" element={<EnterpriseExcelImport />} />
+                {/* Legacy routes preserved */}
+                <Route path="legacy/dashboard" element={<Dashboard />} />
+                <Route path="legacy/cases" element={<Cases />} />
+                <Route path="legacy/cases/:caseCode" element={<CaseDetail />} />
                 <Route path="clients" element={<Clients />} />
                 <Route path="clients/:clientCode" element={<ClientDetail />} />
                 <Route path="calendar" element={<CalendarPage />} />

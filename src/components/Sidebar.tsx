@@ -10,13 +10,10 @@ import {
   FileText,
   Settings,
   LogOut,
-  Bot,
   Info,
   ChevronLeft,
   HardHat,
   Eye,
-  Search,
-  Map,
 } from "lucide-react";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { cn } from "@/lib/utils";
@@ -26,19 +23,16 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
-const navItems = [
+const navItems: Array<{to: string; icon: React.ElementType; label: string; labelEn: string; badge?: string}> = [
   { to: "/app/dashboard", icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard" },
   { to: "/app/cases", icon: Briefcase, label: "القضايا", labelEn: "Cases" },
-  { to: "/app/clients", icon: Users, label: "العملاء", labelEn: "Clients" },
+  { to: "/app/persons", icon: Users, label: "الأشخاص", labelEn: "Persons" },
   { to: "/app/calendar", icon: Calendar, label: "التقويم", labelEn: "Calendar" },
-  { to: "/app/deadlines", icon: Clock, label: "المواعيد القانونية", labelEn: "Deadlines" },
-  { to: "/app/ai-agents", icon: Bot, label: "الوكيل القانوني المتعدد", labelEn: "AI Agents Swarm", badge: "جديد" },
-  { to: "/app/ai-agent/colombo", icon: Eye, label: "محرك كولومبو التفتيشي", labelEn: "Colombo Forensic Engine" },
-  { to: "/app/social-search", icon: Search, label: "بحث المحاكم الاجتماعية", labelEn: "Social Court Search" },
-  { to: "/app/guides/opposition", icon: Map, label: "دليل المعارض", labelEn: "Opposition Guide" },
-  { to: "/app/defenses", icon: Shield, label: "الدفوع الجنائية", labelEn: "Defenses" },
-  { to: "/app/archive", icon: Archive, label: "الأرشيف", labelEn: "Archive" },
-  { to: "/app/legal-framework", icon: FileText, label: "الإطار القانوني", labelEn: "Legal Framework" },
+  { to: "/app/actions", icon: Clock, label: "الإجراءات والمهام", labelEn: "Actions & Tasks" },
+  { to: "/app/defenses", icon: Shield, label: "الدفوع", labelEn: "Defenses" },
+  { to: "/app/archive", icon: Archive, label: "المستندات", labelEn: "Documents" },
+  { to: "/app/import", icon: FileText, label: "استيراد Excel", labelEn: "Excel Import" },
+  { to: "/app/audit", icon: Eye, label: "سجل التدقيق", labelEn: "Audit Log" },
   { to: "/app/about", icon: Info, label: "عن النظام", labelEn: "About" },
   { to: "/app/settings", icon: Settings, label: "الإعدادات", labelEn: "Settings" },
 ];

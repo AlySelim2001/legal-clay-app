@@ -6,15 +6,15 @@ import {
   useState,
   useCallback,
   type ReactNode,
-} from 'react';
-import { supabase } from '@/lib/supabase';
-import type { UserRole } from '@/types/database';
-import type { User, Session, AuthError } from '@supabase/supabase-js';
+} from "react";
+import { supabase } from "@/lib/supabase";
+import type { UserRoleType } from "@/types/enterprise";
+import type { User, Session, AuthError } from "@supabase/supabase-js";
 
 interface AuthUser {
   id: string;
   email: string;
-  role: UserRole;
+  role: UserRoleType;
   user_metadata: Record<string, unknown>;
 }
 
@@ -27,7 +27,7 @@ interface SupabaseAuthContextType {
   signUp: (
     email: string,
     password: string,
-    role?: UserRole,
+    role?: UserRoleType,
   ) => Promise<{ error?: AuthError }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -35,15 +35,19 @@ interface SupabaseAuthContextType {
 
 const SupabaseAuthContext = createContext<SupabaseAuthContextType | null>(null);
 
-function extractRole(user: User): UserRole {
+const VALID_ROLES: UserRoleType[] = ["admin", "lawyer", "assistant", "readonly"];
+
+function extractRole(user: User): UserRoleType {
   const meta = user.user_metadata ?? {};
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const appMeta = (user as any).app_metadata as Record<string, unknown> | undefined;
-  const role =
+  const raw =
     (meta.role as string | undefined) ??
     (appMeta?.role as string | undefined) ??
-    'assistant';
-  return role === 'admin' ? 'admin' : 'assistant';
+    "assistant";
+  return VALID_ROLES.includes(raw as UserRoleType)
+    ? (raw as UserRoleType)
+    : "assistant";
 }
 
 export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
@@ -51,22 +55,23 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const buildUser = useCallback((u: User): AuthUser => ({
-    id: u.id,
-    email: u.email ?? '',
-    role: extractRole(u),
-    user_metadata: u.user_metadata ?? {},
-  }), []);
+  const buildUser = useCallback(
+    (u: User): AuthUser => ({
+      id: u.id,
+      email: u.email ?? "",
+      role: extractRole(u),
+      user_metadata: u.user_metadata ?? {},
+    }),
+    [],
+  );
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ? buildUser(s.user) : null);
       setIsLoading(false);
     });
 
-    // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -87,7 +92,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(
-    async (email: string, password: string, role: UserRole = 'assistant') => {
+    async (email: string, password: string, role: UserRoleType = "assistant") => {
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -108,10 +113,10 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    const { data: { user: u } } = await supabase.auth.getUser();
-    if (u) {
-      setUser(buildUser(u));
-    }
+    const {
+      data: { user: u },
+    } = await supabase.auth.getUser();
+    if (u) setUser(buildUser(u));
   }, [buildUser]);
 
   return (
@@ -135,7 +140,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
 export function useSupabaseAuth() {
   const ctx = useContext(SupabaseAuthContext);
   if (!ctx) {
-    throw new Error('useSupabaseAuth must be used within SupabaseAuthProvider');
+    throw new Error("useSupabaseAuth must be used within SupabaseAuthProvider");
   }
   return ctx;
 }
