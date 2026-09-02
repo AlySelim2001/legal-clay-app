@@ -93,7 +93,7 @@ export function DocumentUpload({ caseId, onUploaded }: DocumentUploadProps) {
         uploaded_by: null,
         review_status: reviewStatus,
         document_date: null,
-        notes: notes || null,
+        notes: notes || undefined,
       };
 
       const parsed = DocumentInsertSchema.safeParse(docData);

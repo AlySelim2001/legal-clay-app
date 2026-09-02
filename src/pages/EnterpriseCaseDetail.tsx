@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useParams, Link } from "react-router";
 import { useCase } from "@/hooks/useEnterprise";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DocumentUpload } from "@/components/DocumentUpload";
+import { SessionModal } from "@/components/SessionModal";
 import {
   ArrowRight,
   Loader2,
@@ -13,6 +15,8 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
+  Pencil,
+  Plus,
 } from "lucide-react";
 
 const TABS = [
@@ -26,6 +30,16 @@ export default function EnterpriseCaseDetail() {
   const { caseCode } = useParams<{ caseCode: string }>();
   const { data: caseData, loading, error } = useCase(caseCode ?? "");
   const [activeTab, setActiveTab] = useState("overview");
+  const [sessionModalOpen, setSessionModalOpen] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+
+  const handleSessionCreated = useCallback(() => {
+    setSessionModalOpen(false);
+  }, []);
+
+  const handleDocumentUploaded = useCallback(() => {
+    setShowUpload(false);
+  }, []);
 
   if (loading) {
     return (
@@ -65,7 +79,7 @@ export default function EnterpriseCaseDetail() {
         <span className="font-medium text-foreground">{caseData.case_number}</span>
       </div>
 
-      {/* Header */}
+      {/* Header with Edit Button */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-primary">
@@ -73,7 +87,15 @@ export default function EnterpriseCaseDetail() {
           </h1>
           <p className="text-sm text-muted-foreground">{caseData.court_name}</p>
         </div>
-        <Badge className="text-xs">{caseData.procedural_status}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge className="text-xs">{caseData.procedural_status}</Badge>
+          <Link to={`/app/cases/${caseData.case_code}/edit`}>
+            <Button variant="outline" size="sm" className="gap-1">
+              <Pencil className="h-3 w-3" />
+              تعديل
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Confidence & Legal Note Status */}
@@ -191,11 +213,15 @@ export default function EnterpriseCaseDetail() {
         <TabsContent value="sessions" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold">الجلسات</h3>
-            <Link to={`/app/calendar?case=${caseData.id}`}>
-              <Button variant="outline" size="sm">
-                إضافة جلسة
-              </Button>
-            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1"
+              onClick={() => setSessionModalOpen(true)}
+            >
+              <Plus className="h-3 w-3" />
+              إضافة جلسة
+            </Button>
           </div>
           {!caseData.sessions || caseData.sessions.length === 0 ? (
             <EmptyState message="لا توجد جلسات مسجلة لهذه القضية" />
@@ -224,10 +250,25 @@ export default function EnterpriseCaseDetail() {
         <TabsContent value="documents" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold">المستندات</h3>
-            <Button variant="outline" size="sm">
-              رفع مستند
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1"
+              onClick={() => setShowUpload(!showUpload)}
+            >
+              <Plus className="h-3 w-3" />
+              {showUpload ? "إخفاء" : "رفع مستند"}
             </Button>
           </div>
+
+          {/* Document Upload Component */}
+          {showUpload && (
+            <DocumentUpload
+              caseId={caseData.id}
+              onUploaded={handleDocumentUploaded}
+            />
+          )}
+
           {!caseData.documents || caseData.documents.length === 0 ? (
             <EmptyState message="لا توجد مستندات مرفقة لهذه القضية" />
           ) : (
@@ -264,7 +305,8 @@ export default function EnterpriseCaseDetail() {
         <TabsContent value="actions" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold">الإجراءات</h3>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="gap-1">
+              <Plus className="h-3 w-3" />
               إضافة إجراء
             </Button>
           </div>
@@ -298,6 +340,13 @@ export default function EnterpriseCaseDetail() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Session Modal */}
+      <SessionModal
+        open={sessionModalOpen}
+        onClose={handleSessionCreated}
+        caseId={caseData.id}
+      />
 
       {/* Legal Disclaimer */}
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">

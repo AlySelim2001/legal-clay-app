@@ -41,10 +41,15 @@ const OppositionGuide = lazy(() => import("./pages/OppositionGuide.tsx"));
 const EnterpriseDashboard = lazy(() => import("./pages/EnterpriseDashboard.tsx"));
 const EnterpriseCases = lazy(() => import("./pages/EnterpriseCases.tsx"));
 const EnterpriseCaseDetail = lazy(() => import("./pages/EnterpriseCaseDetail.tsx"));
+const EnterpriseCaseForm = lazy(() => import("./pages/EnterpriseCaseForm.tsx"));
 const EnterprisePersons = lazy(() => import("./pages/EnterprisePersons.tsx"));
+const EnterprisePersonDetail = lazy(() => import("./pages/EnterprisePersonDetail.tsx"));
+const EnterprisePersonForm = lazy(() => import("./pages/EnterprisePersonForm.tsx"));
 const EnterpriseActions = lazy(() => import("./pages/EnterpriseActions.tsx"));
 const EnterpriseAuditLog = lazy(() => import("./pages/EnterpriseAuditLog.tsx"));
 const EnterpriseExcelImport = lazy(() => import("./pages/EnterpriseExcelImport.tsx"));
+const EnterpriseCalendar = lazy(() => import("./pages/EnterpriseCalendar.tsx"));
+const EnterpriseSettings = lazy(() => import("./pages/EnterpriseSettings.tsx"));
 
 import { AppLayout } from "@/components/AppLayout";
 import { RouteLoading } from "@/components/RouteLoading";
@@ -139,23 +144,28 @@ createRoot(document.getElementById("root")!).render(
                 {/* Enterprise routes (new data model) */}
                 <Route path="dashboard" element={<EnterpriseDashboard />} />
                 <Route path="cases" element={<EnterpriseCases />} />
+                <Route path="cases/new" element={<EnterpriseCaseForm />} />
                 <Route path="cases/:caseCode" element={<EnterpriseCaseDetail />} />
+                <Route path="cases/:caseCode/edit" element={<EnterpriseCaseForm />} />
                 <Route path="persons" element={<EnterprisePersons />} />
+                <Route path="persons/new" element={<EnterprisePersonForm />} />
+                <Route path="persons/:personCode" element={<EnterprisePersonDetail />} />
+                <Route path="calendar" element={<EnterpriseCalendar />} />
                 <Route path="actions" element={<EnterpriseActions />} />
                 <Route path="audit" element={<EnterpriseAuditLog />} />
                 <Route path="import" element={<EnterpriseExcelImport />} />
+                <Route path="settings" element={<EnterpriseSettings />} />
                 {/* Legacy routes preserved */}
                 <Route path="legacy/dashboard" element={<Dashboard />} />
                 <Route path="legacy/cases" element={<Cases />} />
                 <Route path="legacy/cases/:caseCode" element={<CaseDetail />} />
                 <Route path="clients" element={<Clients />} />
                 <Route path="clients/:clientCode" element={<ClientDetail />} />
-                <Route path="calendar" element={<CalendarPage />} />
+                <Route path="legacy/calendar" element={<CalendarPage />} />
                 <Route path="deadlines" element={<Deadlines />} />
                 <Route path="defenses" element={<Defenses />} />
                 <Route path="archive" element={<Archive />} />
                 <Route path="legal-framework" element={<LegalFramework />} />
-                <Route path="settings" element={<Settings />} />
                 <Route path="ai-agent" element={<AIAgent />} />
                 <Route path="ai-agents" element={<AIAgents />} />
                 <Route path="about" element={<About />} />
