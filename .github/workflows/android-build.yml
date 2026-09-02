@@ -24,9 +24,9 @@ jobs:
           java-version: '17'
 
       - name: Install Dependencies
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --force
 
-      - name: Build Web Assets
+      - name: Build Web Application
         run: npx vite build
 
       - name: Add Android Platform if missing
@@ -38,10 +38,10 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Make Gradlew Executable
+      - name: Grant Executable Permissions
         run: chmod +x android/gradlew
 
-      - name: Build Debug APK
+      - name: Compile Android Debug APK
         run: |
           cd android
           ./gradlew assembleDebug --no-daemon
