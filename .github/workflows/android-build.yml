@@ -26,7 +26,7 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build Web Application
+      - name: Build Web Assets
         run: npx vite build
 
       - name: Add Android Platform if missing
@@ -35,16 +35,18 @@ jobs:
             npx cap add android
           fi
 
-      - name: Sync Capacitor Android
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Compile Debug APK
+      - name: Make Gradlew Executable
+        run: chmod +x android/gradlew
+
+      - name: Build Debug APK
         run: |
           cd android
-          chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      - name: Upload Debug APK Artifact
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: LAW-SYS-2026-Debug-APK
