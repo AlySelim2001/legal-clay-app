@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Loader2, AlertTriangle } from "lucide-react";
+import { Shield, Loader2, AlertTriangle, Info } from "lucide-react";
 import { canViewAuditLog } from "@/lib/enterprise/rbac";
 
 export default function EnterpriseAuditLog() {
@@ -113,6 +113,12 @@ export default function EnterpriseAuditLog() {
           ))}
         </div>
       )}
+
+      {/* Legal Disclaimer */}
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+        <Info className="mx-auto mb-1 h-4 w-4" />
+        جميع البيانات والإجراءات مقترحة تحتاج إلى مراجعة واعتماد محامٍ مختص.
+      </div>
     </div>
   );
 }

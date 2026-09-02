@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useCreateDocument } from "@/hooks/useEnterprise";
 import { supabase } from "@/lib/supabase";
+import { audit } from "@/lib/enterprise/audit";
 import { DocumentInsertSchema, type DocumentInsert, type DocumentTypeValue, type ReviewStatusType } from "@/types/enterprise";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -103,6 +104,7 @@ export function DocumentUpload({ caseId, onUploaded }: DocumentUploadProps) {
 
       const result = await create(parsed.data);
       if (result) {
+        audit.documentUploaded(result.id, selectedFile.name);
         setSelectedFile(null);
         setNotes("");
         setDocType("مستند آخر");

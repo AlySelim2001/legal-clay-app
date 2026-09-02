@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useActions } from "@/hooks/useEnterprise";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import type { ActionRow } from "@/types/enterprise";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +15,11 @@ import {
 import { CheckCircle, Clock, AlertTriangle, Loader2, Plus } from "lucide-react";
 
 export default function EnterpriseActions() {
+  const { user } = useSupabaseAuth();
   const { data: actions, loading, error } = useActions();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [nowTs, setNowTs] = useState(() => Date.now());
+  const canCreateAction = user?.role !== "readonly";
 
   useEffect(() => {
     const id = setInterval(() => setNowTs(Date.now()), 60_000);
@@ -49,10 +52,12 @@ export default function EnterpriseActions() {
     <div className="space-y-4 animate-fade-in" dir="rtl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-primary">الإجراءات والمهام</h1>
-        <Button className="gap-2 clay-button">
-          <Plus className="h-4 w-4" />
-          إجراء جديد
-        </Button>
+        {canCreateAction && (
+          <Button className="gap-2 clay-button">
+            <Plus className="h-4 w-4" />
+            إجراء جديد
+          </Button>
+        )}
       </div>
 
       {/* Filter */}
@@ -101,6 +106,9 @@ export default function EnterpriseActions() {
       {/* Actions List */}
       {!loading && !error && filtered.length > 0 && (
         <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {filtered.length} إجراء
+          </p>
           {filtered.map((a) => (
             <Card
               key={a.id}
@@ -154,6 +162,12 @@ export default function EnterpriseActions() {
           ))}
         </div>
       )}
+
+      {/* Legal Disclaimer */}
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+        <AlertTriangle className="mx-auto mb-1 h-4 w-4" />
+        جميع البيانات والإجراءات مقترحة تحتاج إلى مراجعة واعتماد محامٍ مختص.
+      </div>
     </div>
   );
 }

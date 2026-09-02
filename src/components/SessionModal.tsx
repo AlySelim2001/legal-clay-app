@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useCreateSession, useUpdateSession, useCases } from "@/hooks/useEnterprise";
+import { audit } from "@/lib/enterprise/audit";
 import { SessionInsertSchema, type SessionInsert, type SessionTypeValue, type AttendanceStatusType } from "@/types/enterprise";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -67,8 +68,10 @@ export function SessionModal({ open, onClose, caseId, existingSession }: Session
     let result;
     if (isEdit) {
       result = await update(existingSession.id, parsed.data);
+      if (result) audit.sessionUpdated(result.id);
     } else {
       result = await create(parsed.data);
+      if (result) audit.sessionCreated(result.id);
     }
 
     if (result) {

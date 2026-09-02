@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { usePerson, useCreatePerson, useUpdatePerson } from "@/hooks/useEnterprise";
+import { audit } from "@/lib/enterprise/audit";
 import { PersonInsertSchema, type PersonInsert } from "@/types/enterprise";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -72,8 +73,10 @@ export default function EnterprisePersonForm() {
     let result;
     if (isEdit && existingPerson) {
       result = await update(existingPerson.id, parsed.data);
+      if (result) audit.personUpdated(result.id);
     } else {
       result = await create(parsed.data);
+      if (result) audit.personCreated(result.id);
     }
 
     if (result) {

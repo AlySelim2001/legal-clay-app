@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useCase, useCreateCase, useUpdateCase, usePersons } from "@/hooks/useEnterprise";
+import { audit } from "@/lib/enterprise/audit";
 import { CaseInsertSchema, type CaseInsert, type CaseTypeValue, type ProceduralStatusType, type ConfidenceStatusType, type LegalNoteStatusType } from "@/types/enterprise";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,8 +76,10 @@ export default function EnterpriseCaseCreateEdit() {
     let result;
     if (isEdit && existingCase) {
       result = await update(existingCase.id, parsed.data);
+      if (result) audit.caseUpdated(result.id);
     } else {
       result = await create(parsed.data);
+      if (result) audit.caseCreated(result.id);
     }
 
     if (result) {

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Users, Loader2, Phone, Mail } from "lucide-react";
+import { Search, Plus, Users, Loader2, Phone, Mail, AlertTriangle } from "lucide-react";
 
 export default function EnterprisePersons() {
   const { data: persons, loading, error } = usePersons();
@@ -117,6 +117,12 @@ export default function EnterprisePersons() {
           ))}
         </div>
       )}
+
+      {/* Legal Disclaimer */}
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+        <AlertTriangle className="mx-auto mb-1 h-4 w-4" />
+        جميع البيانات والإجراءات مقترحة تحتاج إلى مراجعة واعتماد محامٍ مختص.
+      </div>
     </div>
   );
 }
