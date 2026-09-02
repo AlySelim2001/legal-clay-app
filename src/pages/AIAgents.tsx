@@ -13,6 +13,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface Message {
   id: string;
@@ -246,7 +247,7 @@ export default function AIAgents() {
         return (
           <div key={i} className="flex items-start gap-2 me-2">
             <span className="text-clay-purple mt-0.5">•</span>
-            <span dangerouslySetInnerHTML={{ __html: styled.slice(2) }} />
+            <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(styled.slice(2)) }} />
           </div>
         );
       }
@@ -258,7 +259,7 @@ export default function AIAgents() {
         <p
           key={i}
           className="min-h-[1.2em]"
-          dangerouslySetInnerHTML={{ __html: styled }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(styled) }}
         />
       );
     });
