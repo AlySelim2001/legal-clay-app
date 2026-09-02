@@ -350,7 +350,7 @@ export default function EnterpriseCaseDetail() {
 
       {/* Legal Disclaimer */}
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
-        ⚠️ جميع البيانات والإجراءات مقترحة — يجب التحقق منها مع المحامي المختص قبل اتخاذ أي إجراء قانوني.
+⚠️ جميع البيانات والإجراءات مقترحة تحتاج إلى مراجعة واعتماد محامٍ مختص.
       </div>
     </div>
   );

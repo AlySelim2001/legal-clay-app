@@ -211,7 +211,7 @@ export function DocumentUpload({ caseId, onUploaded }: DocumentUploadProps) {
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             className="clay-input w-full rounded-xl border bg-white px-3 py-2 text-sm dark:bg-background"
-            placeholder="typing notes about this document..."
+            placeholder="ملاحظات حول هذا المستند..."
           />
         </div>
       )}

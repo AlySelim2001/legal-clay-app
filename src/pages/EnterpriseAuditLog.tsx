@@ -44,7 +44,7 @@ export default function EnterpriseAuditLog() {
       {/* Filter */}
       <Select value={entityFilter} onValueChange={setEntityFilter}>
         <SelectTrigger className="w-48">
-          <SelectValue placeholder="filtrage بالكيان" />
+          <SelectValue placeholder="تصفية بالكيان" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">جميع الكيانات</SelectItem>

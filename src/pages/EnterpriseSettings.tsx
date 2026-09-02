@@ -171,7 +171,7 @@ export default function EnterpriseSettings() {
       {/* Security Disclaimer */}
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
         <AlertTriangle className="mx-auto mb-1 h-4 w-4" />
-        جميع البيانات敏感ة محمية — لا تشارك بيانات الدخول مع أي طرف ثالث.
+جميع البيانات حساسة محمية — لا تشارك بيانات الدخول مع أي طرف ثالث.
       </div>
     </div>
   );

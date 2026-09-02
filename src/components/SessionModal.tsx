@@ -158,7 +158,7 @@ export function SessionModal({ open, onClose, caseId, existingSession }: Session
             <Input
               value={form.required_action ?? ""}
               onChange={(e) => setField("required_action", e.target.value)}
-              placeholder="typing required action..."
+              placeholder="الإجراء المطلوب بعد الجلسة..."
               className="clay-input"
             />
           </div>
@@ -196,7 +196,7 @@ export function SessionModal({ open, onClose, caseId, existingSession }: Session
               onChange={(e) => setField("outcome_note", e.target.value)}
               rows={2}
               className="clay-input w-full rounded-xl border bg-white px-3 py-2 text-sm dark:bg-background"
-              placeholder="typing outcome notes..."
+              placeholder="ملاحظات على نتيجة الجلسة..."
             />
           </div>
 

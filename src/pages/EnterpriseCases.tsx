@@ -76,7 +76,7 @@ export default function EnterpriseCases() {
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="过滤 بالحالة" />
+            <SelectValue placeholder="تصفية بالحالة" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">جميع الحالات</SelectItem>
