@@ -54,6 +54,7 @@ const EnterpriseSettings = lazy(() => import("./pages/EnterpriseSettings.tsx"));
 import { AppLayout } from "@/components/AppLayout";
 import { RouteLoading } from "@/components/RouteLoading";
 import { RouteSyncer } from "@/components/RouteSyncer";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 
 /** Silent error boundary for VlyToolbar */
 class ToolbarErrorBoundary extends React.Component<
@@ -141,20 +142,20 @@ createRoot(document.getElementById("root")!).render(
                   </RequireAuth>
                 }
               >
-                {/* Enterprise routes (new data model) */}
-                <Route path="dashboard" element={<EnterpriseDashboard />} />
-                <Route path="cases" element={<EnterpriseCases />} />
-                <Route path="cases/new" element={<EnterpriseCaseForm />} />
-                <Route path="cases/:caseCode" element={<EnterpriseCaseDetail />} />
-                <Route path="cases/:caseCode/edit" element={<EnterpriseCaseForm />} />
-                <Route path="persons" element={<EnterprisePersons />} />
-                <Route path="persons/new" element={<EnterprisePersonForm />} />
-                <Route path="persons/:personCode" element={<EnterprisePersonDetail />} />
-                <Route path="calendar" element={<EnterpriseCalendar />} />
-                <Route path="actions" element={<EnterpriseActions />} />
-                <Route path="audit" element={<EnterpriseAuditLog />} />
-                <Route path="import" element={<EnterpriseExcelImport />} />
-                <Route path="settings" element={<EnterpriseSettings />} />
+                {/* Enterprise routes (new data model) — wrapped with error isolation */}
+                <Route path="dashboard" element={<RouteErrorBoundary routeName="لوحة التحكم"><EnterpriseDashboard /></RouteErrorBoundary>} />
+                <Route path="cases" element={<RouteErrorBoundary routeName="القضايا"><EnterpriseCases /></RouteErrorBoundary>} />
+                <Route path="cases/new" element={<RouteErrorBoundary routeName="قضية جديدة"><EnterpriseCaseForm /></RouteErrorBoundary>} />
+                <Route path="cases/:caseCode" element={<RouteErrorBoundary routeName="تفاصيل القضية"><EnterpriseCaseDetail /></RouteErrorBoundary>} />
+                <Route path="cases/:caseCode/edit" element={<RouteErrorBoundary routeName="تعديل القضية"><EnterpriseCaseForm /></RouteErrorBoundary>} />
+                <Route path="persons" element={<RouteErrorBoundary routeName="الأشخاص"><EnterprisePersons /></RouteErrorBoundary>} />
+                <Route path="persons/new" element={<RouteErrorBoundary routeName="شخص جديد"><EnterprisePersonForm /></RouteErrorBoundary>} />
+                <Route path="persons/:personCode" element={<RouteErrorBoundary routeName="تفاصيل الشخص"><EnterprisePersonDetail /></RouteErrorBoundary>} />
+                <Route path="calendar" element={<RouteErrorBoundary routeName="التقويم"><EnterpriseCalendar /></RouteErrorBoundary>} />
+                <Route path="actions" element={<RouteErrorBoundary routeName="الإجراءات"><EnterpriseActions /></RouteErrorBoundary>} />
+                <Route path="audit" element={<RouteErrorBoundary routeName="سجل التدقيق"><EnterpriseAuditLog /></RouteErrorBoundary>} />
+                <Route path="import" element={<RouteErrorBoundary routeName="استيراد البيانات"><EnterpriseExcelImport /></RouteErrorBoundary>} />
+                <Route path="settings" element={<RouteErrorBoundary routeName="الإعدادات"><EnterpriseSettings /></RouteErrorBoundary>} />
                 {/* Legacy routes preserved */}
                 <Route path="legacy/dashboard" element={<Dashboard />} />
                 <Route path="legacy/cases" element={<Cases />} />
