@@ -3,6 +3,8 @@ name: LAW-SYS 2026 — Android Build & Quality Control
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -10,40 +12,73 @@ permissions:
   actions: write
 
 jobs:
-  build:
+  quality:
+    name: 🔍 Quality Control
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      - name: Setup Java
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps --force
+
+      - name: TypeScript Check
+        run: npx tsc -b --noEmit || echo "TS check failed (non-blocking)"
+
+      - name: Lint
+        run: npm run lint || echo "Lint warnings (non-blocking)"
+
+      - name: Build Web
+        run: npx vite build
+
+  android:
+    name: 🤖 Android APK Build
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps --force
 
-      - name: Build Web
+      - name: Build Web Application
         run: npx vite build
 
-      - name: Sync Capacitor
+      - name: Add Android Platform if missing
         run: |
-          npx cap sync android || npx cap add android
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
 
-      - name: Build Android Debug APK (Verbose)
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Grant Executable Permissions
+        run: chmod +x android/gradlew
+
+      - name: Compile Android Debug APK
         run: |
           cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace --info
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: LAW-SYS-2026-Debug-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
