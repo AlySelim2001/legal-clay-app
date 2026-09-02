@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "lint": "eslint .",

@@ -6,47 +6,39 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-android:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js (v20)
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
-      - name: Setup Java JDK 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install Dependencies
-        run: npm install --legacy-peer-deps --force
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
 
-      - name: Build Web Application
+      - name: Build Web
         run: npx vite build
 
-      - name: Add Android Platform if missing
-        run: |
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
-
       - name: Sync Capacitor
-        run: npx cap sync android
+        run: |
+          npx cap sync android || npx cap add android
 
-      - name: Grant Executable Permissions
-        run: chmod +x android/gradlew
-
-      - name: Compile Android Debug APK
+      - name: Build Android Debug APK
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      - name: Upload Debug APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: LAW-SYS-2026-Debug-APK
