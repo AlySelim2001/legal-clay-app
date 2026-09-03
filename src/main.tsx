@@ -55,6 +55,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { RouteLoading } from "@/components/RouteLoading";
 import { RouteSyncer } from "@/components/RouteSyncer";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { UpdateChecker } from "@/components/UpdateChecker";
 
 /** Silent error boundary for VlyToolbar */
 class ToolbarErrorBoundary extends React.Component<
@@ -124,6 +125,7 @@ createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <RouteSyncer />
           <Suspense fallback={<RouteLoading />}>
+            <UpdateChecker />
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Landing />} />
