@@ -48,6 +48,7 @@ export type LegalCategory =
   | 'execution'
   | 'intellectual-property'
   | 'arbitration'
+  | 'forensic'
   | 'bankruptcy';
 
 export interface DeadlineRule {

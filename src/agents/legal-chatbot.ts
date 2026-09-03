@@ -9,6 +9,7 @@
 import { SwarmOrchestrator, getSwarmOrchestrator } from './swarm-orchestrator';
 import { RAGRetriever } from '../rag/retriever';
 import { LEGAL_AGENTS, type AgentResponse } from '../lib/ai/agent-swarm';
+import type { LegalCategory } from '../legal-db/egyptian-codes';
 
 // ============================================================
 // Types
@@ -348,7 +349,7 @@ export class LegalChatbot {
 
   private getFallbackResponse(query: string, domain: string): string {
     const agentList = this.orchestrator.getAgentsByDomain(
-      domain as 'criminal' | 'civil' | 'family' | 'administrative' | 'labor'
+      domain as LegalCategory
     );
 
     if (agentList.length > 0) {

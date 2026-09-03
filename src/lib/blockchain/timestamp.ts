@@ -154,7 +154,7 @@ export class BlockchainTimestamp {
       transactionHash,
       blockNumber,
       timestamp,
-      timestampDate: new Date(timestamp).toISOString('ar-EG'),
+      timestampDate: new Date(timestamp).toLocaleString('ar-EG'),
       network: blockNumber > 0 ? 'Ethereum Sepolia' : 'Local Proof',
       verified: true,
     };

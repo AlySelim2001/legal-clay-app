@@ -19,7 +19,9 @@ export type AgentDomain =
   | 'family'
   | 'administrative'
   | 'labor'
-  | 'forensic';
+  | 'forensic'
+  | 'commercial'
+  | 'execution';
 
 export interface LegalAgent {
   id: string;

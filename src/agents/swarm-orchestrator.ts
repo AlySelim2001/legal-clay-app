@@ -6,8 +6,9 @@
  * and RAG-augmented responses with legal context retrieval.
  */
 
-import { LEGAL_AGENTS, type AgentRequest, type AgentResponse } from '../lib/ai/agent-swarm';
-import { ADVANCED_AGENTS, type LegalAgent as AdvancedLegalAgent } from './advanced-agents';
+import { LEGAL_AGENTS, type AgentRequest, type AgentResponse, type AgentDomain } from '../lib/ai/agent-swarm';
+import { ADVANCED_AGENTS } from './advanced-agents';
+import type { LegalAgent as AdvancedLegalAgent } from '../lib/ai/agent-swarm';
 import { RAGRetriever, RAGRetriever as RAGRetrieverClass } from '../rag/retriever';
 import type { LegalCategory } from '../legal-db/egyptian-codes';
 import { DEADLINE_RULES, getDeadlinesByCategory } from '../legal-db/egyptian-codes';
@@ -58,6 +59,7 @@ const DOMAIN_KEYWORDS: Record<LegalCategory, string[]> = {
   arbitration: ['تحكيم', 'arbitration', ' mediador', 'تحكيمي'],
   bankruptcy: ['إفلاس', 'تصفية', 'debtor', 'مدين', 'دائن', 'creditor', 'bankruptcy'],
   execution: ['تنفيذ', 'إكراه', 'حجز', 'تخلع', ' enforcement', 'judgment'],
+  forensic: ['تفتيش', 'محاضر', 'شرطة', 'ادعاء', 'indictment', 'forensic', 'crime scene', 'جثة'],
 };
 
 const DEADLINE_KEYWORDS = ['موعد', 'مدة', 'تقادم', 'مهلة', 'أيام', 'ساعات', 'deadline', '期限', 'filing', 'تقديم'];
