@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   HardHat,
   Eye,
+  BrainCircuit,
 } from "lucide-react";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ const navItems: Array<{to: string; icon: React.ElementType; label: string; label
   { to: "/app/archive", icon: Archive, label: "المستندات", labelEn: "Documents" },
   { to: "/app/import", icon: FileText, label: "استيراد Excel", labelEn: "Excel Import" },
   { to: "/app/audit", icon: Eye, label: "سجل التدقيق", labelEn: "Audit Log" },
+  { to: "/app/legal-intelligence", icon: BrainCircuit, label: "الاستخبارات القانونية", labelEn: "Legal Intelligence" },
   { to: "/app/about", icon: Info, label: "عن النظام", labelEn: "About" },
   { to: "/app/settings", icon: Settings, label: "الإعدادات", labelEn: "Settings" },
 ];

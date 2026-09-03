@@ -29,9 +29,9 @@ const Defenses = lazy(() => import("./pages/Defenses.tsx"));
 const Archive = lazy(() => import("./pages/Archive.tsx"));
 const LegalFramework = lazy(() => import("./pages/LegalFramework.tsx"));
 const AdminTeam = lazy(() => import("./pages/AdminTeam.tsx"));
-const Settings = lazy(() => import("./pages/Settings.tsx"));
 const AIAgent = lazy(() => import("./pages/AIAgent.tsx"));
 const AIAgents = lazy(() => import("./pages/AIAgents.tsx"));
+const LegalIntelligence = lazy(() => import("./pages/LegalIntelligence.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
 const ColomboAgent = lazy(() => import("./pages/ColomboAgent.tsx"));
 const SocialSearch = lazy(() => import("./pages/SocialSearch.tsx"));
@@ -171,6 +171,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="legal-framework" element={<LegalFramework />} />
                 <Route path="ai-agent" element={<AIAgent />} />
                 <Route path="ai-agents" element={<AIAgents />} />
+                <Route path="legal-intelligence" element={<RouteErrorBoundary routeName="الاستخبارات القانونية"><LegalIntelligence /></RouteErrorBoundary>} />
                 <Route path="about" element={<About />} />
                 <Route path="ai-agent/colombo" element={<ColomboAgent />} />
                 <Route path="social-search" element={<SocialSearch />} />
