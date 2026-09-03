@@ -47,6 +47,7 @@ import {
 } from "@/blockchain/document-verification";
 import {
   createVoiceController,
+  VOSK_DEMO_MODELS,
   VoiceRecorder,
   type RecorderState,
   type SpeechEngine,
@@ -1187,10 +1188,12 @@ const RECORDER_STATE_META: Record<RecorderState, { label: string; className: str
 
 function SessionRecorderTab() {
   const [engine, setEngine] = useState<SpeechEngine>("webspeech");
+  const [voskModel, setVoskModel] = useState(VOSK_DEMO_MODELS[0]?.id ?? "fa");
   const [state, setState] = useState<RecorderState>("idle");
   const [segments, setSegments] = useState<TranscriptSegment[]>([]);
   const [interim, setInterim] = useState("");
   const [error, setError] = useState("");
+  const [status, setStatus] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [copied, setCopied] = useState(false);
   const recorderRef = useRef<VoiceRecorder | null>(null);
@@ -1199,6 +1202,9 @@ function SessionRecorderTab() {
 
   const availableEngines = useMemo(() => VoiceRecorder.getAvailableEngines(), []);
   const supportsWebSpeech = availableEngines.includes("webspeech");
+  const hasCustomVoskModel = Boolean(
+    (import.meta.env.VITE_VOSK_MODEL_URL as string | undefined),
+  );
   const isRecording = state === "recording";
 
   // Cleanup on unmount
@@ -1231,9 +1237,11 @@ function SessionRecorderTab() {
     setError("");
     setInterim("");
     setSegments([]);
+    setStatus("");
     setElapsed(0);
 
     const recorder = createVoiceController({
+      onStatus: (s) => setStatus(s),
       onStateChange: (s) => {
         setState(s);
         if (s === "recording" && timerRef.current === null) {
@@ -1275,8 +1283,9 @@ function SessionRecorderTab() {
       language: "ar-EG",
       continuous: true,
       interimResults: true,
+      model: voskModel,
     });
-  }, [engine, supportsWebSpeech]);
+  }, [engine, supportsWebSpeech, voskModel]);
 
   const handleStop = useCallback(async () => {
     await recorderRef.current?.stopRecording();
@@ -1328,9 +1337,29 @@ function SessionRecorderTab() {
             className="clay-input w-full rounded-xl border bg-white px-3 py-2 text-sm dark:bg-background font-arabic disabled:opacity-50"
           >
             <option value="webspeech">Web Speech (المتصفح — عربي فوري)</option>
-            <option value="vosk">Vosk (دون اتصال — اختياري)</option>
+            <option value="vosk">Vosk (دون اتصال — WASM حقيقي)</option>
           </select>
         </div>
+
+        {engine === "vosk" && (
+          <div>
+            <label className="text-xs text-muted-foreground font-arabic mb-1 block">
+              نموذج التعرف (يُحمَّل مرة ثم يُخزَّن في المتصفح)
+            </label>
+            <select
+              value={voskModel}
+              onChange={(e) => setVoskModel(e.target.value)}
+              disabled={isRecording}
+              className="clay-input w-full rounded-xl border bg-white px-3 py-2 text-sm dark:bg-background font-arabic disabled:opacity-50"
+            >
+              {VOSK_DEMO_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {!supportsWebSpeech && engine === "webspeech" && (
           <div className="flex items-start gap-2 rounded-lg border border-urgency-high/30 bg-urgency-high/10 p-2 text-xs text-foreground font-arabic">
@@ -1341,7 +1370,9 @@ function SessionRecorderTab() {
         {engine === "vosk" && (
           <div className="flex items-start gap-2 rounded-lg border border-urgency-high/30 bg-urgency-high/10 p-2 text-xs text-foreground font-arabic">
             <AlertTriangle className="w-4 h-4 shrink-0 text-urgency-high" />
-            محرك Vosk يتطلب تثبيت حزمة vosk — حتى ذلك الحين استخدم محرك المتصفح
+            {hasCustomVoskModel
+              ? "نموذج مخصص مفعّل عبر VITE_VOSK_MODEL_URL — سيُستخدم تلقائياً للتعرف العربي."
+              : "لا يوجد نموذج عربي صغير مستضاف متاح للتحميل المباشر — ضع رابط نموذج عربي (ملف tar.gz بصيغة vosk-browser) في VITE_VOSK_MODEL_URL بمفاتيح المشروع، أو جرّب نموذجاً تجريبياً أدناه."}
           </div>
         )}
 
@@ -1388,6 +1419,13 @@ function SessionRecorderTab() {
             {formatElapsed(elapsed)}
           </span>
         </div>
+
+        {status && (
+          <p className="text-[10px] text-clay-blue font-arabic flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            {status}
+          </p>
+        )}
 
         {error && (
           <div className="flex items-start gap-2 rounded-lg border border-urgency-critical/30 bg-urgency-critical/10 p-2 text-xs text-foreground font-arabic">

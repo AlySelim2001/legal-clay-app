@@ -1,9 +1,20 @@
 /**
  * Voice-to-Text Integration — CRIM-SYS 2026
  *
- * Supports Vosk (offline, open-source) for court session recording
- * and transcription. Falls back to Web Speech API when available.
- * Optimized for Arabic language recognition.
+ * Supports two engines for court session recording and transcription:
+ *
+ *   1. Web Speech API (default): instant, browser-native Arabic
+ *      recognition. Sends audio to the browser vendor's ASR service.
+ *
+ *   2. Vosk (offline, open-source): real in-browser WASM recognition
+ *      via the `vosk-browser` package (a browser build of Kaldi/Vosk).
+ *      The model is fetched as a gzipped tar archive (the format
+ *      vosk-browser expects, with conf/model.conf), loaded into a Web
+ *      Worker, and cached in IndexedDB by the worker (IDBFS). No audio
+ *      ever leaves the device. Model URLs are resolved through
+ *      `resolveVoskModelUrl()` — set `VITE_VOSK_MODEL_URL` to point at
+ *      a self-hosted Arabic model (vosk-model-small-ar-0.15), otherwise
+ *      a CORS-hosted demo model is used.
  */
 
 // ============================================================
@@ -34,6 +45,8 @@ export interface VoiceRecorderConfig {
   continuous: boolean;
   interimResults: boolean;
   sampleRate: number;
+  /** Vosk model id (VOSK_DEMO_MODELS) or a direct tar.gz URL. */
+  model?: string;
 }
 
 export type RecorderState = 'idle' | 'recording' | 'processing' | 'completed' | 'error';
@@ -43,6 +56,8 @@ export interface RecorderCallbacks {
   onTranscript?: (result: TranscriptionResult) => void;
   onInterim?: (text: string) => void;
   onError?: (error: string) => void;
+  /** Transient status messages (e.g. "downloading model…"). */
+  onStatus?: (status: string) => void;
 }
 
 // ============================================================
@@ -121,30 +136,143 @@ class WebSpeechEngine {
 }
 
 // ============================================================
-// Vosk Engine (Offline)
+// Vosk Engine (offline — real WASM recognition via vosk-browser)
 // ============================================================
 
-class VoskEngine {
-  private isLoaded = false;
-  private callbacks: RecorderCallbacks;
-  private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
+import type { KaldiRecognizer, Model } from 'vosk-browser';
 
-  constructor(callbacks: RecorderCallbacks) {
+/**
+ * CORS-hosted, vosk-browser-ready demo models (gzipped tar with
+ * conf/model.conf). Served from w-okada/vosk-browser-ts via
+ * raw.githubusercontent.com (access-control-allow-origin: *).
+ *
+ * Arabic note: no small Arabic model is publicly hosted on a CORS-open
+ * host. For Egyptian Arabic set `VITE_VOSK_MODEL_URL` to any self-hosted
+ * vosk-browser-ready archive (e.g. vosk-model-small-ar-0.15 with
+ * conf/model.conf added).
+ */
+export interface VoskDemoModel {
+  id: string;
+  label: string;
+  url: string;
+}
+
+const VOSK_RAW_BASE =
+  'https://raw.githubusercontent.com/w-okada/vosk-browser-ts/master/frontend/public/assets/models';
+
+export const VOSK_DEMO_MODELS: VoskDemoModel[] = [
+  { id: 'fa', label: 'فارسي (تجريبي)', url: `${VOSK_RAW_BASE}/vosk-model-small-fa-0.4.tar.gz` },
+  { id: 'en-us', label: 'إنجليزي (الولايات المتحدة)', url: `${VOSK_RAW_BASE}/vosk-model-small-en-us-0.15.tar.gz` },
+  { id: 'fr', label: 'فرنسي', url: `${VOSK_RAW_BASE}/vosk-model-small-fr-0.22.tar.gz` },
+  { id: 'de', label: 'ألماني', url: `${VOSK_RAW_BASE}/vosk-model-small-de-0.15.tar.gz` },
+  { id: 'es', label: 'إسباني', url: `${VOSK_RAW_BASE}/vosk-model-small-es-0.42.tar.gz` },
+  { id: 'it', label: 'إيطالي', url: `${VOSK_RAW_BASE}/vosk-model-small-it-0.22.tar.gz` },
+  { id: 'tr', label: 'تركي', url: `${VOSK_RAW_BASE}/vosk-model-small-tr-0.3.tar.gz` },
+  { id: 'ru', label: 'روسي', url: `${VOSK_RAW_BASE}/vosk-model-small-ru-0.22.tar.gz` },
+];
+
+/**
+ * Resolve the model archive URL: `VITE_VOSK_MODEL_URL` wins (custom /
+ * Arabic models), then the requested demo model, then the first demo.
+ */
+export function resolveVoskModelUrl(modelId?: string): string | null {
+  const envUrl = import.meta.env.VITE_VOSK_MODEL_URL as string | undefined;
+  if (envUrl) return envUrl;
+  const demo = VOSK_DEMO_MODELS.find((m) => m.id === modelId);
+  if (demo) return demo.url;
+  return VOSK_DEMO_MODELS[0]?.url ?? null;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(
+      () => reject(new Error('انتهت مهلة تحميل نموذج Vosk — تحقق من الاتصال')),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/**
+ * Module-level model cache: the worker also persists the extracted
+ * model in IndexedDB (IDBFS), so repeated recordings reuse it and
+ * subsequent sessions skip the network download entirely.
+ */
+const voskModelCache: {
+  url: string;
+  model: Model | null;
+  promise: Promise<Model> | null;
+} = { url: '', model: null, promise: null };
+
+interface VoskWord {
+  conf: number;
+  start: number;
+  end: number;
+  word: string;
+}
+
+class VoskEngine {
+  private callbacks: RecorderCallbacks;
+  private modelUrl: string;
+  private model: Model | null = null;
+  private recognizer: KaldiRecognizer | null = null;
+  private audioContext: AudioContext | null = null;
+  private scriptNode: ScriptProcessorNode | null = null;
+  private sourceNode: MediaStreamAudioSourceNode | null = null;
+  private stream: MediaStream | null = null;
+  private language: string;
+
+  constructor(callbacks: RecorderCallbacks, modelUrl: string, language: string) {
     this.callbacks = callbacks;
+    this.modelUrl = modelUrl;
+    this.language = language;
+  }
+
+  private loadModel(): Promise<Model> {
+    if (voskModelCache.url === this.modelUrl && voskModelCache.model) {
+      return Promise.resolve(voskModelCache.model);
+    }
+    if (voskModelCache.url === this.modelUrl && voskModelCache.promise) {
+      return voskModelCache.promise;
+    }
+
+    voskModelCache.url = this.modelUrl;
+    voskModelCache.promise = (async () => {
+      this.callbacks.onStateChange?.('processing');
+      this.callbacks.onStatus?.('جارٍ تحميل نموذج Vosk — قد يستغرق دقيقة أو أكثر في أول مرة...');
+      try {
+        const { createModel } = await import('vosk-browser');
+        const model = await withTimeout(createModel(this.modelUrl), 5 * 60 * 1000);
+        voskModelCache.model = model;
+        this.model = model;
+        this.callbacks.onStatus?.('نموذج Vosk جاهز ✓');
+        return model;
+      } catch (error) {
+        voskModelCache.url = '';
+        voskModelCache.promise = null;
+        throw error;
+      } finally {
+        this.callbacks.onStateChange?.('idle');
+      }
+    })();
+    return voskModelCache.promise;
   }
 
   async start(config: VoiceRecorderConfig): Promise<void> {
     try {
-      // Check if Vosk is available
-      const voskLoaded = await this.loadVosk();
-      if (!voskLoaded) {
-        this.callbacks.onError?.('فشل تحميل محرك Vosk — تحقق من اتصال الإنترنت للتحميل الأولي');
-        return;
-      }
+      const model = await this.loadModel();
 
-      // Start audio recording
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // Microphone (16kHz mono for Vosk)
+      this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: config.sampleRate,
           channelCount: 1,
@@ -153,73 +281,145 @@ class VoskEngine {
         },
       });
 
-      this.mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus',
+      let ctx: AudioContext;
+      try {
+        ctx = new AudioContext({ sampleRate: config.sampleRate });
+      } catch {
+        ctx = new AudioContext();
+      }
+      this.audioContext = ctx;
+      const sampleRate = ctx.sampleRate;
+
+      this.recognizer = new model.KaldiRecognizer(sampleRate);
+      this.recognizer.setWords(true);
+      this.recognizer.on('result', (message) => {
+        const msg = message as unknown as {
+          event: 'result';
+          result?: { text?: string; result?: VoskWord[] };
+        };
+        const text = msg.result?.text?.trim();
+        if (!text) return;
+        const words = msg.result?.result ?? [];
+        const confidence =
+          words.length > 0
+            ? words.reduce((sum, w) => sum + w.conf, 0) / words.length
+            : 0.8;
+        const last = words[words.length - 1];
+        this.callbacks.onTranscript?.({
+          text,
+          confidence,
+          engine: 'vosk',
+          language: this.language,
+          duration: last ? last.end : 0,
+          segments: words.map((w) => ({
+            start: w.start,
+            end: w.end,
+            text: w.word,
+            confidence: w.conf,
+          })),
+        });
+      });
+      this.recognizer.on('partialresult', (message) => {
+        const msg = message as unknown as {
+          event: 'partialresult';
+          result?: { partial?: string };
+        };
+        const partial = msg.result?.partial?.trim();
+        if (partial) this.callbacks.onInterim?.(partial);
       });
 
-      this.audioChunks = [];
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          this.audioChunks.push(event.data);
+      this.sourceNode = ctx.createMediaStreamSource(this.stream);
+      this.scriptNode = ctx.createScriptProcessor(4096, 1, 1);
+      this.scriptNode.onaudioprocess = (event) => {
+        if (!this.recognizer) return;
+        try {
+          this.recognizer.acceptWaveformFloat(
+            event.inputBuffer.getChannelData(0),
+            sampleRate,
+          );
+        } catch {
+          // Chunk rejected — keep streaming.
         }
       };
+      this.sourceNode.connect(this.scriptNode);
+      this.scriptNode.connect(ctx.destination);
 
-      this.mediaRecorder.onstop = async () => {
-        this.callbacks.onStateChange?.('processing');
-        await this.processAudio();
-      };
-
-      this.mediaRecorder.start(1000); // Collect data every second
+      this.callbacks.onStatus?.('');
       this.callbacks.onStateChange?.('recording');
-    } catch (e) {
-      this.callbacks.onError?.(`فشل بدء التسجيل: ${e}`);
+    } catch (error) {
+      this.cleanupStream();
+      this.callbacks.onError?.(
+        error instanceof Error
+          ? `Vosk: ${error.message}`
+          : 'فشل بدء التعرف الصوتي عبر Vosk',
+      );
     }
   }
 
   async stop(): Promise<void> {
-    this.mediaRecorder?.stop();
-    this.mediaRecorder?.stream.getTracks().forEach((track) => track.stop());
+    this.callbacks.onStateChange?.('processing');
+    if (this.recognizer) {
+      try {
+        this.recognizer.retrieveFinalResult();
+        // Give the worker a moment to flush the final result event.
+        await new Promise((resolve) => setTimeout(resolve, 350));
+      } catch {
+        // Recognizer already gone.
+      }
+      try {
+        this.recognizer.remove();
+      } catch {
+        // Already removed.
+      }
+    }
+    this.recognizer = null;
+    this.cleanupStream();
+    this.callbacks.onStateChange?.('completed');
   }
 
   abort(): void {
-    this.mediaRecorder?.stop();
-    this.mediaRecorder?.stream.getTracks().forEach((track) => track.stop());
-    this.callbacks.onStateChange?.('idle');
-  }
-
-  private async loadVosk(): Promise<boolean> {
-    if (this.isLoaded) return true;
-
-    try {
-      // Dynamic import for Vosk — loaded on demand only
-      const Vosk = await import('vosk').catch(() => null);
-      if (!Vosk) {
-        return false;
+    if (this.recognizer) {
+      try {
+        this.recognizer.remove();
+      } catch {
+        // Already removed.
       }
-      this.isLoaded = true;
-      return true;
-    } catch {
-      return false;
     }
+    this.recognizer = null;
+    this.cleanupStream();
+    this.callbacks.onStateChange?.('idle');
+    this.callbacks.onStatus?.('');
   }
 
-  private async processAudio(): Promise<void> {
-    // Process recorded audio with Vosk
-    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-
-    // For now, fall back to Web Speech API if Vosk processing isn't available
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.callbacks.onTranscript?.({
-        text: '[تسجيل مسجل — يتطلب معالجة Vosk local]',
-        confidence: 0.5,
-        engine: 'vosk',
-        language: 'ar-EG',
-        duration: audioBlob.size / 16000, // rough estimate
-      });
-      this.callbacks.onStateChange?.('completed');
-    };
-    reader.readAsArrayBuffer(audioBlob);
+  private cleanupStream(): void {
+    if (this.stream) {
+      this.stream.getTracks().forEach((track) => track.stop());
+      this.stream = null;
+    }
+    if (this.scriptNode) {
+      try {
+        this.scriptNode.disconnect();
+      } catch {
+        // Already disconnected.
+      }
+      this.scriptNode = null;
+    }
+    if (this.sourceNode) {
+      try {
+        this.sourceNode.disconnect();
+      } catch {
+        // Already disconnected.
+      }
+      this.sourceNode = null;
+    }
+    if (this.audioContext) {
+      try {
+        void this.audioContext.close();
+      } catch {
+        // Already closed.
+      }
+      this.audioContext = null;
+    }
   }
 }
 
@@ -246,7 +446,11 @@ export class VoiceRecorder {
     };
 
     if (fullConfig.engine === 'vosk') {
-      this.engine = new VoskEngine(this.callbacks);
+      this.engine = new VoskEngine(
+        this.callbacks,
+        resolveVoskModelUrl(fullConfig.model) ?? '',
+        fullConfig.language,
+      );
     } else {
       this.engine = new WebSpeechEngine(this.callbacks);
     }
