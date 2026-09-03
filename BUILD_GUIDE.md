@@ -177,6 +177,40 @@ This repository includes an automated CI/CD pipeline at `.github/workflows/andro
 
 ---
 
+## Local Build Fallback (بناء محلي احتياطي)
+
+إذا فشل GitHub Actions أو أردت البناء يدوياً:
+
+```bash
+# 1. Clean slate — wipe stale build artifacts
+rm -rf dist android/build android/app/build node_modules/.cache
+
+# 2. Fresh install
+cd /path/to/legal-clay-app
+bun install --frozen-lockfile
+
+# 3. Typecheck (non-blocking)
+bun tsc -b --noEmit
+
+# 4. Build web assets
+bun run build
+
+# 5. Sync to Capacitor (creates android/ if missing)
+npx cap sync android
+
+# 6. Grant Gradle execution rights
+chmod +x android/gradlew
+
+# 7. Build Debug APK
+cd android
+./gradlew assembleDebug --no-daemon --stacktrace
+
+# 8. APK output path:
+# android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+> **ملاحظة:** تأكد من تثبيت JDK 17 وتعيين `JAVA_HOME` قبل تشغيل خطوة 7.
+
 ## Troubleshooting (حل المشكلات)
 
 | Issue | Solution |
@@ -186,6 +220,8 @@ This repository includes an automated CI/CD pipeline at `.github/workflows/andro
 | `gradlew: Permission denied` | Run `chmod +x android/gradlew` |
 | Build OOM (SIGKILL) | Increase Node memory: `export NODE_OPTIONS="--max-old-space-size=4096"` |
 | `bun install` fails | Delete `node_modules` and `bun.lockb`, then run `bun install` again |
+| Capacitor sync fails | Run `npx cap add android` first, then `npx cap sync android` |
+| `@capacitor/camera` not found | The Camera plugin is not installed. OCR uses `tesseract.js` (in-browser) |
 
 ---
 

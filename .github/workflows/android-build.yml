@@ -1,4 +1,4 @@
-name: LAW-SYS 2026 — Android Build & Quality Control
+name: CRIM-SYS 2026 — Android Build & Quality Control
 
 on:
   push:
@@ -18,22 +18,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '20'
+          bun-version: latest
 
       - name: Install Dependencies
-        run: npm install --legacy-peer-deps --force
+        run: bun install --frozen-lockfile
 
       - name: TypeScript Check
-        run: npx tsc -b --noEmit || echo "TS check failed (non-blocking)"
+        run: bun tsc -b --noEmit || echo "TS check failed (non-blocking)"
 
       - name: Lint
-        run: npm run lint || echo "Lint warnings (non-blocking)"
+        run: bun run lint || echo "Lint warnings (non-blocking)"
 
       - name: Build Web
-        run: npx vite build
+        run: bun run build
 
   android:
     name: 🤖 Android APK Build
@@ -42,10 +42,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '20'
+          bun-version: latest
 
       - name: Setup Java JDK 17
         uses: actions/setup-java@v4
@@ -54,10 +54,10 @@ jobs:
           java-version: '17'
 
       - name: Install Dependencies
-        run: npm install --legacy-peer-deps --force
+        run: bun install --frozen-lockfile
 
       - name: Build Web Application
-        run: npx vite build
+        run: bun run build
 
       - name: Add Android Platform if missing
         run: |
@@ -74,11 +74,11 @@ jobs:
       - name: Compile Android Debug APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: LAW-SYS-2026-Debug-APK
+          name: CRIM-SYS-2026-Debug-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30

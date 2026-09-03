@@ -1,5 +1,13 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+/**
+ * CRIM-SYS 2026 — Capacitor Configuration
+ *
+ * NOTE for production builds:
+ * - Remove `android.allowMixedContent: true` before publishing to Play Store.
+ * - `android:usesCleartextTraffic="true"` in AndroidManifest.xml is for
+ *   development only; remove it for production signing.
+ */
 const config: CapacitorConfig = {
   appId: 'net.crimsys.app',
   appName: 'CRIM-SYS 2026',
@@ -13,11 +21,13 @@ const config: CapacitorConfig = {
       keystoreAlias: undefined,
       releaseType: 'APK',
     },
+    // Allow mixed HTTP/HTTPS content during development.
+    // IMPORTANT: Set to false before production release.
     allowMixedContent: true,
     captureInput: true,
   },
 
-  // Server configuration for live reload during development
+  // Server configuration
   server: {
     androidScheme: 'https',
     // For development, point to your dev server:
