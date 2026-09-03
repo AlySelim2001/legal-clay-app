@@ -9,7 +9,7 @@ export const emailOtp = Email({
   async generateVerificationToken() {
     const random: RandomReader = {
       read(bytes: Uint8Array) {
-        crypto.getRandomValues(bytes);
+        crypto.getRandomValues(bytes as unknown as ArrayBufferView);
       },
     };
     const alphabet = "0123456789";
