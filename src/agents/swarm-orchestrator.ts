@@ -10,6 +10,7 @@ import { LEGAL_AGENTS, type AgentResponse } from '../lib/ai/agent-swarm';
 import { ADVANCED_AGENTS } from './advanced-agents';
 import type { LegalAgent as AdvancedLegalAgent } from '../lib/ai/agent-swarm';
 import { RAGRetriever as RAGRetrieverClass } from '../rag/retriever';
+import { getAdvancedLegalRAG, type Citation } from '../rag/advanced-retriever';
 import type { LegalCategory } from '../legal-db/egyptian-codes';
 import { getDeadlinesByCategory } from '../legal-db/egyptian-codes';
 
@@ -41,6 +42,7 @@ export interface MultiAgentAnalysis {
   synthesizedAnalysis: string;
   relevantArticles: string[];
   relevantDeadlines: string[];
+  citations: Citation[];
   disclaimer: string;
 }
 
@@ -194,17 +196,36 @@ export class SwarmOrchestrator {
     let ragContext = '';
     let relevantArticles: string[] = [];
     let relevantDeadlines: string[] = [];
+    let citations: Citation[] = [];
 
     if (this.config.enableRAG) {
-      const retriever = new RAGRetrieverClass({
-        topK: 5,
-        category: classification.primaryDomain,
-      });
-      const ragResults = await retriever.retrieve(query);
-      ragContext = RAGRetrieverClass.formatAsContext(ragResults);
-      relevantArticles = ragResults
-        .filter((d) => d.metadata.type === 'article')
-        .map((d) => d.content);
+      // Advanced hybrid retrieval (BM25 + semantic) with citations
+      try {
+        const advanced = getAdvancedLegalRAG();
+        const cited = await advanced.retrieveWithCitations(
+          query,
+          5,
+          classification.primaryDomain,
+        );
+        citations = cited.map((r) => r.citation);
+        ragContext = cited
+          .map((r, i) => `[${i + 1}] ${r.text}\nالمصدر: ${r.citation.source}${r.citation.articleRef ? ` — ${r.citation.articleRef}` : ''}`)
+          .join('\n\n');
+        relevantArticles = cited
+          .filter((r) => r.citation.articleRef)
+          .map((r) => `${r.citation.source} — ${r.citation.articleRef}: ${r.text.slice(0, 120)}`);
+      } catch {
+        // Fall back to the classic TF-IDF retriever
+        const retriever = new RAGRetrieverClass({
+          topK: 5,
+          category: classification.primaryDomain,
+        });
+        const ragResults = await retriever.retrieve(query);
+        ragContext = RAGRetrieverClass.formatAsContext(ragResults);
+        relevantArticles = ragResults
+          .filter((d) => d.metadata.type === 'article')
+          .map((d) => d.content);
+      }
     }
 
     // Get relevant deadlines
@@ -245,7 +266,8 @@ export class SwarmOrchestrator {
     const synthesizedAnalysis = this.synthesizeAnalysis(
       classification,
       agentResponses,
-      relevantDeadlines
+      relevantDeadlines,
+      citations
     );
 
     return {
@@ -255,6 +277,7 @@ export class SwarmOrchestrator {
       synthesizedAnalysis,
       relevantArticles,
       relevantDeadlines,
+      citations,
       disclaimer,
     };
   }
@@ -387,12 +410,9 @@ export class SwarmOrchestrator {
   private synthesizeAnalysis(
     classification: QueryClassification,
     responses: AgentResponse[],
-    deadlines: string[]
+    deadlines: string[],
+    citations: Citation[] = []
   ): string {
-    if (responses.length === 0) {
-      return `لم يتم العثور على تحليل مناسب للمuhan query. يرجى توضيح السؤال.`;
-    }
-
     const parts: string[] = [];
 
     // Classification summary
@@ -402,9 +422,11 @@ export class SwarmOrchestrator {
     }
 
     // Agent responses summary
-    parts.push('\n---\n');
-    for (const response of responses) {
-      parts.push(`\n${response.content}`);
+    if (responses.length > 0) {
+      parts.push('\n---\n');
+      for (const response of responses) {
+        parts.push(`\n${response.content}`);
+      }
     }
 
     // Deadlines
@@ -413,6 +435,19 @@ export class SwarmOrchestrator {
       for (const dl of deadlines) {
         parts.push(`• ${dl}`);
       }
+    }
+
+    // Citations
+    if (citations.length > 0) {
+      parts.push('\n---\n📚 المراجع القانونية المسترجعة:');
+      for (const c of citations) {
+        const pieces = [c.source, c.articleRef, c.caseNumber, c.court, c.year ? `سنة ${c.year}` : ''].filter(Boolean);
+        parts.push(`• ${pieces.join(' — ')}`);
+      }
+    }
+
+    if (responses.length === 0 && parts.length === 1) {
+      return `لم يتم العثور على تحليل مناسب لهذا السؤال. يرجى توضيح السؤال.`;
     }
 
     return parts.join('\n');
