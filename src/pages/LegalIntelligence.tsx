@@ -22,6 +22,11 @@ import {
   CheckCircle2,
   XCircle,
   ShieldAlert,
+  Clock,
+  Copy,
+  Download,
+  Mic,
+  Square,
 } from "lucide-react";
 import {
   getESignatureService,
@@ -40,6 +45,12 @@ import {
   type IntegrityResult,
   type VerificationProof,
 } from "@/blockchain/document-verification";
+import {
+  createVoiceController,
+  VoiceRecorder,
+  type RecorderState,
+  type SpeechEngine,
+} from "@/lib/voice-to-text";
 import type { LegalCategory } from "@/legal-db/egyptian-codes";
 import {
   getPredictiveAnalyticsEngine,
@@ -1156,14 +1167,344 @@ function DocumentVerificationTab() {
 }
 
 // ============================================================
+// Session Recorder Tab (voice-to-text for court hearings)
+// ============================================================
+
+interface TranscriptSegment {
+  id: string;
+  text: string;
+  confidence: number;
+  at: string;
+}
+
+const RECORDER_STATE_META: Record<RecorderState, { label: string; className: string }> = {
+  idle: { label: "جاهز للتسجيل", className: "border-clay-blue/30 bg-clay-blue/10 text-clay-blue" },
+  recording: { label: "جارٍ التسجيل...", className: "border-urgency-critical/30 bg-urgency-critical/10 text-urgency-critical" },
+  processing: { label: "جارٍ المعالجة...", className: "border-urgency-high/30 bg-urgency-high/10 text-urgency-high" },
+  completed: { label: "اكتمل التسجيل", className: "border-clay-green/30 bg-clay-green/10 text-clay-green" },
+  error: { label: "خطأ", className: "border-urgency-critical/30 bg-urgency-critical/10 text-urgency-critical" },
+};
+
+function SessionRecorderTab() {
+  const [engine, setEngine] = useState<SpeechEngine>("webspeech");
+  const [state, setState] = useState<RecorderState>("idle");
+  const [segments, setSegments] = useState<TranscriptSegment[]>([]);
+  const [interim, setInterim] = useState("");
+  const [error, setError] = useState("");
+  const [elapsed, setElapsed] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const recorderRef = useRef<VoiceRecorder | null>(null);
+  const timerRef = useRef<number | null>(null);
+  const startedAtRef = useRef(0);
+
+  const availableEngines = useMemo(() => VoiceRecorder.getAvailableEngines(), []);
+  const supportsWebSpeech = availableEngines.includes("webspeech");
+  const isRecording = state === "recording";
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) window.clearInterval(timerRef.current);
+      recorderRef.current?.abort();
+    };
+  }, []);
+
+  const formatElapsed = (totalSeconds: number) => {
+    const m = Math.floor(totalSeconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const s = (totalSeconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  const fullText = useMemo(() => segments.map((s) => s.text).join("\n"), [segments]);
+  const wordCount = useMemo(
+    () => fullText.split(/\s+/).filter(Boolean).length,
+    [fullText],
+  );
+
+  const handleStart = useCallback(async () => {
+    if (engine === "webspeech" && !supportsWebSpeech) {
+      setError("متصفحك لا يدعم التعرف الصوتي — استخدم Chrome أو Edge أو Safari");
+      return;
+    }
+    setError("");
+    setInterim("");
+    setSegments([]);
+    setElapsed(0);
+
+    const recorder = createVoiceController({
+      onStateChange: (s) => {
+        setState(s);
+        if (s === "recording" && timerRef.current === null) {
+          startedAtRef.current = Date.now();
+          timerRef.current = window.setInterval(() => {
+            setElapsed(Math.floor((Date.now() - startedAtRef.current) / 1000));
+          }, 1000);
+        }
+        if (s === "completed" || s === "error" || s === "idle") {
+          if (timerRef.current !== null) {
+            window.clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+        }
+      },
+      onTranscript: (result) => {
+        const text = result.text.trim();
+        if (!text) return;
+        setSegments((prev) => [
+          ...prev,
+          {
+            id: `seg-${Date.now()}-${prev.length}`,
+            text,
+            confidence: result.confidence,
+            at: new Date().toLocaleTimeString("ar-EG", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }),
+          },
+        ]);
+      },
+      onInterim: (text) => setInterim(text),
+      onError: (msg) => setError(msg),
+    });
+    recorderRef.current = recorder;
+    await recorder.startRecording({
+      engine,
+      language: "ar-EG",
+      continuous: true,
+      interimResults: true,
+    });
+  }, [engine, supportsWebSpeech]);
+
+  const handleStop = useCallback(async () => {
+    await recorderRef.current?.stopRecording();
+  }, []);
+
+  const handleAbort = useCallback(() => {
+    recorderRef.current?.abort();
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    if (!fullText) return;
+    try {
+      await navigator.clipboard.writeText(fullText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setError("تعذر النسخ إلى الحافظة — انسخ النص يدوياً");
+    }
+  }, [fullText]);
+
+  const handleDownload = useCallback(() => {
+    if (!fullText) return;
+    const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `محضر-جلسة-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [fullText]);
+
+  const stateMeta = RECORDER_STATE_META[state];
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      {/* Controls */}
+      <div className="clay-card p-4 space-y-3 lg:col-span-1">
+        <div className="flex items-center gap-2">
+          <Mic className="w-5 h-5 text-clay-coral" />
+          <h3 className="text-sm font-bold font-arabic">تسجيل صوتي للجلسات</h3>
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground font-arabic mb-1 block">محرك التعرف</label>
+          <select
+            value={engine}
+            onChange={(e) => setEngine(e.target.value as SpeechEngine)}
+            disabled={isRecording}
+            className="clay-input w-full rounded-xl border bg-white px-3 py-2 text-sm dark:bg-background font-arabic disabled:opacity-50"
+          >
+            <option value="webspeech">Web Speech (المتصفح — عربي فوري)</option>
+            <option value="vosk">Vosk (دون اتصال — اختياري)</option>
+          </select>
+        </div>
+
+        {!supportsWebSpeech && engine === "webspeech" && (
+          <div className="flex items-start gap-2 rounded-lg border border-urgency-high/30 bg-urgency-high/10 p-2 text-xs text-foreground font-arabic">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-urgency-high" />
+            متصفحك لا يدعم التعرف الصوتي — استخدم Chrome أو Edge أو Safari
+          </div>
+        )}
+        {engine === "vosk" && (
+          <div className="flex items-start gap-2 rounded-lg border border-urgency-high/30 bg-urgency-high/10 p-2 text-xs text-foreground font-arabic">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-urgency-high" />
+            محرك Vosk يتطلب تثبيت حزمة vosk — حتى ذلك الحين استخدم محرك المتصفح
+          </div>
+        )}
+
+        {/* Record controls */}
+        <div className="flex items-center gap-2">
+          {!isRecording ? (
+            <button
+              onClick={handleStart}
+              disabled={state === "processing" || (engine === "webspeech" && !supportsWebSpeech)}
+              className="clay-button flex-1 rounded-xl bg-urgency-critical/10 text-urgency-critical px-4 py-3 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Mic className="w-4 h-4" />
+              ابدأ التسجيل
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleStop}
+                className="clay-button flex-1 rounded-xl bg-urgency-critical/10 text-urgency-critical px-4 py-3 flex items-center justify-center gap-2"
+              >
+                <Square className="w-4 h-4 fill-current" />
+                إيقاف التسجيل
+              </button>
+              <button
+                onClick={handleAbort}
+                title="إلغاء التسجيل"
+                className="clay-button rounded-xl bg-muted/50 text-muted-foreground px-3 py-3"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* State + timer */}
+        <div className="flex items-center justify-between gap-2">
+          <span className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-bold font-arabic ${stateMeta.className}`}>
+            {state === "recording" && <span className="w-2 h-2 rounded-full bg-urgency-critical animate-pulse" />}
+            {state === "processing" && <Loader2 className="w-3 h-3 animate-spin" />}
+            {stateMeta.label}
+          </span>
+          <span className="flex items-center gap-1 text-xs font-black text-muted-foreground tabular-nums" dir="ltr">
+            <Clock className="w-3.5 h-3.5" />
+            {formatElapsed(elapsed)}
+          </span>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 rounded-lg border border-urgency-critical/30 bg-urgency-critical/10 p-2 text-xs text-foreground font-arabic">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-urgency-critical" />
+            {error}
+          </div>
+        )}
+
+        {/* Session stats */}
+        <div className="grid grid-cols-2 gap-2 text-center">
+          <div className="rounded-xl bg-clay-coral/10 p-2">
+            <p className="text-lg font-black text-clay-coral">{segments.length}</p>
+            <p className="text-[10px] text-muted-foreground font-arabic">مقطع نصي</p>
+          </div>
+          <div className="rounded-xl bg-clay-coral/10 p-2">
+            <p className="text-lg font-black text-clay-coral">{wordCount}</p>
+            <p className="text-[10px] text-muted-foreground font-arabic">كلمة</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Transcript */}
+      <div className="clay-card p-4 lg:col-span-2 min-h-[320px] flex flex-col">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h4 className="text-xs font-bold text-muted-foreground font-arabic">نص الجلسة المكتوب</h4>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleCopy}
+              disabled={segments.length === 0}
+              className="clay-button rounded-lg bg-clay-blue/10 text-clay-blue px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold font-arabic disabled:opacity-50"
+            >
+              {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? "تم النسخ" : "نسخ"}
+            </button>
+            <button
+              onClick={handleDownload}
+              disabled={segments.length === 0}
+              className="clay-button rounded-lg bg-clay-green/10 text-clay-green px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold font-arabic disabled:opacity-50"
+            >
+              <Download className="w-3.5 h-3.5" />
+              تنزيل
+            </button>
+            <button
+              onClick={() => {
+                setSegments([]);
+                setInterim("");
+                setError("");
+              }}
+              disabled={segments.length === 0}
+              className="clay-button rounded-lg bg-muted/50 text-muted-foreground px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold font-arabic disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              مسح
+            </button>
+          </div>
+        </div>
+
+        {segments.length === 0 && !interim ? (
+          <div className="flex flex-col items-center justify-center flex-1 py-10 text-center">
+            <Mic className="w-10 h-10 text-muted-foreground/30 mb-2" />
+            <p className="text-xs text-muted-foreground font-arabic">
+              اضغط «ابدأ التسجيل» وابدأ التحدث — سيظهر النص هنا مقطعاً بمقطع
+            </p>
+            <p className="text-[10px] text-muted-foreground/70 mt-1 font-arabic">
+              مثالي لتوثيق جلسات المحكمة والمقابلات والإفادات بالعربية
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2 overflow-y-auto max-h-[420px] ps-1 flex-1">
+            {segments.map((seg, i) => (
+              <div key={seg.id} className="rounded-xl border border-border bg-muted/20 p-3">
+                <div className="flex items-center gap-2 mb-1 text-[9px] text-muted-foreground">
+                  <span className="font-black text-clay-coral">{i + 1}</span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {seg.at}
+                  </span>
+                  <span className="ms-auto font-bold text-clay-green" dir="ltr">
+                    {Math.round(seg.confidence * 100)}%
+                  </span>
+                </div>
+                <p className="text-sm text-foreground font-arabic leading-relaxed">{seg.text}</p>
+              </div>
+            ))}
+            {interim && isRecording && (
+              <div className="rounded-xl border border-dashed border-urgency-high/40 bg-urgency-high/5 p-3">
+                <p className="text-sm text-muted-foreground font-arabic leading-relaxed">
+                  {interim}
+                  <span className="text-urgency-high"> ▍</span>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Privacy note */}
+      <div className="lg:col-span-3 clay-card p-3 flex items-start gap-2">
+        <ShieldCheck className="w-4 h-4 shrink-0 text-clay-green mt-0.5" />
+        <p className="text-[10px] text-muted-foreground font-arabic leading-relaxed">
+          التسجيل يُعالج محلياً في متصفحك: محرك Web Speech يحوّل الصوت إلى نص عبر مزوّد المتصفح، ومحرك Vosk يعمل دون اتصال بالكامل. راجع النص قبل اعتماده كمحضر رسمي — النص تقديري وقد يحتاج تصحيحاً يدوياً.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // Main Page
 // ============================================================
 
-type TabId = "research" | "verification" | "signature" | "analytics" | "graph";
+type TabId = "research" | "verification" | "recorder" | "signature" | "analytics" | "graph";
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
   { id: "research", label: "البحث القانوني", icon: BookOpen },
   { id: "verification", label: "توثيق المستندات", icon: Link2 },
+  { id: "recorder", label: "تسجيل الجلسات", icon: Mic },
   { id: "signature", label: "التوقيع الإلكتروني", icon: FileSignature },
   { id: "analytics", label: "التحليلات التنبؤية", icon: LineChart },
   { id: "graph", label: "الرسم المعرفي", icon: Network },
@@ -1185,7 +1526,7 @@ export default function LegalIntelligence() {
               منصة الاستخبارات القانونية
             </h2>
             <p className="text-xs text-muted-foreground font-arabic mt-0.5">
-              منصة الاستخبارات القانونية 2026: بحث قانوني بالاسترجاع الذكي، توثيق مستندات ضد التزوير، توقيع إلكتروني، تحليلات تنبؤية، ورسم معرفي للقانون المصري
+              منصة الاستخبارات القانونية 2026: بحث قانوني بالاسترجاع الذكي، توثيق مستندات ضد التزوير، تسجيل صوتي للجلسات، توقيع إلكتروني، تحليلات تنبؤية، ورسم معرفي للقانون المصري
             </p>
           </div>
         </div>
@@ -1215,6 +1556,7 @@ export default function LegalIntelligence() {
 
       {tab === "research" && <LegalResearchTab />}
       {tab === "verification" && <DocumentVerificationTab />}
+      {tab === "recorder" && <SessionRecorderTab />}
       {tab === "signature" && <ESignatureTab />}
       {tab === "analytics" && <PredictiveAnalyticsTab />}
       {tab === "graph" && <KnowledgeGraphTab />}
