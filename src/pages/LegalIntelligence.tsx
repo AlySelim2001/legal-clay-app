@@ -27,6 +27,10 @@ import {
   Download,
   Mic,
   Square,
+  BrainCircuit,
+  Save,
+  ListChecks,
+  Scale,
 } from "lucide-react";
 import {
   getESignatureService,
@@ -46,12 +50,17 @@ import {
   type VerificationProof,
 } from "@/blockchain/document-verification";
 import {
-  createVoiceController,
   VOSK_DEMO_MODELS,
   VoiceRecorder,
   type RecorderState,
   type SpeechEngine,
 } from "@/lib/voice-to-text";
+import {
+  CourtSessionVoiceRecorder,
+  analyzeSessionTranscript,
+  saveSessionTranscript,
+  type SessionAnalysis,
+} from "@/voice/court-session-recorder";
 import type { LegalCategory } from "@/legal-db/egyptian-codes";
 import {
   getPredictiveAnalyticsEngine,
@@ -1196,7 +1205,12 @@ function SessionRecorderTab() {
   const [status, setStatus] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [copied, setCopied] = useState(false);
-  const recorderRef = useRef<VoiceRecorder | null>(null);
+  const [caseCode, setCaseCode] = useState("");
+  const [analysis, setAnalysis] = useState<SessionAnalysis | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const recorderRef = useRef<CourtSessionVoiceRecorder | null>(null);
   const timerRef = useRef<number | null>(null);
   const startedAtRef = useRef(0);
 
@@ -1240,7 +1254,10 @@ function SessionRecorderTab() {
     setStatus("");
     setElapsed(0);
 
-    const recorder = createVoiceController({
+    setAnalysis(null);
+    setSaved(false);
+
+    const recorder = new CourtSessionVoiceRecorder({
       onStatus: (s) => setStatus(s),
       onStateChange: (s) => {
         setState(s);
@@ -1294,6 +1311,53 @@ function SessionRecorderTab() {
   const handleAbort = useCallback(() => {
     recorderRef.current?.abort();
   }, []);
+
+  const handleAnalyze = useCallback(async () => {
+    if (!fullText.trim() || analyzing) return;
+    setAnalyzing(true);
+    setError("");
+    try {
+      const result = await analyzeSessionTranscript(fullText);
+      setAnalysis(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "فشل تحليل الجلسة — حاول مرة أخرى");
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [fullText, analyzing]);
+
+  const handleSave = useCallback(async () => {
+    if (!fullText.trim() || saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const sessionId = `session-${Date.now()}`;
+      await saveSessionTranscript(sessionId, {
+        id: sessionId,
+        caseCode: caseCode.trim() || undefined,
+        title: `جلسة ${new Date().toLocaleString("ar-EG")}`,
+        text: fullText,
+        engine: engine,
+        language: "ar-EG",
+        duration: elapsed,
+        wordCount: wordCount,
+        createdAt: new Date().toISOString(),
+        segments: segments.map((s, i) => ({
+          start: 0,
+          end: 0,
+          text: s.text,
+          confidence: s.confidence,
+        })),
+        analysis: analysis ?? undefined,
+      });
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "فشل حفظ الجلسة — جرب مرة أخرى");
+    } finally {
+      setSaving(false);
+    }
+  }, [fullText, saving, caseCode, engine, elapsed, wordCount, segments, analysis]);
 
   const handleCopy = useCallback(async () => {
     if (!fullText) return;
@@ -1483,6 +1547,42 @@ function SessionRecorderTab() {
           </div>
         </div>
 
+        {/* Case linkage + AI analysis + save */}
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <input
+            value={caseCode}
+            onChange={(e) => setCaseCode(e.target.value)}
+            placeholder="رقم القضية (اختياري) — مثال: 2026/1234"
+            className="clay-input flex-1 min-w-[160px] rounded-xl border bg-white px-3 py-2 text-sm dark:bg-background font-arabic"
+          />
+          <button
+            onClick={handleAnalyze}
+            disabled={analyzing || !fullText.trim()}
+            className="clay-button rounded-lg bg-clay-purple/10 text-clay-purple px-3 py-2 flex items-center gap-1.5 text-[10px] font-bold font-arabic disabled:opacity-50"
+          >
+            {analyzing ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <BrainCircuit className="w-3.5 h-3.5" />
+            )}
+            {analyzing ? "جارٍ التحليل..." : "تحليل الجلسة بالذكاء القانوني"}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !fullText.trim()}
+            className="clay-button rounded-lg bg-clay-green/10 text-clay-green px-3 py-2 flex items-center gap-1.5 text-[10px] font-bold font-arabic disabled:opacity-50"
+          >
+            {saving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : saved ? (
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            {saving ? "جارٍ الحفظ..." : saved ? "تم الحفظ" : "حفظ الجلسة"}
+          </button>
+        </div>
+
         {segments.length === 0 && !interim ? (
           <div className="flex flex-col items-center justify-center flex-1 py-10 text-center">
             <Mic className="w-10 h-10 text-muted-foreground/30 mb-2" />
@@ -1518,6 +1618,117 @@ function SessionRecorderTab() {
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* AI analysis of the session */}
+        {analysis && (
+          <div className="rounded-xl border border-clay-purple/30 bg-clay-purple/5 p-3 space-y-2.5 mt-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <BrainCircuit className="w-4 h-4 text-clay-purple" />
+              <h5 className="text-xs font-bold font-arabic text-clay-purple">
+                تحليل الجلسة بالذكاء القانوني
+              </h5>
+              <span className="ms-auto text-[9px] font-bold rounded-lg px-2 py-0.5 bg-clay-purple/10 text-clay-purple" dir="ltr">
+                {analysis.provider} • {analysis.latencyMs}ms
+              </span>
+            </div>
+
+            {analysis.summary && (
+              <p className="text-[11px] text-foreground font-arabic leading-relaxed">
+                {analysis.summary}
+              </p>
+            )}
+
+            {analysis.keyPoints.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground font-arabic mb-1 flex items-center gap-1">
+                  <ListChecks className="w-3 h-3 text-clay-purple" />
+                  النقاط الرئيسية
+                </p>
+                <ul className="space-y-1">
+                  {analysis.keyPoints.map((p, i) => (
+                    <li key={i} className="text-[11px] text-foreground font-arabic flex gap-1.5">
+                      <span className="text-clay-purple shrink-0">•</span>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {analysis.legalIssues.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground font-arabic mb-1 flex items-center gap-1">
+                  <Scale className="w-3 h-3 text-urgency-high" />
+                  المسائل القانونية المحددة
+                </p>
+                <ul className="space-y-1">
+                  {analysis.legalIssues.map((p, i) => (
+                    <li key={i} className="text-[11px] text-foreground font-arabic flex gap-1.5">
+                      <span className="text-urgency-high shrink-0">•</span>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {analysis.flaggedStatements.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground font-arabic mb-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 text-urgency-critical" />
+                  إفادات مهمة تحتاج متابعة
+                </p>
+                <ul className="space-y-1">
+                  {analysis.flaggedStatements.map((p, i) => (
+                    <li key={i} className="text-[11px] text-foreground font-arabic flex gap-1.5">
+                      <span className="text-urgency-critical shrink-0">•</span>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {analysis.relevantArticles.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold text-muted-foreground font-arabic">
+                  مواد مرجعية:
+                </span>
+                {analysis.relevantArticles.map((a, i) => (
+                  <span key={i} className="text-[9px] font-bold rounded-lg px-2 py-0.5 bg-clay-blue/10 text-clay-blue">
+                    {a}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {analysis.citations.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground font-arabic mb-1">
+                  الاستشهادات
+                </p>
+                <ul className="space-y-0.5">
+                  {analysis.citations.map((c, i) => (
+                    <li key={i} className="text-[10px] text-muted-foreground font-arabic flex gap-1.5" dir="rtl">
+                      <span className="text-clay-blue shrink-0">◈</span>
+                      {c}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {analysis.agentsConsulted.length > 0 && (
+              <p className="text-[9px] text-muted-foreground/80 font-arabic">
+                وكلاء القانون المستشارون: {analysis.agentsConsulted.join("، ")}
+              </p>
+            )}
+
+            <p className="text-[9px] text-urgency-high/80 font-arabic leading-relaxed">
+              {analysis.disclaimer}
+            </p>
           </div>
         )}
       </div>
