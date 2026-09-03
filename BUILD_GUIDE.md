@@ -147,13 +147,19 @@ This repository includes an automated CI/CD pipeline at `.github/workflows/andro
 
 **Triggers:**
 - Every push to `main` branch
+- Pull requests to `main`
 - Manual trigger via GitHub Actions UI
 
 **Pipeline:**
-1. TypeScript type check + ESLint
-2. Web production build
-3. Capacitor sync + Gradle Debug APK build
-4. APK uploaded as downloadable artifact (30-day retention)
+1. **Quality Control** (non-blocking, `continue-on-error: true`):
+   - TypeScript type check
+   - ESLint lint check
+   - Vite build verification
+2. **Android APK Build** (always runs):
+   - `bun run build` → `dist/` verification
+   - `bunx cap sync android` → Gradle build
+   - APK artifact upload (30-day retention)
+3. **Build Summary** (always runs): GitHub Step Summary with status table
 
 **Access the latest APK:**
 1. Go to [GitHub Actions](https://github.com/AlySelim2001/legal-clay-app/actions)
