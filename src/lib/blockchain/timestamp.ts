@@ -47,15 +47,6 @@ export interface DocumentMetadata {
 // ============================================================
 
 const SEPOLIA_RPC = 'https://rpc.sepolia.org';
-const IPFS_GATEWAY = 'https://ipfs.io/ipfs';
-
-// Simple document registry contract (placeholder)
-// In production, deploy your own contract or use a timestamping service
-const REGISTRY_ABI = [
-  'function storeHash(bytes32 documentHash) returns (uint256)',
-  'function verifyHash(bytes32 documentHash) view returns (bool exists, uint256 timestamp, address registrar)',
-  'event HashStored(bytes32 indexed documentHash, uint256 timestamp, address registrar)',
-];
 
 // ============================================================
 // Utilities
@@ -133,7 +124,7 @@ export class BlockchainTimestamp {
 
     if (typeof window !== 'undefined' && 'ethereum' in window) {
       try {
-        const result = await this.storeOnChain(documentHash);
+        const result = await this.storeOnChain();
         if (result) {
           transactionHash = result.txHash;
           blockNumber = result.blockNumber;
@@ -234,9 +225,7 @@ ${result.transactionHash}
   // Private
   // ============================================================
 
-  private async storeOnChain(
-    hash: string
-  ): Promise<{ txHash: string; blockNumber: number } | null> {
+  private async storeOnChain(): Promise<{ txHash: string; blockNumber: number } | null> {
     // Placeholder for actual blockchain interaction
     // In production: connect MetaMask, call registry contract
     try {

@@ -73,14 +73,12 @@ class WebSpeechEngine {
 
     this.recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interimTranscript = '';
-      let finalTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         const confidence = event.results[i][0].confidence;
 
         if (event.results[i].isFinal) {
-          finalTranscript += transcript;
           this.callbacks.onTranscript?.({
             text: transcript,
             confidence,

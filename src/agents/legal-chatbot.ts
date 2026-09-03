@@ -7,8 +7,6 @@
  */
 
 import { SwarmOrchestrator, getSwarmOrchestrator } from './swarm-orchestrator';
-import { RAGRetriever } from '../rag/retriever';
-import { LEGAL_AGENTS, type AgentResponse } from '../lib/ai/agent-swarm';
 import type { LegalCategory } from '../legal-db/egyptian-codes';
 
 // ============================================================

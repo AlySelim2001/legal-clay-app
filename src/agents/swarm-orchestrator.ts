@@ -6,12 +6,12 @@
  * and RAG-augmented responses with legal context retrieval.
  */
 
-import { LEGAL_AGENTS, type AgentRequest, type AgentResponse, type AgentDomain } from '../lib/ai/agent-swarm';
+import { LEGAL_AGENTS, type AgentResponse } from '../lib/ai/agent-swarm';
 import { ADVANCED_AGENTS } from './advanced-agents';
 import type { LegalAgent as AdvancedLegalAgent } from '../lib/ai/agent-swarm';
-import { RAGRetriever, RAGRetriever as RAGRetrieverClass } from '../rag/retriever';
+import { RAGRetriever as RAGRetrieverClass } from '../rag/retriever';
 import type { LegalCategory } from '../legal-db/egyptian-codes';
-import { DEADLINE_RULES, getDeadlinesByCategory } from '../legal-db/egyptian-codes';
+import { getDeadlinesByCategory } from '../legal-db/egyptian-codes';
 
 // ============================================================
 // Types
