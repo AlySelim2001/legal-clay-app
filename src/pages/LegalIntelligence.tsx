@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   PenLine,
   Trash2,
@@ -13,6 +13,15 @@ import {
   AlertTriangle,
   FileSignature,
   GitBranch,
+  BookOpen,
+  Database,
+  FileCheck,
+  FileSearch,
+  Link2,
+  Lock,
+  CheckCircle2,
+  XCircle,
+  ShieldAlert,
 } from "lucide-react";
 import {
   getESignatureService,
@@ -20,6 +29,18 @@ import {
   buildSignatureCertificate,
   type SignatureResult,
 } from "@/lib/e-signature";
+import {
+  getMikeLegalIntegration,
+  type ContractAnalysis,
+  type ResearchResults,
+} from "@/integrations/mike-legal";
+import {
+  getBlockchainDocumentVerifier,
+  hashDocument,
+  type IntegrityResult,
+  type VerificationProof,
+} from "@/blockchain/document-verification";
+import type { LegalCategory } from "@/legal-db/egyptian-codes";
 import {
   getPredictiveAnalyticsEngine,
   type CaseProfile,
@@ -605,19 +626,551 @@ function KnowledgeGraphTab() {
 }
 
 // ============================================================
+// Legal Research Tab (hybrid RAG + contract analysis)
+// ============================================================
+
+const RESEARCH_CATEGORIES: Array<{ value: LegalCategory | "all"; label: string }> = [
+  { value: "all", label: "جميع التصنيفات" },
+  { value: "criminal", label: "جنائي" },
+  { value: "civil", label: "مدني" },
+  { value: "commercial", label: "تجاري" },
+  { value: "family", label: "أحوال شخصية" },
+  { value: "administrative", label: "إداري" },
+  { value: "labor", label: "عمل" },
+  { value: "intellectual-property", label: "ملكية فكرية" },
+  { value: "arbitration", label: "تحكيم" },
+  { value: "bankruptcy", label: "إفلاس" },
+  { value: "execution", label: "تنفيذ" },
+  { value: "forensic", label: "تفتيش جنائي" },
+];
+
+const SEVERITY_STYLES: Record<
+  ContractAnalysis["findings"][number]["severity"],
+  string
+> = {
+  high: "border-urgency-critical/30 bg-urgency-critical/10 text-urgency-critical",
+  medium: "border-urgency-high/30 bg-urgency-high/10 text-urgency-high",
+  low: "border-clay-green/30 bg-clay-green/10 text-clay-green",
+  info: "border-clay-blue/30 bg-clay-blue/10 text-clay-blue",
+};
+
+const FINDING_TYPE_LABELS: Record<
+  ContractAnalysis["findings"][number]["type"],
+  string
+> = {
+  risk: "خطر",
+  compliance: "امتثال",
+  clause: "بند",
+  observation: "ملاحظة",
+};
+
+function LegalResearchTab() {
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<LegalCategory | "all">("all");
+  const [results, setResults] = useState<ResearchResults | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [contractText, setContractText] = useState("");
+  const [analysis, setAnalysis] = useState<ContractAnalysis | null>(null);
+  const [analysisBusy, setAnalysisBusy] = useState(false);
+
+  const stats = useMemo(
+    () => getMikeLegalIntegration().getDatabaseStats(),
+    [],
+  );
+
+  const handleSearch = useCallback(async () => {
+    if (!query.trim()) return;
+    setBusy(true);
+    try {
+      const mike = getMikeLegalIntegration();
+      const res = await mike.legalResearch(query.trim(), {
+        category: category === "all" ? undefined : category,
+        maxResults: 8,
+      });
+      setResults(res);
+    } finally {
+      setBusy(false);
+    }
+  }, [query, category]);
+
+  const handleAnalyze = useCallback(async () => {
+    if (!contractText.trim()) return;
+    setAnalysisBusy(true);
+    try {
+      const mike = getMikeLegalIntegration();
+      const res = await mike.analyzeContract(contractText);
+      setAnalysis(res);
+    } finally {
+      setAnalysisBusy(false);
+    }
+  }, [contractText]);
+
+  return (
+    <div className="space-y-4">
+      {/* Research search */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="clay-card p-4 space-y-3 lg:col-span-1">
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-clay-teal" />
+            <h3 className="text-sm font-bold font-arabic">البحث القانوني والاسترجاع الذكي</h3>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="مثال: ميعاد الطعن بالنقض في الجنايات..."
+              className="clay-input flex-1 rounded-xl border bg-white px-3 py-2 text-sm dark:bg-background font-arabic"
+            />
+            <button
+              onClick={handleSearch}
+              disabled={busy || !query.trim()}
+              className="clay-button rounded-xl bg-clay-teal/10 text-clay-teal px-3 disabled:opacity-50"
+            >
+              {busy ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileSearch className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as LegalCategory | "all")}
+            className="clay-input w-full rounded-xl border bg-white px-3 py-2 text-sm dark:bg-background font-arabic"
+          >
+            {RESEARCH_CATEGORIES.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl bg-clay-teal/10 p-2">
+              <p className="text-lg font-black text-clay-teal">{stats.laws}</p>
+              <p className="text-[10px] text-muted-foreground font-arabic">قانون</p>
+            </div>
+            <div className="rounded-xl bg-clay-teal/10 p-2">
+              <p className="text-lg font-black text-clay-teal">{stats.articles}</p>
+              <p className="text-[10px] text-muted-foreground font-arabic">مادة</p>
+            </div>
+            <div className="rounded-xl bg-clay-teal/10 p-2">
+              <p className="text-lg font-black text-clay-teal">{stats.precedents}</p>
+              <p className="text-[10px] text-muted-foreground font-arabic">حكم</p>
+            </div>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground font-arabic flex items-start gap-1.5">
+            <Database className="w-3.5 h-3.5 shrink-0 text-clay-teal mt-0.5" />
+            استرجاع هجين (BM25 + تشابه دلالي) عبر قاعدة القانون المصري المحلية — يعمل دون اتصال.
+          </p>
+        </div>
+
+        {/* Results */}
+        <div className="clay-card p-4 lg:col-span-2 min-h-[280px]">
+          <h4 className="text-xs font-bold text-muted-foreground font-arabic mb-2">
+            النتائج المسترجعة مع التوثيق المرجعي
+          </h4>
+          {!results ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <BookOpen className="w-10 h-10 text-muted-foreground/30 mb-2" />
+              <p className="text-xs text-muted-foreground font-arabic">
+                اكتب استعلامك لاسترجاع المواد والأحكام وقواعد المواعيد مع الاستشهادات
+              </p>
+            </div>
+          ) : results.results.length === 0 ? (
+            <p className="text-xs text-muted-foreground font-arabic py-6 text-center">
+              لا توجد نتائج مطابقة — حاول تغيير الصياغة أو التصنيف
+            </p>
+          ) : (
+            <div className="space-y-2 max-h-[420px] overflow-y-auto ps-1">
+              {results.results.map((r, i) => {
+                const c = r.citation;
+                return (
+                  <div key={r.id} className="rounded-xl border border-border bg-muted/20 p-3">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-clay-teal bg-clay-teal/10 rounded-lg px-2 py-0.5">
+                          {i + 1} — {c.source}
+                        </span>
+                        {c.articleRef && (
+                          <span className="text-[10px] font-semibold text-clay-blue bg-clay-blue/10 rounded-lg px-2 py-0.5">
+                            {c.articleRef}
+                          </span>
+                        )}
+                        {c.caseNumber && (
+                          <span className="text-[10px] text-clay-purple bg-clay-purple/10 rounded-lg px-2 py-0.5">
+                            قضية {c.caseNumber}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-bold text-clay-green shrink-0">
+                        {Math.round(r.relevanceScore * 100)}%
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-foreground font-arabic leading-relaxed">{r.text}</p>
+                    <div className="flex items-center gap-2 mt-1.5 text-[9px] text-muted-foreground">
+                      {c.court && <span>المحكمة: {c.court}</span>}
+                      {c.year && <span>• سنة {c.year}</span>}
+                      {c.pageNumber && <span>• صفحة {c.pageNumber}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Contract analysis */}
+      <div className="clay-card p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <FileSearch className="w-5 h-5 text-clay-rose" />
+          <h3 className="text-sm font-bold font-arabic">تحليل العقود الذكي</h3>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className="space-y-2">
+            <textarea
+              value={contractText}
+              onChange={(e) => setContractText(e.target.value)}
+              rows={6}
+              placeholder="الصق نص العقد لتحليل البنود والمخاطر والامتثال وفق المرجعية المصرية..."
+              className="clay-input w-full rounded-xl border bg-white px-3 py-2 text-sm dark:bg-background font-arabic"
+            />
+            <button
+              onClick={handleAnalyze}
+              disabled={analysisBusy || !contractText.trim()}
+              className="clay-button rounded-xl bg-clay-rose/10 text-clay-rose px-4 py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {analysisBusy ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ShieldAlert className="w-4 h-4" />
+              )}
+              تحليل العقد
+            </button>
+          </div>
+
+          <div className="space-y-2 max-h-72 overflow-y-auto ps-1">
+            {!analysis ? (
+              <p className="text-xs text-muted-foreground font-arabic py-6 text-center">
+                النتائج تظهر هنا: البنود المكتشفة، المخاطر، وملاحظات الامتثال مع الإسناد القانوني
+              </p>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] font-bold font-arabic">مستوى الخطر التقديري:</span>
+                  <span
+                    className={`text-[11px] font-black rounded-lg px-2 py-0.5 ${
+                      analysis.estimatedRiskLevel === "high"
+                        ? "bg-urgency-critical/10 text-urgency-critical"
+                        : analysis.estimatedRiskLevel === "medium"
+                          ? "bg-urgency-high/10 text-urgency-high"
+                          : "bg-clay-green/10 text-clay-green"
+                    }`}
+                  >
+                    {analysis.estimatedRiskLevel === "high"
+                      ? "مرتفع"
+                      : analysis.estimatedRiskLevel === "medium"
+                        ? "متوسط"
+                        : "منخفض"}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-arabic">
+                    {analysis.clauseCount} بند • {analysis.wordCount} كلمة
+                    {analysis.llmEnriched ? " • مُثرى بالذكاء المحلي" : ""}
+                  </span>
+                </div>
+                {analysis.findings.map((f, i) => (
+                  <div key={i} className={`rounded-xl border p-2.5 ${SEVERITY_STYLES[f.severity]}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-bold font-arabic">{f.title}</p>
+                      <span className="text-[9px] opacity-80">{FINDING_TYPE_LABELS[f.type]}</span>
+                    </div>
+                    <p className="text-[10px] font-arabic mt-1 opacity-90">{f.detail}</p>
+                    {f.legalReference && (
+                      <p className="text-[9px] font-arabic mt-1 opacity-70">المرجع: {f.legalReference}</p>
+                    )}
+                    {f.excerpt && (
+                      <p className="text-[9px] font-arabic mt-1 border-t border-current/10 pt-1 opacity-70">
+                        «{f.excerpt}»
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Document Verification Tab (tamper-proof blockchain proof)
+// ============================================================
+
+const METHOD_LABELS: Record<VerificationProof["method"], string> = {
+  "ipfs+onchain": "IPFS + سلسلة الكتل (Sepolia)",
+  "ipfs+local": "IPFS + إثبات محلي",
+  onchain: "سلسلة الكتل (Sepolia)",
+  local: "إثبات محلي (بصمة SHA-256)",
+};
+
+function DocumentVerificationTab() {
+  const [content, setContent] = useState("");
+  const [proof, setProof] = useState<VerificationProof | null>(null);
+  const [integrity, setIntegrity] = useState<IntegrityResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [chainOk, setChainOk] = useState<boolean | null>(null);
+  const [ipfsOk, setIpfsOk] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const verifier = await getBlockchainDocumentVerifier();
+        const [chain, ipfs] = await Promise.all([
+          verifier.checkChain(),
+          verifier.checkIpfs(),
+        ]);
+        if (!cancelled) {
+          setChainOk(chain);
+          setIpfsOk(ipfs);
+        }
+      } catch {
+        if (!cancelled) {
+          setChainOk(false);
+          setIpfsOk(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleVerify = useCallback(async () => {
+    if (!content.trim()) return;
+    setBusy(true);
+    try {
+      const verifier = await getBlockchainDocumentVerifier();
+      const digest = await hashDocument(content);
+      const proofRes = await verifier.verifyDocument(digest, new Date());
+      const integrityRes = await verifier.checkDocumentIntegrity(digest);
+      setProof(proofRes);
+      setIntegrity(integrityRes);
+      setChainOk(await verifier.checkChain());
+      setIpfsOk(await verifier.checkIpfs());
+    } finally {
+      setBusy(false);
+    }
+  }, [content]);
+
+  const handleIntegrityCheck = useCallback(async () => {
+    if (!content.trim()) return;
+    setBusy(true);
+    try {
+      const verifier = await getBlockchainDocumentVerifier();
+      const digest = await hashDocument(content);
+      const integrityRes = await verifier.checkDocumentIntegrity(digest);
+      setIntegrity(integrityRes);
+    } finally {
+      setBusy(false);
+    }
+  }, [content]);
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="clay-card p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Link2 className="w-5 h-5 text-clay-blue" />
+          <h3 className="text-sm font-bold font-arabic">توثيق المستندات ضد التزوير</h3>
+        </div>
+
+        {/* Availability status */}
+        <div className="flex items-center gap-2 flex-wrap text-[10px] font-arabic">
+          <span
+            className={`flex items-center gap-1 rounded-lg px-2 py-1 border ${
+              chainOk === null
+                ? "border-border text-muted-foreground"
+                : chainOk
+                  ? "border-clay-green/30 bg-clay-green/10 text-clay-green"
+                  : "border-urgency-high/30 bg-urgency-high/10 text-urgency-high"
+            }`}
+          >
+            {chainOk === null ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : chainOk ? (
+              <CheckCircle2 className="w-3 h-3" />
+            ) : (
+              <XCircle className="w-3 h-3" />
+            )}
+            سلسلة Sepolia {chainOk === null ? "..." : chainOk ? "متاحة" : "غير متاحة"}
+          </span>
+          <span
+            className={`flex items-center gap-1 rounded-lg px-2 py-1 border ${
+              ipfsOk === null
+                ? "border-border text-muted-foreground"
+                : ipfsOk
+                  ? "border-clay-green/30 bg-clay-green/10 text-clay-green"
+                  : "border-urgency-high/30 bg-urgency-high/10 text-urgency-high"
+            }`}
+          >
+            {ipfsOk === null ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : ipfsOk ? (
+              <CheckCircle2 className="w-3 h-3" />
+            ) : (
+              <XCircle className="w-3 h-3" />
+            )}
+            IPFS {ipfsOk === null ? "..." : ipfsOk ? "متاح" : "غير متاح"}
+          </span>
+        </div>
+
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={6}
+          placeholder="محتوى المستند (مذكرة، عقد، محضر جلسة، حكم...) لتوثيقه زمنياً ضد التلاعب..."
+          className="clay-input w-full rounded-xl border bg-white px-3 py-2 text-sm dark:bg-background font-arabic"
+        />
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={handleVerify}
+            disabled={busy || !content.trim()}
+            className="clay-button rounded-xl bg-clay-blue/10 text-clay-blue px-4 py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+            توثيق المستند
+          </button>
+          <button
+            onClick={handleIntegrityCheck}
+            disabled={busy || !content.trim()}
+            className="clay-button rounded-xl bg-clay-green/10 text-clay-green px-4 py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />}
+            فحص السلامة
+          </button>
+        </div>
+
+        <p className="text-[10px] text-muted-foreground font-arabic flex items-start gap-1.5">
+          <ShieldAlert className="w-3.5 h-3.5 shrink-0 text-urgency-high mt-0.5" />
+          للتوقيع الزمني الفعلي على السلسلة ضع VITE_SEPOLIA_RPC_URL و VITE_PRIVATE_KEY (اختياري) في مفاتيح المشروع — وبدونهما يُنشأ إثبات محلي صالح لفحص السلامة.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {proof && (
+          <div className="clay-card p-4 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-clay-green" />
+                <h4 className="text-sm font-bold font-arabic text-clay-green">تم توثيق المستند</h4>
+              </div>
+              <span className="text-[10px] font-bold rounded-lg px-2 py-0.5 bg-clay-blue/10 text-clay-blue">
+                {METHOD_LABELS[proof.method]}
+              </span>
+            </div>
+            <div className="rounded-lg bg-muted/40 p-2">
+              <p className="text-[10px] text-muted-foreground mb-1 font-arabic">بصمة المستند (SHA-256):</p>
+              <code className="text-[10px] break-all text-clay-blue" dir="ltr">
+                {proof.documentHash}
+              </code>
+            </div>
+            <dl className="grid grid-cols-3 gap-1.5 text-[11px] font-arabic">
+              <div className="rounded-lg bg-muted/30 p-2">
+                <dt className="text-[9px] text-muted-foreground">التوقيت</dt>
+                <dd className="font-bold text-foreground">{proof.timestamp.toLocaleString("ar-EG")}</dd>
+              </div>
+              <div className="rounded-lg bg-muted/30 p-2">
+                <dt className="text-[9px] text-muted-foreground">الشبكة</dt>
+                <dd className="font-bold text-foreground">{proof.network}</dd>
+              </div>
+              <div className="rounded-lg bg-muted/30 p-2">
+                <dt className="text-[9px] text-muted-foreground">رقم الكتلة</dt>
+                <dd className="font-bold text-foreground">{proof.blockNumber ?? "محلي"}</dd>
+              </div>
+            </dl>
+            {proof.ipfsHash && (
+              <div className="rounded-lg bg-muted/30 p-2">
+                <p className="text-[9px] text-muted-foreground font-arabic">CID على IPFS</p>
+                <p className="text-[10px] font-bold text-foreground break-all" dir="ltr">
+                  {proof.ipfsHash}
+                </p>
+              </div>
+            )}
+            {proof.txHash && (
+              <div className="rounded-lg bg-muted/30 p-2">
+                <p className="text-[9px] text-muted-foreground font-arabic">توقيع الإثبات</p>
+                <p className="text-[10px] font-bold text-foreground break-all" dir="ltr">
+                  {proof.txHash}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {integrity && (
+          <div className="clay-card p-3 flex items-start gap-2">
+            {integrity.verified ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-clay-green mt-0.5" />
+            ) : (
+              <XCircle className="w-4 h-4 shrink-0 text-urgency-critical mt-0.5" />
+            )}
+            <div>
+              <p
+                className={`text-[11px] font-bold font-arabic ${
+                  integrity.verified ? "text-clay-green" : "text-urgency-critical"
+                }`}
+              >
+                {integrity.verified ? "التحقق ناجح" : "تحذير"}
+              </p>
+              <p className="text-[10px] text-muted-foreground font-arabic mt-0.5">{integrity.message}</p>
+              {integrity.originalTimestamp && (
+                <p className="text-[10px] text-muted-foreground font-arabic mt-1">
+                  تاريخ التوثيق الأصلي: {integrity.originalTimestamp.toLocaleString("ar-EG")}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!proof && !integrity && (
+          <div className="clay-card p-4 flex items-center justify-center min-h-[200px] text-center">
+            <div>
+              <Lock className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-xs text-muted-foreground font-arabic">
+                أي تعديل على المستند بعد التوثيق يُبطل فحص السلامة — حماية كاملة من التلاعب
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // Main Page
 // ============================================================
 
-type TabId = "signature" | "analytics" | "graph";
+type TabId = "research" | "verification" | "signature" | "analytics" | "graph";
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
+  { id: "research", label: "البحث القانوني", icon: BookOpen },
+  { id: "verification", label: "توثيق المستندات", icon: Link2 },
   { id: "signature", label: "التوقيع الإلكتروني", icon: FileSignature },
   { id: "analytics", label: "التحليلات التنبؤية", icon: LineChart },
   { id: "graph", label: "الرسم المعرفي", icon: Network },
 ];
 
 export default function LegalIntelligence() {
-  const [tab, setTab] = useState<TabId>("signature");
+  const [tab, setTab] = useState<TabId>("research");
 
   return (
     <div className="space-y-4" dir="rtl">
@@ -632,7 +1185,7 @@ export default function LegalIntelligence() {
               منصة الاستخبارات القانونية
             </h2>
             <p className="text-xs text-muted-foreground font-arabic mt-0.5">
-              أدوات مجانية متقدمة: التوقيع الإلكتروني، التحليلات التنبؤية، والرسم البياني المعرفي للقانون المصري
+              منصة الاستخبارات القانونية 2026: بحث قانوني بالاسترجاع الذكي، توثيق مستندات ضد التزوير، توقيع إلكتروني، تحليلات تنبؤية، ورسم معرفي للقانون المصري
             </p>
           </div>
         </div>
@@ -660,6 +1213,8 @@ export default function LegalIntelligence() {
         })}
       </div>
 
+      {tab === "research" && <LegalResearchTab />}
+      {tab === "verification" && <DocumentVerificationTab />}
       {tab === "signature" && <ESignatureTab />}
       {tab === "analytics" && <PredictiveAnalyticsTab />}
       {tab === "graph" && <KnowledgeGraphTab />}
