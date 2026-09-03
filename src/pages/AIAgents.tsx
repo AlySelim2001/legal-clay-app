@@ -10,14 +10,7 @@ import {
   Heart,
   Building2,
   HardHat,
-  Shield,
-  FileText,
-  Gavel,
   Brain,
-  Search,
-  Landmark,
-  Users,
-  BookOpen,
   Zap,
   Globe,
 } from "lucide-react";
@@ -25,9 +18,6 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { LEGAL_AGENTS } from "@/lib/ai/agent-swarm";
 import { ADVANCED_AGENTS } from "@/agents/advanced-agents";
 import { getSwarmOrchestrator } from "@/agents/swarm-orchestrator";
-import { getLegalChatbot } from "@/agents/legal-chatbot";
-import { getDocumentGenerator } from "@/lib/legal-docs/templates";
-import { getBlockchainTimestamp } from "@/lib/blockchain/timestamp";
 
 // ============================================================
 // Types
@@ -57,24 +47,6 @@ interface AgentUI {
 // ============================================================
 // Agent UI Mapping
 // ============================================================
-
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  Scale,
-  Briefcase,
-  Heart,
-  Building2,
-  HardHat,
-  Shield,
-  FileText,
-  Gavel,
-  Brain,
-  Search,
-  Landmark,
-  Users,
-  BookOpen,
-  Zap,
-  Globe,
-};
 
 function mapAgentToUI(agent: { id: string; nameAr: string; nameEn: string; domain: string; icon: string; capabilities: string[]; primaryLaws: string[] }): AgentUI {
   const icons: Record<string, React.ComponentType<{ className?: string }>> = {

@@ -10,9 +10,6 @@ import {
   ALL_CODES,
   COURT_PRECEDENTS,
   DEADLINE_RULES,
-  type LegalArticle,
-  type CourtPrecedent,
-  type DeadlineRule,
   type LegalCategory,
 } from '../legal-db/egyptian-codes';
 
