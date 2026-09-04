@@ -74,6 +74,10 @@ import {
   type KnowledgeNode,
   type GraphTraversal,
 } from "@/lib/knowledge-graph";
+import {
+  getEgyptianLegalKnowledgeGraph,
+  type RelatedArticleRelation,
+} from "@/knowledge-graph/legal-knowledge-graph";
 
 // ============================================================
 // Shared disclaimer
@@ -534,6 +538,24 @@ function KnowledgeGraphTab() {
   const relatedNodeIds = new Set(relatedEdges.map((e) => e.target));
   const relatedNodes = traversal?.nodes.filter((n) => relatedNodeIds.has(n.id)) ?? [];
 
+  const kg = getEgyptianLegalKnowledgeGraph();
+  const [articleQuery, setArticleQuery] = useState("");
+  const [quickMatches, setQuickMatches] = useState<RelatedArticleRelation[] | null>(null);
+
+  const handleQuickLookup = useCallback(() => {
+    const num = articleQuery.trim();
+    if (!num) return;
+    const result = kg.findRelatedLaws(num);
+    setQuickMatches(result.matches);
+    setResults(result.matches.map((m) => m.article));
+    setSelected(null);
+    setTraversal(null);
+    // Single match → show its relationships immediately in the detail card.
+    if (result.matches.length === 1) {
+      handleSelect(result.matches[0].article);
+    }
+  }, [articleQuery, kg, handleSelect]);
+
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="clay-card p-4 space-y-3 lg:col-span-1">
@@ -585,6 +607,53 @@ function KnowledgeGraphTab() {
               <p className="text-[9px] text-muted-foreground mt-0.5">{node.id}</p>
             </button>
           ))}
+        </div>
+
+        <div className="rounded-xl border border-clay-rose/20 bg-clay-rose/5 p-2.5 space-y-2">
+          <p className="text-[10px] font-bold text-clay-rose font-arabic flex items-center gap-1">
+            <GitBranch className="w-3 h-3" />
+            البحث برقم المادة (القانون + الأحكام المطبقة)
+          </p>
+          <div className="flex gap-1.5">
+            <input
+              value={articleQuery}
+              onChange={(e) => setArticleQuery(e.target.value.replace(/[^0-9]/g, ""))}
+              onKeyDown={(e) => e.key === "Enter" && handleQuickLookup()}
+              placeholder="مثال: 234"
+              inputMode="numeric"
+              className="clay-input w-20 rounded-lg border bg-white px-2 py-1.5 text-sm text-center dark:bg-background"
+              dir="ltr"
+            />
+            <button
+              onClick={handleQuickLookup}
+              className="clay-button rounded-lg bg-clay-rose/10 text-clay-rose px-3 text-xs font-bold font-arabic"
+            >
+              عرض العلاقات
+            </button>
+          </div>
+          {quickMatches &&
+            (quickMatches.length === 0 ? (
+              <p className="text-[10px] text-muted-foreground font-arabic">
+                لا توجد مادة بهذا الرقم في قاعدة البيانات
+              </p>
+            ) : (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {quickMatches.map((m) => (
+                  <button
+                    key={m.article.id}
+                    onClick={() => handleSelect(m.article)}
+                    className="w-full text-start rounded-lg border border-border p-1.5 hover:bg-muted/50 transition-colors"
+                  >
+                    <p className="text-[10px] font-semibold text-foreground font-arabic truncate">
+                      {m.article.label}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground font-arabic truncate">
+                      {m.lawName} • {m.precedents.length} حكم يطبقها • {m.relatedArticles.length} مادة مرتبطة
+                    </p>
+                  </button>
+                ))}
+              </div>
+            ))}
         </div>
       </div>
 
