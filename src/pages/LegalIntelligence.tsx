@@ -61,6 +61,7 @@ import {
   saveSessionTranscript,
   type SessionAnalysis,
 } from "@/voice/court-session-recorder";
+import { PDFSignatureDesk } from "@/components/PDFSignatureDesk";
 import type { LegalCategory } from "@/legal-db/egyptian-codes";
 import {
   getPredictiveAnalyticsEngine,
@@ -221,7 +222,8 @@ function ESignatureTab() {
   }, [docContent, signatureImage, signerName, signerId, result]);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-2">
       <div className="clay-card p-4 space-y-3">
         <div className="flex items-center gap-2">
           <FileSignature className="w-5 h-5 text-clay-purple" />
@@ -324,6 +326,9 @@ function ESignatureTab() {
           </p>
         </div>
       </div>
+    </div>
+
+      <PDFSignatureDesk />
     </div>
   );
 }
