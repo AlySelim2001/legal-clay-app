@@ -78,6 +78,11 @@ import {
   getEgyptianLegalKnowledgeGraph,
   type RelatedArticleRelation,
 } from "@/knowledge-graph/legal-knowledge-graph";
+import {
+  buildKnowledgeGraphDiagramPdf,
+  diagramFileName,
+  downloadKnowledgeGraphDiagram,
+} from "@/lib/reports/knowledge-graph-diagram";
 
 // ============================================================
 // Shared disclaimer
@@ -556,8 +561,30 @@ function KnowledgeGraphTab() {
     }
   }, [articleQuery, kg, handleSelect]);
 
+  const [diagramBusy, setDiagramBusy] = useState(false);
+  const [diagramError, setDiagramError] = useState("");
+  const handleExportDiagram = useCallback(async () => {
+    if (!selected || !traversal || diagramBusy) return;
+    setDiagramBusy(true);
+    setDiagramError("");
+    try {
+      const bytes = await buildKnowledgeGraphDiagramPdf({
+        traversal,
+        focus: selected,
+        caseRef:
+          selected.type === "precedent" ? selected.properties.caseNumber : undefined,
+      });
+      downloadKnowledgeGraphDiagram(bytes, diagramFileName(selected.id));
+    } catch {
+      setDiagramError("تعذر إنشاء مخطط PDF — حاول مجدداً");
+    } finally {
+      setDiagramBusy(false);
+    }
+  }, [selected, traversal, diagramBusy]);
+
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-3">
       <div className="clay-card p-4 space-y-3 lg:col-span-1">
         <div className="flex items-center gap-2">
           <Network className="w-5 h-5 text-clay-rose" />
@@ -721,6 +748,39 @@ function KnowledgeGraphTab() {
           </div>
         )}
       </div>
+    </div>
+
+      {selected && traversal && (
+        <div className="clay-card p-3 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Download className="w-4 h-4 shrink-0 text-clay-rose" />
+            <div className="min-w-0">
+              <p className="text-xs font-bold font-arabic">تصدير مخطط العلاقات للملف</p>
+              <p className="text-[10px] text-muted-foreground font-arabic truncate">
+                {selected.label}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleExportDiagram}
+            disabled={diagramBusy}
+            className="clay-button rounded-xl bg-clay-rose/10 text-clay-rose px-3 py-2 flex items-center gap-1.5 text-xs font-bold font-arabic disabled:opacity-50"
+          >
+            {diagramBusy ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            تصدير PDF للملف
+          </button>
+        </div>
+      )}
+      {diagramError && (
+        <div className="flex items-start gap-2 rounded-lg border border-urgency-high/30 bg-urgency-high/10 p-2 text-xs text-foreground font-arabic">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-urgency-high" />
+          {diagramError}
+        </div>
+      )}
     </div>
   );
 }
