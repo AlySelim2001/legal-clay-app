@@ -64,6 +64,7 @@ import {
 import { PDFSignatureDesk } from "@/components/PDFSignatureDesk";
 import { OutcomeAnalyticsDesk } from "@/components/OutcomeAnalyticsDesk";
 import { OpenSourceSyncDesk } from "@/components/OpenSourceSyncDesk";
+import { WorkflowAutomationDesk } from "@/components/WorkflowAutomationDesk";
 import type { LegalCategory } from "@/legal-db/egyptian-codes";
 import {
   getPredictiveAnalyticsEngine,
@@ -1069,6 +1070,7 @@ function LegalResearchTab() {
 
       {/* Open-source ecosystem integrations */}
       <OpenSourceSyncDesk />
+      <WorkflowAutomationDesk />
     </div>
   );
 }
