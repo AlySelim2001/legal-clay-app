@@ -63,6 +63,7 @@ import {
 } from "@/voice/court-session-recorder";
 import { PDFSignatureDesk } from "@/components/PDFSignatureDesk";
 import { OutcomeAnalyticsDesk } from "@/components/OutcomeAnalyticsDesk";
+import { OpenSourceSyncDesk } from "@/components/OpenSourceSyncDesk";
 import type { LegalCategory } from "@/legal-db/egyptian-codes";
 import {
   getPredictiveAnalyticsEngine,
@@ -1065,6 +1066,9 @@ function LegalResearchTab() {
           </div>
         </div>
       </div>
+
+      {/* Open-source ecosystem integrations */}
+      <OpenSourceSyncDesk />
     </div>
   );
 }
