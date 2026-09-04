@@ -4,6 +4,7 @@ import {
   BarChart3,
   CheckCircle2,
   Clock,
+  Download,
   Loader2,
   Plus,
   Trash2,
@@ -19,6 +20,10 @@ import {
   type CaseOutcomeRecord,
   type OutcomeVerdict,
 } from "@/analytics/predictive-analytics";
+import {
+  buildSuccessRateReportPdf,
+  downloadSuccessRateReport,
+} from "@/lib/reports/success-rate-report";
 
 const CASE_TYPE_OPTIONS = [
   "جنائي — جرائم عنف",
@@ -124,6 +129,7 @@ export function OutcomeAnalyticsDesk() {
     [refresh],
   );
 
+
   // Live analysis — recomputed on every registry/filter change.
   const [live, setLive] = useState<Awaited<ReturnType<typeof analyzer.analyzeSuccessRate>> | null>(null);
   const [liveLoading, setLiveLoading] = useState(true);
@@ -147,6 +153,23 @@ export function OutcomeAnalyticsDesk() {
     };
   }, [analyzer, lawyerFilter, typeFilter, outcomes]);
 
+  const [exporting, setExporting] = useState(false);
+  const handleExport = useCallback(async () => {
+    if (exporting || !live) return;
+    setExporting(true);
+    try {
+      const bytes = await buildSuccessRateReportPdf(live, {
+        lawyerLabel: lawyerFilter === "الكل" ? "كل المحامين" : lawyerFilter,
+        caseTypeLabel: typeFilter === "الكل" ? "جميع أنواع القضايا" : typeFilter,
+      });
+      downloadSuccessRateReport(bytes);
+    } catch {
+      // Report export failure is non-critical — keep the desk usable
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, live, lawyerFilter, typeFilter]);
+
   const decidedLabel = (t: { caseType: string; successRate: number; decided: number }): string =>
     `${t.caseType} — ${Math.round(t.successRate)}% (${t.decided} قضايا)`;
 
@@ -158,9 +181,24 @@ export function OutcomeAnalyticsDesk() {
             <BarChart3 className="w-5 h-5 text-clay-teal" />
             <h3 className="text-sm font-bold font-arabic">تحليل معدل النجاح حسب المحامي ونوع القضية</h3>
           </div>
+          <div className="flex items-center gap-2">
           <span className="clay-badge text-[10px] bg-clay-teal/10 text-clay-teal px-2.5 py-1 rounded-full w-fit font-arabic">
             استناداً إلى سجل النتائج المحلي
           </span>
+          <button
+            onClick={handleExport}
+            disabled={exporting || !live || live.totalCases === 0}
+            className="clay-button rounded-xl bg-clay-purple/10 text-clay-purple px-3 py-1.5 flex items-center gap-1.5 text-xs font-bold font-arabic disabled:opacity-50"
+            title="تصدير التقرير كملف PDF للمراجعة"
+          >
+            {exporting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            تصدير PDF
+          </button>
+          </div>
         </div>
 
         {/* Filters + metrics */}
