@@ -49,12 +49,45 @@ export interface RAGResponse {
 // TF-IDF Scoring
 // ============================================================
 
-function tokenize(text: string): string[] {
+/**
+ * Arabic-aware normalization: strips diacritics and tatweel, unifies
+ * alef/hamza variants (أ إ آ → ا), final yaa (ى → ي) and taa marbuta
+ * (ة → ه) so different written forms of the same word match each other.
+ */
+function normalizeArabic(text: string): string {
   return text
     .toLowerCase()
+    .replace(/[\u064B-\u0652\u0670\u0640]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
     .replace(/[^\u0600-\u06FF\u0020-\u007E]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenize(text: string): string[] {
+  return normalizeArabic(text)
     .split(/\s+/)
     .filter((t) => t.length > 1);
+}
+
+function charBigrams(token: string): Set<string> {
+  const grams = new Set<string>();
+  for (let i = 0; i < token.length - 1; i++) {
+    grams.add(token.slice(i, i + 2));
+  }
+  return grams;
+}
+
+/** Overlap ratio of two token bigram sets (0..1). */
+function bigramOverlap(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0;
+  let intersection = 0;
+  for (const gram of a) {
+    if (b.has(gram)) intersection++;
+  }
+  return intersection / Math.min(a.size, b.size);
 }
 
 function computeTF(tokens: string[]): Map<string, number> {
@@ -88,18 +121,48 @@ function computeIDF(documents: string[][]): Map<string, number> {
   return idf;
 }
 
+/**
+ * TF-IDF score with fuzzy fallback: when a query token has no exact
+ * document term, its character-bigram overlap against candidate terms
+ * (length ±3) catches Arabic morphological variants that normalization
+ * could not unify (prefixes, inflections, broken plurals). Only strong
+ * overlaps (≥ 0.55) contribute, at a discounted weight, to avoid noise.
+ */
 function scoreDocument(
   queryTF: Map<string, number>,
   idf: Map<string, number>,
   docTokens: string[]
 ): number {
   const docTF = computeTF(docTokens);
-  let score = 0;
+  const bigramCache = new Map<string, Set<string>>();
+  const gramsOf = (token: string): Set<string> => {
+    let grams = bigramCache.get(token);
+    if (!grams) {
+      grams = charBigrams(token);
+      bigramCache.set(token, grams);
+    }
+    return grams;
+  };
 
+  let score = 0;
   for (const [term, qtf] of queryTF) {
-    const dtf = docTF.get(term) ?? 0;
     const idfVal = idf.get(term) ?? 1;
-    score += qtf * dtf * idfVal;
+    const dtf = docTF.get(term) ?? 0;
+    if (dtf > 0) {
+      score += qtf * dtf * idfVal;
+      continue;
+    }
+
+    const queryGrams = gramsOf(term);
+    let bestOverlap = 0;
+    for (const docToken of docTF.keys()) {
+      if (Math.abs(docToken.length - term.length) > 3) continue;
+      const overlap = bigramOverlap(queryGrams, gramsOf(docToken));
+      if (overlap > bestOverlap) bestOverlap = overlap;
+    }
+    if (bestOverlap >= 0.55) {
+      score += qtf * 0.6 * idfVal * bestOverlap;
+    }
   }
 
   return score;
@@ -214,10 +277,10 @@ export class RAGRetriever {
       const docTokens = tokenize(doc.content);
       const score = scoreDocument(queryTF, idf, docTokens);
 
-      // Boost exact matches
-      const lowerContent = doc.content.toLowerCase();
-      const lowerQuery = query.toLowerCase();
-      const boost = lowerContent.includes(lowerQuery) ? 2.0 : 1.0;
+      // Boost exact (normalized) matches
+      const boost = normalizeArabic(doc.content).includes(normalizeArabic(query))
+        ? 2.0
+        : 1.0;
 
       return { ...doc, score: score * boost };
     });
