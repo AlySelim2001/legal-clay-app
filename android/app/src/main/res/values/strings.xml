@@ -1,29 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Default (English) strings. Arabic overrides live in values-ar/ and the
+         app forces the ar locale by default via AppCompatDelegate. -->
     <string name="app_name">CRIM-SYS 2026</string>
+
+    <string name="nav_login">Sign in</string>
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_cases">Cases</string>
-    <string name="nav_clients">Clients</string>
-    <string name="nav_calendar">Hearing Calendar</string>
-    <string name="nav_deadlines">Deadlines</string>
-    <string name="nav_defenses">Defenses</string>
-    <string name="nav_archive">Archive</string>
+    <string name="nav_case_detail">Case File</string>
+    <string name="nav_clients">Client Registry</string>
+    <string name="nav_client_detail">Client Profile</string>
+    <string name="nav_calendar">Hearing Schedule</string>
+    <string name="nav_deadlines">Deadline Calculator</string>
+    <string name="nav_defenses">Criminal Defenses</string>
+    <string name="nav_archive">Archive &amp; Attachments</string>
     <string name="nav_legal_framework">Legal Framework</string>
-    <string name="nav_admin_team">Team</string>
+    <string name="nav_legal_intelligence">Legal Intelligence</string>
+    <string name="nav_admin_team">Team Management</string>
     <string name="nav_settings">Settings</string>
-    <string name="sync_synced">All changes synced</string>
-    <string name="sync_pending">Offline — changes will sync automatically</string>
-    <string name="case_list_title">Case Directory</string>
-    <string name="case_list_empty">No cases yet. Create your first case to get started.</string>
-    <string name="case_create_title">New Case</string>
-    <string name="case_field_case_number">Case number</string>
-    <string name="case_field_court">Court</string>
-    <string name="case_field_client">Client name</string>
-    <string name="case_field_save">Save case</string>
-    <string name="case_error_number_required">Case number is required</string>
-    <string name="case_error_court_required">Court name is required</string>
-    <string name="sync_running">Syncing…</string>
-    <string name="cd_search">Search</string>
-    <string name="cd_navigate">Open navigation drawer</string>
-    <string name="cd_add_case">Add case</string>
+    <string name="nav_memo_editor">Memo Editor</string>
+    <string name="section_admin">Administration</string>
+
+    <string name="menu_open_drawer">Open menu</string>
+    <string name="action_search">Search</string>
+    <string name="action_notifications">Notifications</string>
+    <string name="action_profile">Profile</string>
+
+    <string name="sync_synced">Synced</string>
+    <string name="sync_pending">Pending sync (%1$d)</string>
+    <string name="sync_offline">Offline — uploads resume automatically</string>
+    <string name="syncing">Syncing…</string>
+    <string name="error_unknown">Unexpected error</string>
+
+    <string name="cases_title">Case Directory</string>
+    <string name="cases_empty">No cases yet — add your first case</string>
+    <string name="case_add_title">Add case</string>
+    <string name="case_number">Case number</string>
+    <string name="court_name">Court name</string>
+    <string name="case_type">Case type</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="error_required_fields">Case number and court name are required</string>
+    <string name="case_saved_locally">Saved locally — will upload when online</string>
+    <string name="open_memo">Open memo</string>
+
+    <string name="case_detail_court_label">Court</string>
+    <string name="case_detail_type_label">Type</string>
+    <string name="case_detail_created_label">Created</string>
+    <string name="case_detail_memo_section">Legal memo</string>
+    <string name="case_detail_no_memo">No memo yet</string>
+    <string name="case_detail_edit_memo">Edit memo</string>
+    <string name="case_detail_hearings_section">Sessions</string>
+    <string name="case_detail_no_hearings">No scheduled sessions</string>
+
+    <string name="calendar_title">Hearings Calendar</string>
+    <string name="calendar_no_hearings">No hearings on this day</string>
+    <string name="hearing_court">Court</string>
+    <string name="hearing_today">Today</string>
+
+    <string name="memo_title">Legal Memo Editor</string>
+    <string name="memo_bold">Bold</string>
+    <string name="memo_italic">Italic</string>
+    <string name="memo_saved">Memo saved</string>
+    <string name="memo_no_case">No case linked — open the editor from inside a case file</string>
+    <string name="memo_hint">Write your memo here…</string>
+
+    <string name="placeholder_under_construction">This screen is under construction</string>
+    <string name="placeholder_hint">Architecture is in place — fill in from the presentation layer</string>
 </resources>

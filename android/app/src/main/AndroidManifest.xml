@@ -1,17 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Network state for offline-first sync -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Firestore/Auth need internet -->
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- Camera for document OCR scanning -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature
-        android:name="android.hardware.camera"
-        android:required="false" />
 
     <application
         android:name=".CrimSysApplication"
@@ -22,8 +14,7 @@
         android:label="@string/app_name"
         android:localeConfig="@xml/locales_config"
         android:supportsRtl="true"
-        android:theme="@style/Theme.CrimSys"
-        tools:targetApi="34">
+        android:theme="@style/Theme.CrimSys">
 
         <activity
             android:name=".MainActivity"
@@ -36,21 +27,5 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Crop results from Android-Image-Cropper (used by OCR flow) -->
-        <activity
-            android:name="com.canhub.cropper.CropImageActivity"
-            android:theme="@style/Theme.CrimSys" />
-
-        <!-- Secure read access to shared case attachments -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            authority="${applicationId}.fileprovider"
-            exported="false"
-            grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
     </application>
 </manifest>

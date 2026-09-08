@@ -1,4 +1,4 @@
-// CRIM-SYS 2026 — app module build configuration.
+// CRIM-SYS 2026 — app module (native Kotlin + Compose, offline-first).
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.legalsys.crimsys"
+    namespace = "net.crimsys.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.legalsys.crimsys"
+        applicationId = "net.crimsys.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -57,6 +57,8 @@ ksp {
 dependencies {
     // AndroidX core
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat) // AppCompatActivity + per-app locales
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -71,38 +73,32 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
 
-    // Room + SQLCipher encryption
+    // Room + SQLCipher encryption (single source of truth)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-    implementation(libs.androidx.sqlite)
     implementation(libs.sqlcipher)
-    implementation(libs.androidx.security.crypto)
 
-    // DataStore
+    // DataStore (app preferences)
     implementation(libs.androidx.datastore.preferences)
 
-    // Firebase (sync target — google-services.json required at build time)
+    // Firestore (sync target; google-services.json is optional — the remote
+    // data source degrades gracefully to offline-only without it)
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.coroutines.play.services)
+
+    // Serialization (offline action JSON payloads)
+    implementation(libs.kotlinx.serialization.json)
 
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
-    // OCR & image cropping (on-device, offline)
-    implementation(libs.mlkit.text.recognition.arabic)
-    implementation(libs.image.cropper)
-
     // Calendar & rich text editor
     implementation(libs.kizitonwose.calendar.compose)
     implementation(libs.richeditor.compose)
-
-    // WorkManager
-    implementation(libs.androidx.work.runtime)
 
     // Testing
     testImplementation(libs.junit)

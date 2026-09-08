@@ -1,29 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">نظام القضايا 2026</string>
+
+    <string name="nav_login">تسجيل الدخول</string>
     <string name="nav_dashboard">اللوحة التنفيذية</string>
     <string name="nav_cases">سجل القضايا</string>
+    <string name="nav_case_detail">ملف القضية</string>
     <string name="nav_clients">سجل العملاء</string>
-    <string name="nav_calendar">تقويم الجلسات</string>
+    <string name="nav_client_detail">ملف العميل</string>
+    <string name="nav_calendar">جدول الجلسات</string>
     <string name="nav_deadlines">حاسبة المواعيد</string>
-    <string name="nav_defenses">كتالوج الدفوع</string>
-    <string name="nav_archive">الأرشيف</string>
+    <string name="nav_defenses">الدفوع الجنائية</string>
+    <string name="nav_archive">الأرشيف والمرفقات</string>
     <string name="nav_legal_framework">المرجع القانوني</string>
+    <string name="nav_legal_intelligence">الذكاء القانوني</string>
     <string name="nav_admin_team">إدارة الفريق</string>
     <string name="nav_settings">الإعدادات</string>
-    <string name="sync_synced">تمت مزامنة جميع التغييرات</string>
-    <string name="sync_pending">غير متصل — ستتم المزامنة تلقائياً</string>
-    <string name="case_list_title">سجل القضايا</string>
-    <string name="case_list_empty">لا توجد قضايا بعد. أنشئ قضيتك الأولى للبدء.</string>
-    <string name="case_create_title">قضية جديدة</string>
-    <string name="case_field_case_number">رقم القضية</string>
-    <string name="case_field_court">المحكمة</string>
-    <string name="case_field_client">اسم العميل</string>
-    <string name="case_field_save">حفظ القضية</string>
-    <string name="case_error_number_required">رقم القضية مطلوب</string>
-    <string name="case_error_court_required">اسم المحكمة مطلوب</string>
-    <string name="sync_running">جارٍ المزامنة…</string>
-    <string name="cd_search">بحث</string>
-    <string name="cd_navigate">فتح قائمة التنقل</string>
-    <string name="cd_add_case">إضافة قضية</string>
+    <string name="nav_memo_editor">محرر المذكرات</string>
+    <string name="section_admin">الإدارة</string>
+
+    <string name="menu_open_drawer">فتح القائمة</string>
+    <string name="action_search">بحث</string>
+    <string name="action_notifications">التنبيهات</string>
+    <string name="action_profile">الملف الشخصي</string>
+
+    <string name="sync_synced">تمت المزامنة</string>
+    <string name="sync_pending">بانتظار المزامنة (%1$d)</string>
+    <string name="sync_offline">غير متصل — ستستأنف الرفعات تلقائياً</string>
+    <string name="syncing">جارٍ المزامنة…</string>
+    <string name="error_unknown">خطأ غير متوقع</string>
+
+    <string name="cases_title">سجل القضايا</string>
+    <string name="cases_empty">لا توجد قضايا بعد — أضف قضيتك الأولى</string>
+    <string name="case_add_title">إضافة قضية</string>
+    <string name="case_number">رقم القضية</string>
+    <string name="court_name">اسم المحكمة</string>
+    <string name="case_type">نوع القضية</string>
+    <string name="save">حفظ</string>
+    <string name="cancel">إلغاء</string>
+    <string name="error_required_fields">رقم القضية واسم المحكمة مطلوبان</string>
+    <string name="case_saved_locally">حُفظ محلياً — سيُرفع عند الاتصال</string>
+    <string name="open_memo">فتح المذكرة</string>
+
+    <string name="case_detail_court_label">المحكمة</string>
+    <string name="case_detail_type_label">النوع</string>
+    <string name="case_detail_created_label">تاريخ الإنشاء</string>
+    <string name="case_detail_memo_section">المذكرة القانونية</string>
+    <string name="case_detail_no_memo">لا توجد مذكرة بعد</string>
+    <string name="case_detail_edit_memo">تحرير المذكرة</string>
+    <string name="case_detail_hearings_section">الجلسات</string>
+    <string name="case_detail_no_hearings">لا توجد جلسات مجدولة</string>
+
+    <string name="calendar_title">تقويم الجلسات</string>
+    <string name="calendar_no_hearings">لا توجد جلسات في هذا اليوم</string>
+    <string name="hearing_court">المحكمة</string>
+    <string name="hearing_today">اليوم</string>
+
+    <string name="memo_title">محرر المذكرات القانونية</string>
+    <string name="memo_bold">عريض</string>
+    <string name="memo_italic">مائل</string>
+    <string name="memo_saved">تم حفظ المذكرة</string>
+    <string name="memo_no_case">لا توجد قضية مرتبطة — افتح المحرر من داخل ملف القضية</string>
+    <string name="memo_hint">اكتب مذكرتك هنا…</string>
+
+    <string name="placeholder_under_construction">هذه الشاشة قيد الإنشاء</string>
+    <string name="placeholder_hint">البنية جاهزة — املأها من طبقة العرض</string>
 </resources>
