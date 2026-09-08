@@ -5,9 +5,9 @@
 -keep class com.google.firebase.** { *; }
 -dontwarn com.google.firebase.**
 
-# --- SQLCipher ---
--keep class net.sqlcipher.** { *; }
--dontwarn net.sqlcipher.**
+# --- SQLCipher (sqlcipher-android) ---
+-keep class net.zetetic.database.** { *; }
+-dontwarn net.zetetic.database.**
 
-# --- Room entities (reflection via converters) ---
--keep class com.legalsys.crimsys.data.local.entity.** { *; }
+# --- Room entities ---
+-keep class net.crimsys.app.data.local.** { *; }
