@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Pre-Android-12 backup rules: include the Room database in cloud backups. -->
 <full-backup-content>
-    <include domain="database" path="." />
-    <include domain="file" path="datastore/" />
+    <!-- The Room DB is SQLCipher-encrypted; the key lives in the Keystore and is excluded. -->
+    <exclude domain="database" path="crimsys.db" />
+    <exclude domain="sharedpref" path="crimsys_db_key_prefs.xml" />
 </full-backup-content>

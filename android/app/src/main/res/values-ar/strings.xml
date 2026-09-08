@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">نظام القضايا 2026</string>
+    <string name="nav_dashboard">اللوحة التنفيذية</string>
+    <string name="nav_cases">سجل القضايا</string>
+    <string name="nav_clients">سجل العملاء</string>
+    <string name="nav_calendar">تقويم الجلسات</string>
+    <string name="nav_deadlines">حاسبة المواعيد</string>
+    <string name="nav_defenses">كتالوج الدفوع</string>
+    <string name="nav_archive">الأرشيف</string>
+    <string name="nav_legal_framework">المرجع القانوني</string>
+    <string name="nav_admin_team">إدارة الفريق</string>
+    <string name="nav_settings">الإعدادات</string>
+    <string name="sync_synced">تمت مزامنة جميع التغييرات</string>
+    <string name="sync_pending">غير متصل — ستتم المزامنة تلقائياً</string>
+    <string name="case_list_title">سجل القضايا</string>
+    <string name="case_list_empty">لا توجد قضايا بعد. أنشئ قضيتك الأولى للبدء.</string>
+    <string name="case_create_title">قضية جديدة</string>
+    <string name="case_field_case_number">رقم القضية</string>
+    <string name="case_field_court">المحكمة</string>
+    <string name="case_field_client">اسم العميل</string>
+    <string name="case_field_save">حفظ القضية</string>
+    <string name="case_error_number_required">رقم القضية مطلوب</string>
+    <string name="case_error_court_required">اسم المحكمة مطلوب</string>
+    <string name="sync_running">جارٍ المزامنة…</string>
+    <string name="cd_search">بحث</string>
+    <string name="cd_navigate">فتح قائمة التنقل</string>
+    <string name="cd_add_case">إضافة قضية</string>
+</resources>

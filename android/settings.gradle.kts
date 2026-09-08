@@ -13,7 +13,7 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
@@ -21,7 +21,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "CRIM-SYS 2026"
-
-// Native Android module (Kotlin/Compose) — independent of the Capacitor web shell.
-// Root project resolves to the android/ directory itself.
-rootProject.buildFileName = "build.gradle.kts"
+include(":app")

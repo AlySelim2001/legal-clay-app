@@ -1,70 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Default (fallback) strings are ARABIC — the app is Arabic-first.
-    English overrides live in values-en/strings.xml.
--->
 <resources>
     <string name="app_name">CRIM-SYS 2026</string>
-
-    <!-- Navigation -->
-    <string name="nav_login">تسجيل الدخول</string>
-    <string name="nav_dashboard">لوحة القيادة</string>
-    <string name="nav_cases">القضايا</string>
-    <string name="nav_case_detail">ملف القضية</string>
-    <string name="nav_clients">سجل العملاء</string>
-    <string name="nav_client_detail">ملف العميل</string>
-    <string name="nav_calendar">جدول الجلسات</string>
-    <string name="nav_deadlines">حاسبة المواعيد</string>
-    <string name="nav_defenses">الدفوع الجنائية</string>
-    <string name="nav_archive">الأرشيف والمرفقات</string>
-    <string name="nav_legal_framework">الإطار القانوني</string>
-    <string name="nav_legal_intelligence">الذكاء القانوني</string>
-    <string name="nav_admin_team">إدارة الفريق</string>
-    <string name="nav_settings">الإعدادات</string>
-    <string name="nav_memo_editor">محرر المذكرات</string>
-    <string name="section_admin">الإدارة</string>
-
-    <!-- App bar / drawer -->
-    <string name="menu_open_drawer">فتح القائمة</string>
-    <string name="action_search">بحث</string>
-    <string name="action_notifications">التنبيهات</string>
-    <string name="action_profile">الملف الشخصي</string>
-
-    <!-- Sync -->
-    <string name="sync_synced">متزامن</string>
-    <string name="sync_pending">بانتظار المزامنة</string>
-    <string name="sync_offline">غير متصل — سيتم الرفع تلقائياً عند العودة</string>
-    <string name="syncing">جارٍ المزامنة…</string>
-    <string name="error_unknown">حدث خطأ غير متوقع</string>
-
-    <!-- Cases -->
-    <string name="cases_title">دليل القضايا</string>
-    <string name="cases_empty">لا توجد قضايا بعد — أضف أول قضية</string>
-    <string name="case_add_title">إضافة قضية</string>
-    <string name="case_number">رقم القضية</string>
-    <string name="court_name">اسم المحكمة</string>
-    <string name="case_type">نوع القضية</string>
-    <string name="save">حفظ</string>
-    <string name="cancel">إلغاء</string>
-    <string name="error_required_fields">رقم القضية واسم المحكمة مطلوبان</string>
-    <string name="case_saved_locally">تم الحفظ محلياً وسيُرفع عند توفر الشبكة</string>
-    <string name="open_memo">فتح المذكرة</string>
-
-    <!-- Calendar -->
-    <string name="calendar_title">تقويم الجلسات</string>
-    <string name="calendar_no_hearings">لا توجد جلسات في هذا اليوم</string>
-    <string name="hearing_court">المحكمة</string>
-    <string name="hearing_today">اليوم</string>
-
-    <!-- Memo editor -->
-    <string name="memo_title">محرر المذكرات القانونية</string>
-    <string name="memo_bold">عريض</string>
-    <string name="memo_italic">مائل</string>
-    <string name="memo_saved">تم حفظ المذكرة</string>
-    <string name="memo_no_case">لا توجد قضية مرتبطة — افتح المحرر من داخل ملف القضية</string>
-    <string name="memo_hint">اكتب المذكرة هنا…</string>
-
-    <!-- Placeholders -->
-    <string name="placeholder_under_construction">هذه الشاشة قيد الإنشاء</string>
-    <string name="placeholder_hint">البنية المعمارية جاهزة — تُستكمل من طبقة العرض</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_cases">Cases</string>
+    <string name="nav_clients">Clients</string>
+    <string name="nav_calendar">Hearing Calendar</string>
+    <string name="nav_deadlines">Deadlines</string>
+    <string name="nav_defenses">Defenses</string>
+    <string name="nav_archive">Archive</string>
+    <string name="nav_legal_framework">Legal Framework</string>
+    <string name="nav_admin_team">Team</string>
+    <string name="nav_settings">Settings</string>
+    <string name="sync_synced">All changes synced</string>
+    <string name="sync_pending">Offline — changes will sync automatically</string>
+    <string name="case_list_title">Case Directory</string>
+    <string name="case_list_empty">No cases yet. Create your first case to get started.</string>
+    <string name="case_create_title">New Case</string>
+    <string name="case_field_case_number">Case number</string>
+    <string name="case_field_court">Court</string>
+    <string name="case_field_client">Client name</string>
+    <string name="case_field_save">Save case</string>
+    <string name="case_error_number_required">Case number is required</string>
+    <string name="case_error_court_required">Court name is required</string>
+    <string name="sync_running">Syncing…</string>
+    <string name="cd_search">Search</string>
+    <string name="cd_navigate">Open navigation drawer</string>
+    <string name="cd_add_case">Add case</string>
 </resources>

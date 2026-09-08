@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Background sync requires connectivity awareness -->
+    <!-- Network state for offline-first sync -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Firestore/Auth need internet -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Camera for document OCR scanning -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
 
     <application
         android:name=".CrimSysApplication"
@@ -13,27 +21,36 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:localeConfig="@xml/locales_config"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.CrimSys"
-        android:usesCleartextTraffic="true">
-
-        <!--
-            usesCleartextTraffic is development-only (matches capacitor.config.ts
-            allowMixedContent note). Remove before production signing.
-        -->
+        tools:targetApi="34">
 
         <activity
             android:name=".MainActivity"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
             android:exported="true"
-            android:theme="@style/Theme.CrimSys"
-            android:windowSoftInputMode="adjustResize">
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.CrimSys">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    </application>
 
+        <!-- Crop results from Android-Image-Cropper (used by OCR flow) -->
+        <activity
+            android:name="com.canhub.cropper.CropImageActivity"
+            android:theme="@style/Theme.CrimSys" />
+
+        <!-- Secure read access to shared case attachments -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            authority="${applicationId}.fileprovider"
+            exported="false"
+            grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
 </manifest>
