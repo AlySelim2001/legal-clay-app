@@ -1,0 +1,35 @@
+{
+	"appId": "net.crimsys.app",
+	"appName": "CRIM-SYS 2026",
+	"webDir": "dist",
+	"bundledWebRuntime": false,
+	"android": {
+		"allowMixedContent": true,
+		"captureInput": true
+	},
+	"server": {
+		"androidScheme": "https"
+	},
+	"plugins": {
+		"PushNotifications": {
+			"presentationOptions": [
+				"badge",
+				"sound",
+				"alert"
+			]
+		},
+		"Filesystem": {},
+		"StatusBar": {
+			"style": "DARK",
+			"backgroundColor": "#1a1625"
+		},
+		"Keyboard": {
+			"resize": "body",
+			"style": "DARK"
+		}
+	},
+	"ios": {
+		"contentInset": "automatic",
+		"backgroundColor": "#1a1625"
+	}
+}

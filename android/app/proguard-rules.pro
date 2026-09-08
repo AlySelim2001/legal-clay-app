@@ -1,21 +1,27 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# CRIM-SYS 2026 — ProGuard/R8 rules
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- Kotlin coroutines ---
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.coroutines.AnnotationsKt
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# --- Room ---
+-keep class * extends androidx.room.RoomDatabase
+-dontwarn androidx.room.paging.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- SQLCipher ---
+-keep class net.zetetic.database.** { *; }
+-keep class net.sqlcipher.** { *; }
+-dontwarn net.zetetic.database.**
+
+# --- Hilt / Dagger ---
+-dontwarn com.google.errorprone.annotations.**
+
+# --- kotlinx.datetime / java.time used by calendar library (desugared not enabled; minSdk 26 has java.time) ---
+-dontwarn java.time.**
+
+# Keep compose-rich-editor model classes used with HTML serialization
+-keep class com.mohamedrejeb.richeditor.model.** { *; }
+
+# Keep debug line sources for readable crash reports (release keeps line numbers only)
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

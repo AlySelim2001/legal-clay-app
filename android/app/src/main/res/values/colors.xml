@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand -->
+    <color name="clay_background">#F3EDE4</color>
+    <color name="clay_surface">#FCF8F2</color>
+    <color name="clay_primary">#6B4FA0</color>
+    <color name="clay_on_primary">#FFFFFF</color>
+    <color name="clay_primary_container">#E7DBFF</color>
+    <color name="clay_outline">#D8CFC2</color>
+    <color name="clay_dark_background">#1A1625</color>
+
+    <!-- Global urgency tokens (mirror the web app Tailwind config) -->
+    <color name="urgency_critical">#C0392B</color> <!-- deadlines <= 3 days -->
+    <color name="urgency_high">#F1C40F</color>     <!-- deadlines <= 7 days -->
+    <color name="urgency_normal">#27AE60</color>   <!-- deadlines > 14 days -->
+
+    <!-- Launcher -->
+    <color name="ic_launcher_background">#1A1625</color>
+</resources>

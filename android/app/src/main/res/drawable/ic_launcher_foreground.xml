@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gavel glyph on the adaptive-icon foreground layer (scales into the safe zone). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.5"
+        android:scaleY="0.5"
+        android:translateX="27"
+        android:translateY="27">
+        <path
+            android:fillColor="#E7DBFF"
+            android:pathData="M6.05,8.05c-2.73,2.73 -2.73,7.15 -0.02,9.88l1.06,1.06c2.73,2.73 7.15,2.73 9.88,0L27.05,8.91c2.73,-2.73 2.73,-7.15 0,-9.88l-1.06,-1.06c-2.73,-2.73 -7.15,-2.73 -9.88,0L6.05,8.05zM12.7,4.58c1.95,-1.95 5.12,-1.95 7.07,0l1.06,1.06c1.95,1.95 1.95,5.12 0,7.07l-1.06,1.06 -8.13,-8.13 1.06,-1.06zM8.7,8.58l8.13,8.13 -2.82,2.82 -8.13,-8.13 2.82,-2.82zM2.05,19.58l10.6,10.6c0.78,0.78 2.05,0.78 2.83,0 0.78,-0.78 0.78,-2.05 0,-2.83l-10.6,-10.6c-0.78,-0.78 -2.05,-0.78 -2.83,0 -0.78,0.78 -0.78,2.05 0,2.83z" />
+        <path
+            android:fillColor="#E7DBFF"
+            android:pathData="M20,4L44,4A3,3 0,0 1,47 7v17A3,3 0,0 1,44 27L20,27A3,3 0,0 1,17 24L17,7A3,3 0,0 1,20 4z" />
+    </group>
+</vector>
