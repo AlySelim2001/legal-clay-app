@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
@@ -93,6 +94,9 @@ dependencies {
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)
+
+    // JSON payloads for the offline action queue
+    implementation(libs.kotlinx.serialization.json)
 
     // Remote sync (Firestore; runtime config comes from google-services.json)
     implementation(libs.firebase.firestore)

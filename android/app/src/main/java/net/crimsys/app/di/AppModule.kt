@@ -19,7 +19,9 @@ import net.crimsys.app.data.local.OfflineActionDao
 import net.crimsys.app.data.remote.FirebaseAuthRemoteDataSource
 import net.crimsys.app.data.remote.RemoteDataSource
 import net.crimsys.app.data.repository.CaseRepositoryImpl
+import net.crimsys.app.data.repository.HearingRepositoryImpl
 import net.crimsys.app.domain.repository.CaseRepository
+import net.crimsys.app.domain.repository.HearingRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -35,6 +37,10 @@ object AppModule {
      * SQLCipher-encrypted Room database. The passphrase is a random 256-bit key
      * generated on first launch and stored in the Android Keystore — the
      * database file itself is useless if pulled off the device.
+     *
+     * Failure handling: if the native `sqlcipher` .so is missing for the current
+     * ABI, [System.loadLibrary] throws [UnsatisfiedLinkError] at first DB
+     * injection — a loud, early failure beats a silently corrupted store.
      */
     @Provides
     @Singleton
@@ -42,8 +48,12 @@ object AppModule {
         @ApplicationContext context: Context,
         passphraseProvider: DatabasePassphraseProvider,
     ): CrimSysDatabase {
+        // sqlcipher-android (the maintained successor of android-database-sqlcipher)
+        // requires its native library to be loaded before any database handle exists.
+        System.loadLibrary("sqlcipher")
+
         val factory =
-            net.zetetic.database.sqlcipher.SupportFactory(
+            net.zetetic.database.sqlcipher.SupportOpenHelperFactory(
                 passphraseProvider.getOrCreatePassphrase(),
                 /* hook = */ null,
                 /* enableWriteAheadLogging = */ false,
@@ -85,4 +95,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideCaseRepository(impl: CaseRepositoryImpl): CaseRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideHearingRepository(impl: HearingRepositoryImpl): HearingRepository = impl
 }

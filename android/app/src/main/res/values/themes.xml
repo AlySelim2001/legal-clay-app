@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base app theme (pure Compose; XML theme only bootstraps the window). -->
-    <style name="Theme.CrimSys" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <!--
+        Base app theme. Must extend Theme.SplashScreen so installSplashScreen()
+        works; postSplashScreenTheme swaps to Theme.CrimSys.Main after the
+        first frame. Everything else is Compose — XML only bootstraps the window.
+    -->
+    <style name="Theme.CrimSys" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.CrimSys.Main</item>
+        <item name="android:windowBackground">@color/clay_background</item>
+    </style>
+
+    <style name="Theme.CrimSys.Main" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:windowBackground">@color/clay_background</item>
         <item name="android:statusBarColor">@color/clay_dark_background</item>
         <item name="android:navigationBarColor">@color/clay_surface</item>
-    </style>
-
-    <!-- Splash screen (androidx.core:core-splashscreen) -->
-    <style name="Theme.CrimSys.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <item name="postSplashScreenTheme">@style/Theme.CrimSys</item>
     </style>
 </resources>
