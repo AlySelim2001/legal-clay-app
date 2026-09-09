@@ -87,9 +87,9 @@
 ## 🖼️ لقطات الشاشة / Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="لوحة المؤشرات" width="240" style="max-width:30%; border-radius:16px; margin:4px"/>
-  <img src="docs/screenshots/cases.png" alt="سجل القضايا" width="240" style="max-width:30%; border-radius:16px; margin:4px"/>
-  <img src="docs/screenshots/calendar.png" alt="تقويم الجلسات" width="240" style="max-width:30%; border-radius:16px; margin:4px"/>
+  <img src="docs/screenshots/dashboard.svg" alt="لوحة المؤشرات" width="240" style="max-width:30%; border-radius:16px; margin:4px"/>
+  <img src="docs/screenshots/cases.svg" alt="سجل القضايا" width="240" style="max-width:30%; border-radius:16px; margin:4px"/>
+  <img src="docs/screenshots/calendar.svg" alt="تقويم الجلسات" width="240" style="max-width:30%; border-radius:16px; margin:4px"/>
 </p>
 
 > 📷 *Placeholders — يُستبدل هذا القسم بلقطات فعلية عند الإطلاق التجريبي المغلق (انظر [docs/LAUNCH_STRATEGY.md](docs/LAUNCH_STRATEGY.md)).*
@@ -204,6 +204,7 @@ cd android
 | المستند | الغرض |
 |---------|-------|
 | [CONTRIBUTING.md](CONTRIBUTING.md) | كيفية الإبلاغ عن خطأ / طلب ميزة / تقديم PR (التزام Clean Architecture + `Result<T>`) |
+| [.github/pull_request_template.md](.github/pull_request_template.md) | قائمة تحقق الـ PR (معمارياً + RTL + بوابة الحساسية القانونية) |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | بيئة محترمة للجميع |
 | [SECURITY.md](SECURITY.md) | الإبلاغ الخاص عن الثغرات الأمنية |
 | [.github/ISSUE_TEMPLATE/legal_compliance.yml](.github/ISSUE_TEMPLATE/legal_compliance.yml) | ⚠️ قالب حساس: أخطاء الحسابات القانونية والمواعيد |

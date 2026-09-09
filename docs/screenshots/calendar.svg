@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="960" viewBox="0 0 480 960">
+  <!-- CRIM-SYS 2026 — تقويم الجلسات (placeholder) -->
+  <defs>
+    <filter id="clay" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#8a6f5c" flood-opacity="0.28"/>
+    </filter>
+    <filter id="claySm" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#8a6f5c" flood-opacity="0.25"/>
+    </filter>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F7F1EA"/>
+      <stop offset="1" stop-color="#EFE6DC"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="480" height="960" rx="36" fill="url(#bg)"/>
+
+  <!-- Top bar -->
+  <rect x="24" y="24" width="432" height="72" rx="24" fill="#FDF9F4" filter="url(#claySm)"/>
+  <text x="432" y="66" font-family="sans-serif" font-size="19" font-weight="700" text-anchor="end" fill="#4A3728" direction="rtl">تقويم الجلسات</text>
+  <text x="48" y="65" font-family="sans-serif" font-size="13" text-anchor="start" fill="#B08968" direction="rtl">سبتمبر ٢٠٢٦</text>
+
+  <!-- Month grid -->
+  <g filter="url(#clay)">
+    <rect x="24" y="116" width="432" height="380" rx="24" fill="#FDF9F4"/>
+
+    <!-- weekday headers, RTL: الأحد on the right -->
+    <text x="420" y="152" font-size="11" font-family="sans-serif" text-anchor="middle" fill="#B08968" direction="rtl">أحد</text>
+    <text x="352" y="152" font-size="11" font-family="sans-serif" text-anchor="middle" fill="#B08968" direction="rtl">اثنين</text>
+    <text x="284" y="152" font-size="11" font-family="sans-serif" text-anchor="middle" fill="#B08968" direction="rtl">ثلاثاء</text>
+    <text x="216" y="152" font-size="11" font-family="sans-serif" text-anchor="middle" fill="#B08968" direction="rtl">أربعاء</text>
+    <text x="148" y="152" font-size="11" font-family="sans-serif" text-anchor="middle" fill="#B08968" direction="rtl">خميس</text>
+    <text x="80"  y="152" font-size="11" font-family="sans-serif" text-anchor="middle" fill="#B08968" direction="rtl">جمعة</text>
+    <text x="44"  y="152" font-size="11" font-family="sans-serif" text-anchor="middle" fill="#B08968" direction="rtl">سبت</text>
+
+    <!-- selected day (14) with session -->
+    <rect x="396" y="220" width="48" height="48" rx="16" fill="#4A3728"/>
+    <text x="420" y="250" font-size="15" font-weight="700" font-family="sans-serif" text-anchor="middle" fill="#FDF9F4">١٤</text>
+    <circle cx="420" cy="260" r="3.5" fill="#C0392B"/>
+
+    <!-- other days -->
+    <text x="352" y="250" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">١٥</text>
+    <circle cx="352" cy="260" r="3.5" fill="#F1C40F"/>
+    <text x="284" y="250" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">١٦</text>
+    <text x="216" y="250" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">١٧</text>
+    <text x="148" y="250" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">١٨</text>
+    <text x="80"  y="250" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#C9AE93">١٩</text>
+
+    <text x="420" y="310" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">٢١</text>
+    <text x="352" y="310" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">٢٢</text>
+    <circle cx="352" cy="320" r="3.5" fill="#27AE60"/>
+    <text x="284" y="310" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">٢٣</text>
+    <circle cx="284" cy="320" r="3.5" fill="#C0392B"/>
+    <text x="216" y="310" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">٢٤</text>
+    <text x="148" y="310" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">٢٥</text>
+    <text x="80"  y="310" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#C9AE93">٢٦</text>
+
+    <text x="420" y="370" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">٢٨</text>
+    <text x="352" y="370" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">٢٩</text>
+    <text x="284" y="370" font-size="15" font-family="sans-serif" text-anchor="middle" fill="#4A3728">٣٠</text>
+
+    <text x="240" y="452" font-size="12" font-family="sans-serif" text-anchor="middle" fill="#8A6F5C" direction="rtl">نقطة حمراء = جلسة قريبة ≤ ٣ أيام</text>
+  </g>
+
+  <!-- Day sessions -->
+  <g filter="url(#clay)">
+    <rect x="24" y="520" width="432" height="150" rx="24" fill="#EAF4EE"/>
+    <text x="432" y="556" font-size="15" font-weight="700" font-family="sans-serif" text-anchor="end" fill="#2F4A3C" direction="rtl">جلسات الاثنين ١٤ سبتمبر</text>
+
+    <circle cx="416" cy="592" r="6" fill="#C0392B"/>
+    <text x="398" y="598" font-size="14" font-weight="600" font-family="sans-serif" text-anchor="end" fill="#4A3728" direction="rtl">٩:٠٠ — محكمة جنوب القاهرة، دائرة ١٧ جنايات</text>
+    <text x="398" y="622" font-size="12" font-family="sans-serif" text-anchor="end" fill="#5F7A6C" direction="rtl">ج‌ج ٢٠٢٦/٨٨ — دفاع مستأنَف</text>
+
+    <circle cx="416" cy="648" r="6" fill="#C0392B"/>
+    <text x="398" y="654" font-size="14" font-weight="600" font-family="sans-serif" text-anchor="end" fill="#4A3728" direction="rtl">١١:٣٠ — نيابة قسم أول، تحقيقات</text>
+    <text x="398" y="678" font-size="12" font-family="sans-serif" text-anchor="end" fill="#5F7A6C" direction="rtl">ج‌ح ٢٠٢٦/١٤٧ — إيداع مذكرة</text>
+  </g>
+
+  <!-- Reminder card -->
+  <g filter="url(#clay)">
+    <rect x="24" y="694" width="432" height="96" rx="24" fill="#F9E9E6"/>
+    <text x="432" y="732" font-size="14" font-weight="700" font-family="sans-serif" text-anchor="end" fill="#8A4636" direction="rtl">⏰ تنبيه الموعد النهائي</text>
+    <text x="432" y="762" font-size="13" font-family="sans-serif" text-anchor="end" fill="#A06A5E" direction="rtl">الطعن بالاستئناف — باقي يومان (الحد ١٦ سبتمبر)</text>
+  </g>
+
+  <text x="240" y="880" font-size="12" font-family="sans-serif" text-anchor="middle" fill="#B08968" direction="rtl">نتائج تقديرية — تُراجع مع المحامي المختص</text>
+  <text x="240" y="920" font-size="11" font-family="sans-serif" text-anchor="middle" fill="#C9AE93">لقطة توضيحية — تُستبدل بلقطة فعلية عند الإطلاق التجريبي المغلق</text>
+</svg>
