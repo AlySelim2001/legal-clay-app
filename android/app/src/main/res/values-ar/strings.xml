@@ -65,4 +65,25 @@
 
     <string name="placeholder_under_construction">هذه الشاشة قيد الإنشاء</string>
     <string name="placeholder_hint">البنية جاهزة — املأها من طبقة العرض</string>
+
+    <string name="nav_about">حول التطبيق</string>
+    <string name="about_version">الإصدار %1$s</string>
+    <string name="about_updates_title">التحديثات</string>
+    <string name="about_updates_hint">يتحقق التطبيق من إصدارات GitHub لهذا المشروع للعثور على نسخ موقّعة أحدث. بلا حسابات وبلا تتبع — طلب قراءة واحد فقط.</string>
+    <string name="about_update_check">التحقق من التحديثات</string>
+    <string name="about_update_latest">أنت تستخدم أحدث إصدار منشور</string>
+    <string name="about_update_available">يتوفر إصدار جديد: %1$s</string>
+    <string name="about_update_download">فتح صفحة الإصدار</string>
+    <string name="about_update_install_hint">نزّل ملف APK من صفحة الإصدار ثم افتحه للتثبيت. سيطلب أندرويد مرة واحدة السماح بالتثبيت من المتصفح.</string>
+    <string name="about_update_failed">تعذر الوصول إلى GitHub — تحقق من الاتصال وحاول مجدداً</string>
+    <string name="about_disclaimer_title">إخلاء المسؤولية القانوني</string>
+    <string name="about_disclaimer_intro">‏CRIM-SYS 2026 أداة تنظيمية مساعدة للعمل القانوني. لا يقدّم استشارة قانونية ولا يُغني عن مراجعة المحامي المسؤول.</string>
+    <string name="about_disclaimer_liability">جميع حسابات المواعيد النهائية ومدد الطعن وتواريخ الجلسات المعروضة تقديرية. المطوّر غير مسؤول عن أي ضياع موعد أو قضية ناتج عن الاعتماد على الحسابات التلقائية أو انقطاع الشبكة. تحقق دائماً من القنوات الرسمية.</string>
+    <string name="about_disclaimer_verification">القاعدة الذهبية: قبل اتخاذ أي إجراء إجرائي، تحقق من كل تاريخ من المصادر الرسمية ومن المحامي المسؤول عن القضية.</string>
+    <string name="about_disclaimer_privacy_title">الخصوصية — لا نجمع شيئاً</string>
+    <string name="about_disclaimer_privacy_body">جميع بيانات القضايا تُخزَّن على هذا الجهاز فقط، داخل قاعدة بيانات مشفّرة بـ SQLCipher. مفتاح التشفير يُولَّد على الجهاز ويُحفظ ملفوفاً بمفتاح Android Keystore — لا يترك جهازك أبداً. النسخ الاحتياطي السحابي لقاعدة البيانات مستثنى. المزامنة السحابية اختيارية ومطفأة افتراضياً.</string>
+    <string name="about_disclaimer_updates">يرسل فاحص التحديثات طلب قراءة واحداً إلى GitHub Releases، ولا يرسل أي بيانات عن المستخدم.</string>
+    <string name="about_links_repository">مستودع المشروع: github.com/AlySelim2001/legal-clay-app</string>
+    <string name="about_links_disclaimer">النص الكامل: ملف DISCLAIMER.md في المستودع</string>
+    <string name="about_links_contact">الدعم: واتساب 01119886662</string>
 </resources>

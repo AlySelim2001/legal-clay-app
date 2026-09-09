@@ -24,5 +24,11 @@
         <domain includeSubdomains="true">crashlytics.com</domain>
         <domain includeSubdomains="true">gvt1.com</domain>
         <domain includeSubdomains="true">android.clients.google.com</domain>
+        <!-- In-app update checker (UpdateChecker.kt) reads the repo's latest
+             release from the GitHub API. Read-only, no user data sent. -->
+        <domain includeSubdomains="false">api.github.com</domain>
+        <!-- Deep-link target of the update flow (release page + APK download). -->
+        <domain includeSubdomains="false">github.com</domain>
+        <domain includeSubdomains="true">objects.githubusercontent.com</domain>
     </domain-config>
 </network-security-config>

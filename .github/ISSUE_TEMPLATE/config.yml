@@ -1,0 +1,15 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Security Vulnerability / ثغرة أمنية
+    url: https://github.com/AlySelim2001/legal-clay-app/security/advisories/new
+    about: |
+      لا تفتح Issue عاماً للثغرات — استخدم الإبلاغ الخاص.
+      Do NOT open a public issue for security vulnerabilities — use private reporting.
+  - name: 📱 دعم المحامين (واتساب) / Lawyer support (WhatsApp)
+    url: https://wa.me/201119886662
+    about: |
+      استفسارات الاستخدام للمكاتب القانونية — ليس للإبلاغ عن الأخطاء التقنية.
+      Usage questions for legal practices — not for technical bug reports.
+  - name: 💬 نقاشات المجتمع / Community discussions
+    url: https://github.com/AlySelim2001/legal-clay-app/discussions
+    about: أسئلة عامة وأفكار مفتوحة / general questions and open ideas.

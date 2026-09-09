@@ -1,264 +1,147 @@
-# 🏗️ LAW-SYS 2026 — Build Guide
+# 🏗️ CRIM-SYS 2026 — Build Guide
 
-> دليل البناء والتصدير المحلي لنظام إدارة القضايا LAW-SYS 2026
+> دليل البناء لنظام إدارة القضايا CRIM-SYS 2026 — تطبيق ويب مرجعي + وحدة أندرويد أصلية.
+
+The repo has **two buildable surfaces**:
+
+| Surface | Location | Toolchain |
+|---|---|---|
+| **Native Android app** (production target) | `android/` | JDK 17, Android SDK 35, Gradle 8.9 (wrapper) |
+| **Web reference app** | repo root | Bun ≥ 1.1, Vite 7, TypeScript |
 
 ---
 
 ## Prerequisites (المتطلبات الأساسية)
 
-| Tool | Version | Install |
-|------|---------|---------|
-| **Bun** | ≥ 1.1 | `curl -fsSL https://bun.sh/install \| bash` |
-| **Node.js** | ≥ 18 | Ships with Bun |
-| **Java JDK** | 17 (OpenJDK) | `sudo apt install openjdk-17-jdk` or Android Studio |
-| **Android Studio** | Latest | [developer.android.com/studio](https://developer.android.com/studio) |
+| Tool | Version | Notes |
+|------|---------|-------|
+| **JDK** | 17 (Zulu/OpenJDK) | required by both AGP and Kotlin |
+| **Android SDK** | platform 35 | `sdkmanager "platforms;android-35"` — or Android Studio |
+| **Bun** | ≥ 1.1 | web reference app only — `curl -fsSL https://bun.sh/install \| bash` |
 
 ---
 
-## Quick Start (البداية السريعة)
+## Native Android App (الهدف الإنتاجي)
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/AlySelim2001/legal-clay-app.git
-cd legal-clay-app
-
-# 2. Install all dependencies
-bun install
-
-# 3. Run the development server
-bun run dev
-```
-
----
-
-## Web Production Build (بناء الويب للإنتاج)
-
-```bash
-# TypeScript type check
-bun tsc -b --noEmit
-
-# Lint check
-bun run lint
-
-# Production build → outputs to /dist
-bun run build
-
-# Preview production build locally
-bun run preview
-```
-
----
-
-## Android Build with Capacitor (بناء أندرويد مع كابوريتور)
-
-### First-Time Setup
-
-```bash
-# 1. Build the web assets
-bun run build
-
-# 2. Initialize the Android platform (only once)
-bunx cap add android
-
-# 3. Sync web build to Android native project
-bunx cap sync android
-```
-
-### Open in Android Studio
-
-```bash
-# Opens the android/ directory in Android Studio
-bun run cap:open
-```
-
-### Build APK from Command Line
-
-```bash
-# Grant Gradle wrapper execution rights
-chmod +x android/gradlew
-
-# Navigate to Android project
 cd android
+chmod +x gradlew
 
-# Build Debug APK
+# Debug APK — no signing setup needed
 ./gradlew assembleDebug
-# Output: android/app/build/outputs/apk/debug/app-debug.apk
+# → app/build/outputs/apk/debug/app-debug.apk
 
-# Build Release APK (requires signing configuration)
-./gradlew assembleRelease
-# Output: android/app/build/outputs/apk/release/app-release.apk
+# Lint gate
+./gradlew :app:lintDebug
 ```
 
-### One-Command Build
+The Gradle wrapper bootstraps Gradle 8.9 automatically on first run.
+`google-services.json` is **optional**: without it, Firestore sync degrades
+gracefully and the app runs fully offline.
+
+### Release build & signing (توقيع الإصدار)
+
+Signing reads `android/keystore.properties` (git-ignored — see
+`keystore.properties.example`). One-time setup:
 
 ```bash
-# Build web + sync + prepare for Android Studio
-bun run cap:sync
-
-# Full pipeline: add android + build + sync
-bun run android
+cd android
+keytool -genkeypair -v -keystore crimsys-release.jks -alias crimsys \
+  -keyalg RSA -keysize 2048 -validity 10000
+cp keystore.properties.example keystore.properties   # fill in the values
 ```
+
+Then build and verify:
+
+```bash
+./gradlew copyReleaseApk     # → app/build/distribution/CRIM-SYS-<ver>-<sha>.apk
+./gradlew copyReleaseBundle  # → AAB for Google Play
+
+# Verify the signature — must pass before shipping anything:
+BT="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)"
+"$BT/apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk
+```
+
+> Release builds run R8 minification + resource shrinking; the rules live in
+> `android/app/proguard-rules.pro` and every build emits a `mapping.txt` for
+> de-obfuscating crash traces. Pre-flight gates: `android/RELEASE_CHECKLIST.md`.
+
+### Automated releases (GitHub Releases)
+
+Pushing a tag `v2026.X.Y` triggers
+[.github/workflows/android-release.yml](.github/workflows/android-release.yml):
+it verifies the tag matches `versionName`, builds the signed APK from CI
+secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`),
+verifies it with `apksigner`, and attaches it to a GitHub Release with SHA256
+checksums — the delivery channel for the closed beta
+([docs/LAUNCH_STRATEGY.md](docs/LAUNCH_STRATEGY.md)).
 
 ---
 
-## Release Signing (توقيع الإصدار الرسمي)
+## Web Reference App (المرجع التجريبي)
 
-To sign a release APK for production distribution:
+```bash
+bun install          # install dependencies
+bun run dev          # dev server
+bun tsc -b --noEmit  # type check
+bun run lint         # eslint
+bun run build        # production build → dist/
+bun run preview      # preview the production build
+```
 
-1. Generate a keystore (one-time):
-   ```bash
-   keytool -genkey -v -keystore crimsys-release.jks \
-     -keyalg RSA -keysize 2048 -validity 10000 \
-     -alias crimsys
-   ```
+Tests (Playwright):
 
-2. Add signing config to `android/app/build.gradle`:
-   ```gradle
-   android {
-       signingConfigs {
-           release {
-               storeFile file("crimsys-release.jks")
-               storePassword System.getenv("KEYSTORE_PASSWORD")
-               keyAlias "crimsys"
-               keyPassword System.getenv("KEY_PASSWORD")
-           }
-       }
-       buildTypes {
-           release {
-               signingConfig signingConfigs.release
-               minifyEnabled true
-               proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-           }
-       }
-   }
-   ```
-
-3. Build with credentials:
-   ```bash
-   cd android
-   KEYSTORE_PASSWORD=your_password KEY_PASSWORD=your_password ./gradlew assembleRelease
-   ```
+```bash
+bun run test         # headless run
+bun run test:ui      # interactive UI mode
+```
 
 ---
 
 ## CI/CD (GitHub Actions)
 
-This repository includes an automated CI/CD pipeline at `.github/workflows/android-build.yml`.
+| Workflow | Trigger | What it does |
+|---|---|---|
+| [android-build.yml](.github/workflows/android-build.yml) | push/PR to `main` | web QC (non-blocking) + native `assembleDebug` + debug-APK artifact |
+| [android-release.yml](.github/workflows/android-release.yml) | tag `v*` | signed release APK → GitHub Release + SHA256SUMS |
 
-**Triggers:**
-- Every push to `main` branch
-- Pull requests to `main`
-- Manual trigger via GitHub Actions UI
-
-**Pipeline:**
-1. **Quality Control** (non-blocking, `continue-on-error: true`):
-   - TypeScript type check
-   - ESLint lint check
-   - Vite build verification
-2. **Android APK Build** (always runs):
-   - `bun run build` → `dist/` verification
-   - `bunx cap sync android` → Gradle build
-   - APK artifact upload (30-day retention)
-3. **Build Summary** (always runs): GitHub Step Summary with status table
-
-**Access the latest APK:**
-1. Go to [GitHub Actions](https://github.com/AlySelim2001/legal-clay-app/actions)
-2. Click the latest successful workflow run
-3. Download `LAW-SYS-2026-Debug-APK` artifact
+Access the latest debug build: **Actions → CRIM-SYS 2026 — Android Build &
+Quality Control → latest run → `CRIM-SYS-2026-Debug-APK`**.
 
 ---
-
-## Available Scripts (السكريبتات المتاحة)
-
-| Script | Command | Description |
-|--------|---------|-------------|
-| `bun run dev` | Start dev server | Vite development server with HMR |
-| `bun run build` | Production build | Optimized build to `/dist` |
-| `bun run preview` | Preview build | Preview production build locally |
-| `bun run lint` | Lint check | ESLint check across all source files |
-| `bun run cap:sync` | Capacitor sync | Build + sync to Android |
-| `bun run cap:open` | Open Android Studio | Opens native Android project |
-| `bun run cap:run` | Build + run | Build, sync, and run on connected device |
-| `bun run android` | Full Android setup | Add platform + build + sync |
-
----
-
-## Local Build Fallback (بناء محلي احتياطي)
-
-إذا فشل GitHub Actions أو أردت البناء يدوياً:
-
-```bash
-# 1. Clean slate — wipe stale build artifacts
-rm -rf dist android/build android/app/build node_modules/.cache
-
-# 2. Fresh install
-cd /path/to/legal-clay-app
-bun install --frozen-lockfile
-
-# 3. Typecheck (non-blocking)
-bun tsc -b --noEmit
-
-# 4. Build web assets
-bun run build
-
-# 5. Sync to Capacitor (creates android/ if missing)
-npx cap sync android
-
-# 6. Grant Gradle execution rights
-chmod +x android/gradlew
-
-# 7. Build Debug APK
-cd android
-./gradlew assembleDebug --no-daemon --stacktrace
-
-# 8. APK output path:
-# android/app/build/outputs/apk/debug/app-debug.apk
-```
-
-> **ملاحظة:** تأكد من تثبيت JDK 17 وتعيين `JAVA_HOME` قبل تشغيل خطوة 7.
 
 ## Troubleshooting (حل المشكلات)
 
 | Issue | Solution |
 |-------|----------|
-| `supabaseUrl is required` | Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in your environment |
-| `JAVA_HOME not set` | Install JDK 17 and set `export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64` |
-| `gradlew: Permission denied` | Run `chmod +x android/gradlew` |
-| Build OOM (SIGKILL) | Increase Node memory: `export NODE_OPTIONS="--max-old-space-size=4096"` |
-| `bun install` fails | Delete `node_modules` and `bun.lockb`, then run `bun install` again |
-| Capacitor sync fails | Run `npx cap add android` first, then `npx cap sync android` |
-| `@capacitor/camera` not found | The Camera plugin is not installed. OCR uses `tesseract.js` (in-browser) |
+| `JAVA_HOME not set` / wrong JVM | `export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64` (JDK 17 exactly) |
+| `gradlew: Permission denied` | `chmod +x android/gradlew` |
+| `SDK location not found` | create `android/local.properties` with `sdk.dir=/path/to/android-sdk`, or set `ANDROID_HOME` |
+| Gradle OOM (SIGKILL) | `./gradlew -Dorg.gradle.jvmargs="-Xmx3g" assembleDebug` |
+| `UnsatisfiedLinkError: sqlcipher` | wrong ABI on the emulator/device — use an arm64 or x86_64 image |
+| Release unsigned / `apksigner` fails | `keystore.properties` missing or wrong values — see the signing section above |
+| `bun install` fails | delete `node_modules` + lockfile, reinstall |
 
 ---
 
 ## System Capabilities (قدرات النظام)
 
-- ✅ **Multi-Agent AI Legal Swarm** — 5 specialized Egyptian law agents + Colombo forensic agent
-- ✅ **Dynamic Deadline Calculator** — Criminal, civil, administrative, family, and labor deadlines
-- ✅ **OCR Document Scanner** — Arabic + English document recognition via Tesseract.js
-- ✅ **PDF Generation** — Court-formatted legal documents with Amiri Arabic font
-- ✅ **Excel Import/Export** — SheetJS integration for legacy workbook compatibility
-- ✅ **Offline-First Architecture** — IndexedDB + TanStack Query persistence
-- ✅ **FullCalendar Integration** — Arabic RTL court schedule management
-- ✅ **Entity Resolution Engine** — Duplicate case/client linkage across courts
-- ✅ **Cassation Court Precedent Research** — Searchable Egyptian judicial rulings database
-- ✅ **CapacitorJS Android** — Native mobile app with push notifications
-- ✅ **Dark Mode** — Full theme support with Arabic/English toggle
-- ✅ **Backup & Restore** — Complete data sovereignty with local JSON export/import
+- ✅ **Native Android, offline-first** — Room single source of truth + deferred sync queue
+- ✅ **SQLCipher encryption** — Keystore-wrapped key, backup-excluded
+- ✅ **Hearings calendar + rich-text Arabic memo editor** (Compose)
+- ✅ **In-app update checker** — GitHub Releases API, zero telemetry
+- ✅ **Production hardening** — R8, baseline profile, network security config
+- ✅ **Web reference app** — multi-agent legal swarm, Arabic OCR, PDF export, RTL calendar
 
 ---
 
 ## Legal Disclaimer (إخلاء المسؤولية)
 
-> ⚠️ هذا النظام أداة مساعدة لإدارة المعلومات القانونية فقط. لا يُغني عن استشارة المحامي المختص. جميع النتائج والحسابات تقديرية ويجب التحقق منها قبل اتخاذ أي إجراء قانوني.
+> ⚠️ هذا النظام أداة مساعدة لإدارة المعلومات القانونية فقط. لا يُغني عن استشارة المحامي المختص. جميع النتائج والحسابات تقديرية ويجب التحقق منها قبل اتخاذ أي إجراء قانوني. النص الكامل: [DISCLAIMER.md](DISCLAIMER.md).
 
 ---
 
-## Support (التواصل والدعم)
+## Support (الدعم)
 
 - 📱 **WhatsApp:** [01119886662](https://wa.me/201119886662)
 - 🔗 **Repository:** [github.com/AlySelim2001/legal-clay-app](https://github.com/AlySelim2001/legal-clay-app)
-
----
-
-*Built with ❤️ for the Egyptian legal community*

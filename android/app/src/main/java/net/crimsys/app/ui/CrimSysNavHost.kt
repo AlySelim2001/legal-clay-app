@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import net.crimsys.app.R
+import net.crimsys.app.ui.screens.about.AboutScreen
 import net.crimsys.app.ui.screens.calendar.HearingsCalendarScreen
 import net.crimsys.app.ui.screens.cases.CaseDetailScreen
 import net.crimsys.app.ui.screens.cases.CaseListScreen
@@ -81,5 +82,7 @@ fun CrimSysNavHost(navController: NavHostController, modifier: Modifier = Modifi
         composable(Routes.LEGAL_INTELLIGENCE) { PlaceholderScreen(titleRes = R.string.nav_legal_intelligence) }
         composable(Routes.ADMIN_TEAM) { PlaceholderScreen(titleRes = R.string.nav_admin_team) }
         composable(Routes.SETTINGS) { PlaceholderScreen(titleRes = R.string.nav_settings) }
+
+        composable(Routes.ABOUT) { AboutScreen() }
     }
 }

@@ -104,6 +104,7 @@ private val adminEntries =
     listOf(
         DrawerEntry(Routes.ADMIN_TEAM, R.string.nav_admin_team, Icons.Filled.Groups),
         DrawerEntry(Routes.SETTINGS, R.string.nav_settings, Icons.Filled.Settings),
+        DrawerEntry(Routes.ABOUT, R.string.nav_about, Icons.Filled.Info),
     )
 
 /** Central route table (single-activity Compose navigation). */
@@ -121,6 +122,7 @@ object Routes {
     const val LEGAL_INTELLIGENCE = "legal-intelligence"
     const val ADMIN_TEAM = "admin/team"
     const val SETTINGS = "settings"
+    const val ABOUT = "about"
     const val MEMO_EDITOR = "cases/{caseId}/memo"
 
     fun caseDetail(caseId: String) = "cases/$caseId"
@@ -214,6 +216,7 @@ private fun titleForRoute(route: String?): Int =
         Routes.LEGAL_INTELLIGENCE -> R.string.nav_legal_intelligence
         Routes.ADMIN_TEAM -> R.string.nav_admin_team
         Routes.SETTINGS -> R.string.nav_settings
+        Routes.ABOUT -> R.string.nav_about
         else -> R.string.app_name
     }
 

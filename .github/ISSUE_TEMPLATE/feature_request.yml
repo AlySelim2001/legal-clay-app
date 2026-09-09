@@ -1,0 +1,80 @@
+name: ✨ Feature Request / طلب ميزة
+description: اقترح تحسيناً أو ميزة جديدة — صِف مشكلة المحامي الفعلية، لا الحل فقط
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        <div dir="rtl">
+        أفضل الطلبات تصف **مشكلة في سير عمل المكتب القانوني** (تشتت الملفات، ضياع موعد، صعوبة متابعة أكثر من محكمة...) وليس فقط الحل المقترح.
+        الميزات التي تمس الحسابات القانونية تحتاج مصادر قانونية (رقم القانون/المادة/حكم نقض).
+        </div>
+
+        The best requests describe the **lawyer's workflow problem** first, then the solution.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Preliminary Checks / فحوص أولية
+      options:
+        - label: بحثت في القضايا الموجودة ولا يوجد تكرار (no duplicate)
+          required: true
+        - label: أفهم أن الميزات القانونية الحساسة تتطلب مراجعة قانونية قبل الدمج (legal-sensitive features need legal review)
+          required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Component / المكوّن
+      options:
+        - "Android app (native)"
+        - "Web reference app"
+        - "Sync & data layer"
+        - "Documentation"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The Problem / المشكلة
+      description: ما المشكلة في سير عمل المكتب التي تحلها هذه الميزة؟
+      placeholder: |
+        مثال: عند متابعة أكثر من 40 قضية في 6 محاكم، يضيع مني مواعيد إعلان
+        الطعن لأن التطبيق لا يذكّرني قبل موعد الجلسة بيومين و7 أيام.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution / الحل المقترح
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered / بدائل فُكرت فيها
+      description: How do you solve this today (paper, WhatsApp reminders, another app)?
+
+  - type: checkboxes
+    id: legal
+    attributes:
+      label: Legal Sensitivity / الحساسية القانونية
+      options:
+        - label: هذه الميزة تمس حسابات قانونية/مواعيد (يُشترط إدراج مصادر قانونية في الـ PR)
+        - label: هذه الميزة تنظيمية فقط (organizational only)
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority to Your Practice / الأهمية لممارستك
+      options:
+        - "🔥 حرجة — بدونها يضيع عمل فعلي (critical)"
+        - "🧡 مهمة — توفر وقتاً ملحوظاً (important)"
+        - "💚 لطيفة — تحسين جمالي/راحة (nice to have)"
+    validations:
+      required: true

@@ -67,4 +67,25 @@
 
     <string name="placeholder_under_construction">This screen is under construction</string>
     <string name="placeholder_hint">Architecture is in place — fill in from the presentation layer</string>
+
+    <string name="nav_about">About</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_updates_title">Updates</string>
+    <string name="about_updates_hint">The app checks this project\'s GitHub Releases for newer signed builds. No account, no tracking — a single read-only request.</string>
+    <string name="about_update_check">Check for updates</string>
+    <string name="about_update_latest">You are on the latest published release</string>
+    <string name="about_update_available">New release available: %1$s</string>
+    <string name="about_update_download">Open release page</string>
+    <string name="about_update_install_hint">Download the APK from the release page, then open it to install. Android will ask once to allow installs from your browser.</string>
+    <string name="about_update_failed">Could not reach GitHub — check your connection and try again</string>
+    <string name="about_disclaimer_title">Legal disclaimer</string>
+    <string name="about_disclaimer_intro">CRIM-SYS 2026 is an organizational aid for legal work. It does not provide legal advice and does not replace the responsible attorney\'s review.</string>
+    <string name="about_disclaimer_liability">All deadline calculations, appeal windows, and hearing dates shown in the app are estimates. The developer is not liable for any missed deadline or lost case resulting from reliance on automatic calculations or network outages. Always verify through official channels.</string>
+    <string name="about_disclaimer_verification">Golden rule: before taking any procedural action, verify every date against official sources and with the attorney responsible for the case.</string>
+    <string name="about_disclaimer_privacy_title">Privacy — we collect nothing</string>
+    <string name="about_disclaimer_privacy_body">All case data is stored only on this device, inside a SQLCipher-encrypted database. The encryption key is generated on the device and wrapped by the Android Keystore — it never leaves your device. Cloud backup of the database is excluded. Cloud sync is optional and off by default.</string>
+    <string name="about_disclaimer_updates">The update checker sends a single read-only request to GitHub Releases. It sends no user data.</string>
+    <string name="about_links_repository">Project repository: github.com/AlySelim2001/legal-clay-app</string>
+    <string name="about_links_disclaimer">Full disclaimer: DISCLAIMER.md in the repository</string>
+    <string name="about_links_contact">Support: WhatsApp 01119886662</string>
 </resources>

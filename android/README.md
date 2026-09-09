@@ -72,8 +72,19 @@ cd android
 
 ## Release signing
 
-See the root `BUILD_GUIDE.md` — generate `crimsys-release.jks` with keytool
-and wire `signingConfigs.release` in `app/build.gradle.kts` via env vars.
+Signing is wired through `android/keystore.properties` (git-ignored). One-time
+setup:
+
+```bash
+cd android
+keytool -genkeypair -v -keystore crimsys-release.jks -alias crimsys \
+  -keyalg RSA -keysize 2048 -validity 10000
+cp keystore.properties.example keystore.properties   # then fill in the values
+```
+
+`app/build.gradle.kts` picks it up automatically (guarded by `exists()`, so
+debug builds work without it). Verify the artifact with
+`apksigner verify --print-certs` and follow `RELEASE_CHECKLIST.md`.
 
 ## RTL / i18n notes
 

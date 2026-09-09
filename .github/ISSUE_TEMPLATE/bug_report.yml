@@ -1,0 +1,108 @@
+name: 🐛 Bug Report / الإبلاغ عن خطأ تقني
+description: تقرير عن خطأ وظيفي أو تعطل — لا يشمل أخطاء الحسابات القانونية (استخدم قالب Legal Compliance)
+title: "[Bug]: "
+labels: ["bug", "triage"]
+projects: []
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        <div dir="rtl">
+        شكراً لوقتك! أجوبة دقيقة = إصلاح أسرع. **ملاحظة:** إذا كان الخطأ في حساب موعد نهائي أو تاريخ جلسة أو إجراء قانوني، استخدم قالب **⚖️ Legal Compliance** بدلاً من هذا القالب.
+        </div>
+
+        Thanks for taking the time! Precise answers mean faster fixes.
+        **Note:** deadline-calculation / hearing-date / legal-procedure bugs belong in the **⚖️ Legal Compliance** template.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Preliminary Checks / فحوص أولية
+      options:
+        - label: بحثت في القضايا الموجودة ولا يوجد تكرار (I searched existing issues, no duplicate)
+          required: true
+        - label: الخطأ ليس في حساب قانوني/موعد نهائي (This is NOT a legal-calculation bug)
+          required: true
+        - label: أؤكد أنني لم أُدرج أي بيانات عملاء حقيقية (I confirm no real client data is included)
+          required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Component / المكوّن المتأثر
+      options:
+        - "Android app (native)"
+        - "Web reference app"
+        - "CI/CD & build"
+        - "Documentation"
+        - "Other / other"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: App Version / إصدار التطبيق
+      description: من إعدادات التطبيق أو اسم ملف الـ APK (e.g. 2026.1.0-debug)
+      placeholder: "2026.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: android
+    attributes:
+      label: Android Version / إصدار أندرويد
+      options:
+        - "Android 15 (API 35)"
+        - "Android 14 (API 34)"
+        - "Android 13 (API 33)"
+        - "Android 12 (API 31/32)"
+        - "Android 11 (API 30)"
+        - "Android 10 (API 29)"
+        - "Android 9 (API 28)"
+        - "Android 8 (API 26/27)"
+        - "غير متطبق (N/A — web)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce / خطوات إعادة الإنتاج
+      description: أقل عدد خطوات ممكن، مرقّمة
+      placeholder: |
+        1. افتح سجل القضايا
+        2. انقر على أي قضية
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior / السلوك المتوقع
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior / السلوك الفعلي
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / السجلات
+      description: |
+        `adb logcat | grep -i crimsys` — remove any case identifiers first!
+        احذف أي معرفات قضايا قبل الإرفاق.
+      render: shell
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional Context / سياق إضافي
+      description: Screenshots (بدون بيانات حقيقية), workarounds, etc.

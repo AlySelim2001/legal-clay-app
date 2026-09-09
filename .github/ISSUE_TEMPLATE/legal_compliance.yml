@@ -1,0 +1,101 @@
+name: ⚖️ Legal Compliance Report / تقرير امتثال قانوني
+description: ⚠️ أعلى أولوية — خطأ في حساب موعد نهائي، تاريخ جلسة، مدة طعن، أو إجراء قانوني
+title: "[Legal]: "
+labels: ["legal-sensitive", "triage", "P1"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        <div dir="rtl">
+        ## ⚠️ قالب حساس للغاية
+
+        هذا القالب مخصص للأخطاء التي قد تؤثر على **قضايا حقيقية**: حساب موعد نهائي خاطئ، مدة طعن غير صحيحة، تاريخ جلسة محسوب خطأً، أو مرجع قانوني منسوخ خطأً. تُعالج هذه التقارير **قبل أي شيء آخر**.
+        </div>
+
+        ## ⚠️ Highest-priority template
+
+        For errors that could affect **real cases**: wrong deadline math, incorrect
+        appeal windows, mis-computed hearing dates, or mis-quoted statute citations.
+        These reports are triaged **before anything else**.
+
+  - type: checkboxes
+    id: urgency
+    attributes:
+      label: Urgency Declaration / إقرار الاستعجال
+      options:
+        - label: "🚨 هناك قضية فعلية معرضة للخطر الآن (real case at risk now — comment to escalate)"
+        - label: خطأ مؤكد لكن دون خطر قضية مباشرة (confirmed error, no immediate case at risk)
+        - label: شكّ في صحة الحساب ويحتاج تحقق (suspected error needing verification)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Law Area / مجال القانون
+      options:
+        - "الإجراءات الجنائية (Criminal procedure)"
+        - "المدني / التجاري (Civil / Commercial)"
+        - "الأحوال الشخصية (Family / Personal status)"
+        - "الإداري (Administrative)"
+        - "العمل والتأمينات (Labor & insurance)"
+        - "أخرى (Other)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: computed
+    attributes:
+      label: What the App Computed / ما احتسبه التطبيق
+      placeholder: |
+        مثال: قضية بداية 15/1/2026 → حسب التطبيق موعد الطعن 13/2/2026
+    validations:
+      required: true
+
+  - type: textarea
+    id: correct
+    attributes:
+      label: What Should Be Correct / ما الصحيح
+      placeholder: |
+        المفروض: 14/2/2026 (لأن يوم 13 هو عطلة رسمية...)
+    validations:
+      required: true
+
+  - type: textarea
+    id: legal_basis
+    attributes:
+      label: Legal Basis / المرجع القانوني
+      description: |
+        أرقام القوانين والمواد وأحكام النقض ذات الصلة — بلا مرجع لا يوجد إصلاح.
+        Law number + article + (if applicable) Cassation ruling. No basis → no fix.
+      placeholder: |
+        - المادة 40 من قانون الإجراءات الجنائية 150/1950
+        - حكم نقض رقم X لسنة Y — الطعن (النقض)
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction Steps / خطوات إعادة الإنتاج
+      description: Exact inputs entered into the app (case dates, court, case type...)
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence / الإثبات
+      description: صورة حكم/قرار رسمي يثبت التاريخ الصحيح (احذف بيانات الأطراف!) — screenshot of an official ruling (redact parties!)
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: disclaimer_ack
+    attributes:
+      label: Acknowledgement / إقرار
+      options:
+        - label: أدرك أن مخرجات التطبيق استرشادية ويجب التحقق منها مع المحامي المختص (I understand app output is advisory)
+          required: true
+        - label: أؤكد عدم إرفاق بيانات أطراف حقيقية (I confirm no real party data attached)
+          required: true
