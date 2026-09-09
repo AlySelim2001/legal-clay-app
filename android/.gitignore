@@ -7,4 +7,9 @@
 /captures
 .externalNativeBuild
 .cxx
-local.properties
+
+# ── Secrets — NEVER commit ────────────────────────────────────────────────
+# Release keystore + signing credentials + any API keys.
+keystore.properties
+*.jks
+*.keystore

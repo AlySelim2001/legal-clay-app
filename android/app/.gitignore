@@ -1,2 +1,6 @@
 /build
 google-services.json
+
+# R8 mapping files are per-build secrets used to de-obfuscate crash traces.
+# Archive them somewhere safe per release — but never in git.
+/build/outputs/mapping/

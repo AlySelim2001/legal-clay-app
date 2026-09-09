@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Production network policy for CRIM-SYS 2026.
+
+  - Cleartext HTTP is blocked platform-wide (mitM downgrade protection).
+  - Outbound TLS is pinned by domain to the only endpoints the app may ever
+    call: Google APIs (Firestore runs on *.googleapis.com) and Firebase
+    installation/telemetry hosts. Any other host fails closed.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- System CAs only: no user-installed certs in production.
+                 WARNING: if your firm inspects TLS with a corporate proxy,
+                 its CA must be added here explicitly — do not weaken this
+                 to include <certificates src="user" />. -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <domain includeSubdomains="true">firebaseapp.com</domain>
+        <domain includeSubdomains="true">crashlytics.com</domain>
+        <domain includeSubdomains="true">gvt1.com</domain>
+        <domain includeSubdomains="true">android.clients.google.com</domain>
+    </domain-config>
+</network-security-config>

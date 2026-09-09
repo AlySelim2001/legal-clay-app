@@ -1,0 +1,60 @@
+# ============================================================================
+# CRIM-SYS 2026 — Baseline Profile (startup + hot paths)
+#
+# Compiled AOT at install time so first-run frames skip JIT. Targets the cold
+# start path: Application.onCreate → Hilt → AppCompat locales → SyncManager
+# boot → NavHost → CaseListScreen (start destination).
+#
+# Regenerate after significant UI changes with the baselineprofile Gradle
+# plugin + a device/emulator (macrobenchmark); the rules below are the
+# hand-maintained floor that ships in the meantime.
+# ============================================================================
+
+# Application bootstrap + Hilt entry points
+Lnet/crimsys/app/CrimSysApplication;
+Lnet/crimsys/app/CrimSysApplication$$ExternalSyntheticLambda*;
+Lnet/crimsys/app/Hilt_CrimSysApplication;
+Lnet/crimsys/app/di/AppModule;
+Lnet/crimsys/app/di/AppModule$$ExternalSyntheticLambda*;
+
+# Database open path (Hilt providers + SQLCipher factory)
+Lnet/crimsys/app/core/DatabasePassphraseProvider;
+Lnet/crimsys/app/data/local/CrimSysDatabase;
+Lnet/crimsys/app/data/local/CrimSysDatabase_Impl;
+Lnet/crimsys/app/data/local/CaseDao;
+Lnet/crimsys/app/data/local/CaseDao_DefaultImpls;
+Lnet/crimsys/app/data/local/CaseEntity;
+Lnet/crimsys/app/data/local/HearingDao;
+Lnet/crimsys/app/data/local/HearingDao_DefaultImpls;
+Lnet/crimsys/app/data/local/OfflineActionDao;
+
+# Sync loop
+Lnet/crimsys/app/data/sync/NetworkMonitor;
+Lnet/crimsys/app/data/sync/NetworkMonitor$special$$inlined$callbackFlow$1;
+Lnet/crimsys/app/data/sync/SyncManager;
+Lnet/crimsys/app/data/sync/SyncManager$drainQueue$1;
+Lnet/crimsys/app/data/remote/RemoteDataSource;
+Lnet/crimsys/app/data/remote/FirebaseAuthRemoteDataSource;
+
+# Repositories + use cases
+Lnet/crimsys/app/data/repository/CaseRepositoryImpl;
+Lnet/crimsys/app/domain/usecase/CreateCaseUseCase;
+Lnet/crimsys/app/domain/usecase/GetCasesUseCase;
+
+# First screen (start destination) + app scaffold
+Lnet/crimsys/app/ui/CrimSysApp;
+Lnet/crimsys/app/ui/CrimSysNavHost;
+Lnet/crimsys/app/ui/SyncStatusViewModel;
+Lnet/crimsys/app/ui/screens/cases/CaseListScreen;
+Lnet/crimsys/app/ui/screens/cases/CaseListViewModel;
+Lnet/crimsys/app/ui/screens/cases/CaseListScreen$*;
+Lnet/crimsys/app/ui/screens/cases/CaseListViewModel$*;
+Lnet/crimsys/app/ui/components/ClayComponents;
+Lnet/crimsys/app/ui/theme/Theme;
+
+# Compose runtime hot path (shipped with the profile installer)
+Landroidx/compose/runtime/ComposerImpl;
+Landroidx/compose/runtime/ComposerImpl$Compositions*;
+Landroidx/compose/runtime/snapshots/SnapshotKt;
+Landroidx/compose/animation/core/AnimatableKt;
+Landroidx/compose/ui/node/LayoutNode;

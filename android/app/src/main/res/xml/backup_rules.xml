@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  full-backup-content (pre-Android 12).
+  The SQLCipher database is encrypted with a key wrapped by THIS device's
+  Android Keystore: a cloud backup restored on another phone cannot be
+  decrypted (the Keystore key never leaves the TEE). Restoring a DB the app
+  cannot open would hard-crash on first data access, so it is excluded —
+  users re-sync from Firestore instead.
+-->
 <full-backup-content>
-    <!-- The Room DB is SQLCipher-encrypted; the key lives in the Keystore and is excluded. -->
     <exclude domain="database" path="crimsys.db" />
-    <exclude domain="sharedpref" path="crimsys_db_key_prefs.xml" />
+    <exclude domain="database" path="crimsys.db-wal" />
+    <exclude domain="database" path="crimsys.db-shm" />
+    <exclude domain="sharedpref" path="crimsys_security.xml" />
 </full-backup-content>
