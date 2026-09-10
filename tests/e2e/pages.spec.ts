@@ -8,7 +8,8 @@ test.describe("AI Agents Page", () => {
   });
 
   test("AI agents source has 5 specialized agents", async () => {
-    const response = await fetch("http://localhost:5173/src/pages/AIAgents.tsx");
+    // Agents were refactored into the shared swarm definitions
+    const response = await fetch("http://localhost:5173/src/lib/ai/agent-swarm.ts");
     const text = await response.text();
 
     expect(text).toContain("الإجراءات والجنايات");

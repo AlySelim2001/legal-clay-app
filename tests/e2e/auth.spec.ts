@@ -24,7 +24,9 @@ test.describe("Login & Authentication Flow", () => {
 
     // Submit button
     await expect(page.locator('button[type="submit"]')).toBeVisible();
-    await expect(page.locator("text=تسجيل الدخول")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "تسجيل الدخول" }),
+    ).toBeVisible();
   });
 
   test("login page has RTL layout", async ({ page }) => {
@@ -91,8 +93,8 @@ test.describe("Login & Authentication Flow", () => {
     const emailInput = page.locator('input[name="email"]');
     await expect(emailInput).toBeVisible();
 
-    // Guest login button
-    await expect(page.locator("text=Continue as Guest")).toBeVisible();
+    // Guest login button (Arabic-first UI)
+    await expect(page.locator("text=الدخول كزائر")).toBeVisible();
   });
 
   test("login page has decorative elements", async ({ page }) => {
