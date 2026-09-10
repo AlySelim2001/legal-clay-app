@@ -1,24 +1,8 @@
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
-
-import { useAuth } from "@/hooks/use-auth";
-import logo from "@/assets/logo.svg";
-import { ArrowRight, Loader2, Mail, UserX } from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { supabase } from "@/lib/supabase";
+import { Eye, EyeOff, Gavel, Loader2, UserRound } from "lucide-react";
 
 interface AuthProps {
   redirectAfterAuth?: string;
@@ -26,279 +10,224 @@ interface AuthProps {
 
 function resolveRedirectAfterAuth(
   returnTo: string | null,
-  fallback = "/dashboard",
+  fallback = "/app/dashboard",
 ) {
+  // Only allow same-app absolute paths (block open redirects like "//evil.com").
   if (returnTo?.startsWith("/") && !returnTo.startsWith("//")) {
     return returnTo;
   }
   return fallback;
 }
 
-function Auth({ redirectAfterAuth }: AuthProps = {}) {
-  const { isLoading: authLoading, isAuthenticated, signIn } = useAuth();
+/**
+ * /auth — the canonical sign-in gate. RequireAuth redirects unauthenticated
+ * users here with `?returnTo=…`, so successful auth must land them back on
+ * their intended destination, not the landing page.
+ *
+ * Uses the app's Supabase auth (SupabaseAuthProvider) — NOT Convex auth:
+ * no Convex provider is mounted, so Convex auth hooks crash at runtime.
+ */
+export default function AuthPage({ redirectAfterAuth }: AuthProps) {
+  const { isLoading: authLoading, isAuthenticated, signIn } = useSupabaseAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = resolveRedirectAfterAuth(
     searchParams.get("returnTo"),
     redirectAfterAuth,
   );
-  const [step, setStep] = useState<"signIn" | { email: string }>("signIn");
-  const [otp, setOtp] = useState("");
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Already signed in → go straight to the destination.
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      navigate(redirect);
+      navigate(redirect, { replace: true });
     }
   }, [authLoading, isAuthenticated, navigate, redirect]);
-  const handleEmailSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
-    try {
-      const formData = new FormData(event.currentTarget);
-      await signIn("email-otp", formData);
-      setStep({ email: formData.get("email") as string });
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Email sign-in error:", error);
+
+    const { error: signInError } = await signIn(email, password);
+
+    if (signInError) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to send verification code. Please try again.",
+        signInError.message.includes("Invalid login")
+          ? "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+          : signInError.message,
       );
       setIsLoading(false);
+      return;
     }
+
+    navigate(redirect, { replace: true });
   };
 
-  const handleOtpSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    try {
-      const formData = new FormData(event.currentTarget);
-      await signIn("email-otp", formData);
-
-      console.log("signed in");
-
-      navigate(redirect);
-    } catch (error) {
-      console.error("OTP verification error:", error);
-
-      setError("The verification code you entered is incorrect.");
-      setIsLoading(false);
-
-      setOtp("");
-    }
-  };
-
+  // Guest access: Supabase anonymous sign-in. The session arrives through
+  // SupabaseAuthProvider's onAuthStateChange, so protected routes open up
+  // immediately without any extra wiring.
   const handleGuestLogin = async () => {
     setIsLoading(true);
     setError(null);
-    try {
-      console.log("Attempting anonymous sign in...");
-      await signIn("anonymous");
-      console.log("Anonymous sign in successful");
-      navigate(redirect);
-    } catch (error) {
-      console.error("Guest login error:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
-      setError(`Failed to sign in as guest: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+    const { error: guestError } = await supabase.auth.signInAnonymously();
+
+    if (guestError) {
+      setError(
+        guestError.message.includes("anonymous")
+          ? "الدخول كزائر غير مُفعّل حالياً — يرجى تسجيل الدخول بحسابك"
+          : guestError.message,
+      );
       setIsLoading(false);
+      return;
     }
+
+    navigate(redirect, { replace: true });
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 font-arabic">
+      {/* Decorative blobs */}
+      <div className="absolute top-20 start-20 w-72 h-72 bg-clay-blue/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 end-20 w-72 h-72 bg-clay-rose/20 rounded-full blur-3xl" />
+      <div className="absolute top-1/2 start-1/3 w-48 h-48 bg-clay-teal/15 rounded-full blur-2xl" />
 
-      
-      {/* Auth Content */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="flex items-center justify-center h-full flex-col">
-        <Card className="min-w-[350px] pb-0 border shadow-md">
-          {step === "signIn" ? (
-            <>
-              <CardHeader className="text-center">
-              <div className="flex justify-center">
-                    <img
-                      src={logo}
-                      alt="Lock Icon"
-                      width={64}
-                      height={64}
-                      className="rounded-lg mb-4 mt-4 cursor-pointer"
-                      onClick={() => navigate("/")}
-                    />
-                  </div>
-                <CardTitle className="text-xl">Get Started</CardTitle>
-                <CardDescription>
-                  Enter your email to log in or sign up
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handleEmailSubmit}>
-                <CardContent>
-                  
-                  <div className="relative flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        name="email"
-                        placeholder="name@example.com"
-                        type="email"
-                        className="pl-9"
-                        disabled={isLoading}
-                        required
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      variant="outline"
-                      size="icon"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <ArrowRight className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                  {error && (
-                    <p className="mt-2 text-sm text-red-500">{error}</p>
-                  )}
-                  
-                  <div className="mt-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                          Or
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full mt-4"
-                      onClick={handleGuestLogin}
-                      disabled={isLoading}
-                    >
-                      <UserX className="mr-2 h-4 w-4" />
-                      Continue as Guest
-                    </Button>
-                  </div>
-                </CardContent>
-              </form>
-            </>
-          ) : (
-            <>
-              <CardHeader className="text-center mt-4">
-                <CardTitle>Check your email</CardTitle>
-                <CardDescription>
-                  We've sent a code to {step.email}
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handleOtpSubmit}>
-                <CardContent className="pb-4">
-                  <input type="hidden" name="email" value={step.email} />
-                  <input type="hidden" name="code" value={otp} />
+      <div className="relative w-full max-w-md">
+        {/* Logo card */}
+        <div className="text-center mb-8">
+          <div className="clay-card inline-flex items-center justify-center w-20 h-20 rounded-3xl mb-4">
+            <Gavel className="w-10 h-10 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">
+            CRIM-SYS 2026
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            نظام إدارة القضايا الجنائية
+          </p>
+        </div>
 
-                  <div className="flex justify-center">
-                    <InputOTP
-                      value={otp}
-                      onChange={setOtp}
-                      maxLength={6}
-                      disabled={isLoading}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && otp.length === 6 && !isLoading) {
-                          // Find the closest form and submit it
-                          const form = (e.target as HTMLElement).closest("form");
-                          if (form) {
-                            form.requestSubmit();
-                          }
-                        }
-                      }}
-                    >
-                      <InputOTPGroup>
-                        {Array.from({ length: 6 }).map((_, index) => (
-                          <InputOTPSlot key={index} index={index} />
-                        ))}
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </div>
-                  {error && (
-                    <p className="mt-2 text-sm text-red-500 text-center">
-                      {error}
-                    </p>
-                  )}
-                  <p className="text-sm text-muted-foreground text-center mt-4">
-                    Didn't receive a code?{" "}
-                    <Button
-                      variant="link"
-                      className="p-0 h-auto"
-                      onClick={() => setStep("signIn")}
-                    >
-                      Try again
-                    </Button>
-                  </p>
-                </CardContent>
-                <CardFooter className="flex-col gap-2">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isLoading || otp.length !== 6}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Verifying...
-                      </>
-                    ) : (
-                      <>
-                        Verify code
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setStep("signIn")}
-                    disabled={isLoading}
-                    className="w-full"
-                  >
-                    Use different email
-                  </Button>
-                </CardFooter>
-              </form>
-            </>
+        {/* Auth form */}
+        <div className="clay-card p-8">
+          <h2 className="text-lg font-bold text-foreground mb-1">
+            تسجيل الدخول
+          </h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            أدخل بياناتك للوصول إلى النظام
+          </p>
+
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-600 dark:text-red-400">
+              {error}
+            </div>
           )}
 
-          <div className="py-4 px-6 text-xs text-center text-muted-foreground bg-muted border-t rounded-b-lg">
-            Secured by{" "}
-            <a
-              href="https://freebuff.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-primary transition-colors"
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label
+                htmlFor="auth-email"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
+                البريد الإلكتروني
+              </label>
+              <input
+                id="auth-email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@crimsys.com"
+                className="clay-input w-full px-4 py-3 text-sm bg-background"
+                dir="ltr"
+                style={{ textAlign: "right" }}
+                required
+                disabled={isLoading}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="auth-password"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
+                كلمة المرور
+              </label>
+              <div className="relative">
+                <input
+                  id="auth-password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="clay-input w-full px-4 py-3 ps-10 pe-10 text-sm bg-background"
+                  dir="ltr"
+                  style={{ textAlign: "right" }}
+                  required
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="clay-button w-full py-3 bg-primary text-primary-foreground font-semibold text-sm rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
             >
-              freebuff.com
-            </a>
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  جاري تسجيل الدخول...
+                </>
+              ) : (
+                "تسجيل الدخول"
+              )}
+            </button>
+          </form>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border/60" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-background px-2 text-xs text-muted-foreground">
+                أو
+              </span>
+            </div>
           </div>
-        </Card>
+
+          <button
+            type="button"
+            onClick={handleGuestLogin}
+            disabled={isLoading}
+            className="w-full py-3 rounded-xl border border-border/60 bg-background/60 text-sm font-medium text-foreground hover:bg-muted/60 transition-colors flex items-center justify-center gap-2"
+          >
+            <UserRound className="w-4 h-4" />
+            الدخول كزائر
+          </button>
         </div>
+
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          © 2026 CRIM-SYS — جميع الحقوق محفوظة
+        </p>
       </div>
     </div>
-  );
-}
-
-export default function AuthPage(props: AuthProps) {
-  return (
-    <Suspense>
-      <Auth {...props} />
-    </Suspense>
   );
 }
