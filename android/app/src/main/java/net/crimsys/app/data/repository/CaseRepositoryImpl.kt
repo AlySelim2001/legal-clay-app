@@ -48,7 +48,7 @@ class CaseRepositoryImpl @Inject constructor(
         hearingDao.observeUpcoming(fromEpochDay)
 
     override fun getUpcomingHearingsForCase(caseId: String, fromEpochDay: Long): Flow<List<HearingEntity>> =
-        hearingDao.observeUpcomingForCase(caseId, fromEpochDay)
+        hearingDao.observeHearingsForCase(caseId, fromEpochDay)
 
     // --------------------------------------------------------------- writes
 

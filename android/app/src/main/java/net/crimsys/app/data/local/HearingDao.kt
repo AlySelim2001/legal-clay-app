@@ -25,13 +25,13 @@ interface HearingDao {
      * fetched every case's hearings and filtered with `.filter { it.caseId == id }`
      * on every emission — O(total hearings) per update, growing with the
      * practice's whole docket. This query does the same work in SQLite via
-     * the (caseId) index scan.
+     * the (caseId) index scan. Named to pair with [observeHearingsForDay].
      */
     @Query(
         "SELECT * FROM hearings WHERE caseId = :caseId AND epochDay >= :fromEpochDay " +
             "ORDER BY epochDay ASC, timeLabel ASC",
     )
-    fun observeUpcomingForCase(caseId: String, fromEpochDay: Long): Flow<List<HearingEntity>>
+    fun observeHearingsForCase(caseId: String, fromEpochDay: Long): Flow<List<HearingEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(hearing: HearingEntity)
