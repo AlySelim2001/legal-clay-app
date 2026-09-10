@@ -133,6 +133,14 @@ COMMENT ON FUNCTION public.compute_deadline(date, text)
 -- 4. classify_urgency — STABLE (was IMMUTABLE + CURRENT_DATE = planner lie)
 --    "Today" pinned to Africa/Cairo (was UTC CURRENT_DATE = 1-day error
 --    for the first hours of the Cairo day).
+--
+--    PUBLIC RPC CONTRACT — do NOT change without updating src/lib/deadline.ts:
+--      • parameter name MUST stay `target_date` (PostgREST resolves rpc()
+--        calls by named arguments — renaming breaks the web app).
+--      • return values MUST stay 'critical' | 'high' | 'normal' — the web
+--        layer's TypeScript union and the Tailwind urgency tokens
+--        (urgency-critical/high/normal) are built on exactly these strings.
+--      • thresholds are the product spec: ≤3 critical, ≤7 high.
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.classify_urgency(
   target_date date
