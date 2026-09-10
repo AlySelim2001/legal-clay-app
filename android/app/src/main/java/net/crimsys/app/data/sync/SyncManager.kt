@@ -118,9 +118,12 @@ class SyncManager @Inject constructor(
     }
 
     private suspend fun drainLoop() {
-        // R2 backstop: repair rows enqueued by the pre-UUID build (their
-        // actionUuid column is NULL after MIGRATION_1_2) before any push.
-        offlineActionDao.repairMissingUuids(UUID.randomUUID().toString())
+        // R2 backstop: legacy rows (pre-UUID build) carry the `''` sentinel
+        // after MIGRATION_1_2. Assign a DISTINCT uuid to each — a shared one
+        // would recreate the cross-device document collision R2 eliminates.
+        offlineActionDao.legacyKeyed().forEach { legacy ->
+            offlineActionDao.assignUuid(legacy.id, UUID.randomUUID().toString())
+        }
 
         while (true) {
             val next = offlineActionDao.pendingInOrder().firstOrNull() ?: break

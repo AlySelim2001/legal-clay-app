@@ -4,7 +4,6 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import java.util.UUID
 
 /**
  * Encrypted local database (SQLCipher via SupportFactory — see AppModule).
@@ -28,26 +27,22 @@ abstract class CrimSysDatabase : RoomDatabase() {
     companion object {
         /**
          * R2 remediation (v1 → v2), zero data loss:
-         *  - `ALTER TABLE ... ADD COLUMN actionUuid TEXT` — schema-only change;
-         *    existing rows (queued offline mutations) are preserved untouched.
-         *  - The column is nullable for legacy rows; those are backfilled with
-         *    fresh UUIDs by [OfflineActionDao.repairMissingUuids] at next drain.
-         *
-         * Room validates foreign keys and indices, not column nullability of
-         * added columns — this migration passes `validateMigrations` checks.
+         *  - `ALTER TABLE ... ADD COLUMN actionUuid TEXT NOT NULL DEFAULT ''`.
+         *    NOT NULL must match the Kotlin field type exactly — a nullable
+         *    column paired with the non-null entity field fails Room's schema
+         *    validation and crashes on first open after the upgrade. `''` is
+         *    the "legacy row" sentinel.
+         *  - Existing rows (queued offline mutations) are preserved untouched:
+         *    no table rebuild, no data loss. A DISTINCT uuid is assigned to
+         *    each legacy row before the next drain (see SyncManager's repair
+         *    loop + [OfflineActionDao.legacyKeyed]/[OfflineActionDao.assignUuid])
+         *    so two legacy rows can never share one Firestore document id.
          */
         val MIGRATION_1_2: Migration =
             object : Migration(1, 2) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     db.execSQL(
-                        "ALTER TABLE offline_actions ADD COLUMN actionUuid TEXT DEFAULT NULL",
-                    )
-                    // Backfill legacy rows immediately so the queue is fully
-                    // UUID-keyed before any push can observe a NULL key.
-                    db.execSQL(
-                        "UPDATE offline_actions SET actionUuid = '" +
-                            UUID.randomUUID().toString() +
-                            "' WHERE actionUuid IS NULL",
+                        "ALTER TABLE offline_actions ADD COLUMN actionUuid TEXT NOT NULL DEFAULT ''",
                     )
                 }
             }

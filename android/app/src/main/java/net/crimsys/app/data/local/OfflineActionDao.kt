@@ -26,10 +26,19 @@ interface OfflineActionDao {
     suspend fun deleteById(id: Long)
 
     /**
-     * One-time repair for rows enqueued by the pre-R2 build, whose
-     * `actionUuid` column is NULL after [net.crimsys.app.data.local.MIGRATION_1_2]
-     * runs. Called defensively by SyncManager before every drain.
+     * R2 repair: fetch legacy rows (pre-UUID build) that still carry the
+     * `''` sentinel after [CrimSysDatabase.MIGRATION_1_2]. Each row gets a
+     * DISTINCT UUID before any push — otherwise two legacy rows would share
+     * one Firestore document id and silently overwrite each other.
      */
-    @Query("UPDATE offline_actions SET actionUuid = :uuid WHERE actionUuid IS NULL")
-    suspend fun repairMissingUuids(uuid: String)
+    @Query("SELECT * FROM offline_actions WHERE actionUuid = '' ORDER BY id ASC")
+    suspend fun legacyKeyed(): List<OfflineActionEntity>
+
+    /**
+     * Assigns a fresh unique key to exactly one legacy row, scoped by [id]
+     * so a batch repair can never stamp the same UUID onto multiple rows
+     * (the original migration backfill bug).
+     */
+    @Query("UPDATE offline_actions SET actionUuid = :uuid WHERE id = :id AND actionUuid = ''")
+    suspend fun assignUuid(id: Long, uuid: String)
 }
