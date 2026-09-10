@@ -24,4 +24,12 @@ interface OfflineActionDao {
 
     @Query("DELETE FROM offline_actions WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    /**
+     * One-time repair for rows enqueued by the pre-R2 build, whose
+     * `actionUuid` column is NULL after [net.crimsys.app.data.local.MIGRATION_1_2]
+     * runs. Called defensively by SyncManager before every drain.
+     */
+    @Query("UPDATE offline_actions SET actionUuid = :uuid WHERE actionUuid IS NULL")
+    suspend fun repairMissingUuids(uuid: String)
 }

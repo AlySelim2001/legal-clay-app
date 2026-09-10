@@ -106,6 +106,7 @@ dependencies {
     // AndroidX core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.biometric)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -130,8 +131,10 @@ dependencies {
     // DataStore (app preferences)
     implementation(libs.androidx.datastore.preferences)
 
-    // Firestore (sync target; optional — offline-first degrades gracefully)
+    // Firestore + Auth (sync target; optional — offline-first degrades
+    // gracefully when google-services.json is missing).
     implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.coroutines.play.services)
 

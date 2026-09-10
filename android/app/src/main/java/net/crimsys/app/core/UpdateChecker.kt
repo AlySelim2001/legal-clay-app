@@ -1,5 +1,6 @@
 package net.crimsys.app.core
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -68,7 +69,7 @@ object UpdateChecker {
                 val htmlUrl = root["html_url"]?.jsonPrimitive?.content.orEmpty()
                 val name = root["name"]?.jsonPrimitive?.content ?: tagName
                 if (tagName.isBlank() || htmlUrl.isBlank()) {
-                    return@withContext Result.Error(AppError.Unknown)
+                    return@withContext Result.Error(AppError.Unknown())
                 }
 
                 // Compare "v2026.2.0" (tag) against "2026.1.0" (versionName).
@@ -79,8 +80,10 @@ object UpdateChecker {
                 }
             } catch (e: java.io.IOException) {
                 Result.Error(AppError.NetworkOffline)
+            } catch (ce: CancellationException) {
+                throw ce // R3: cancellation is control flow, not an error.
             } catch (t: Throwable) {
-                Result.Error(AppError.Unknown)
+                Result.Error(AppError.Unknown(t))
             }
         }
 

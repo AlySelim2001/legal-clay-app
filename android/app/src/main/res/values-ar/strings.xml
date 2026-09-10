@@ -24,6 +24,18 @@
     <string name="action_notifications">التنبيهات</string>
     <string name="action_profile">الملف الشخصي</string>
 
+    <!-- قفل التطبيق (R1) -->
+    <string name="lock_title">النظام مقفل</string>
+    <string name="lock_subtitle">افتح القفل ببصمتك أو ببيانات قفل الجهاز لعرض ملفات القضايا</string>
+    <string name="lock_prompt_title">فتح قفل نظام القضايا 2026</string>
+    <string name="lock_prompt_subtitle">بيانات القضايا محمية على هذا الجهاز</string>
+    <string name="lock_unlock">فتح القفل</string>
+    <string name="lock_no_authenticator">لا يوجد قفل شاشة أو بصمة على هذا الجهاز. حمايةً لسرّ عملائك، تظل بيانات القضايا مخفية حتى تؤمّن جهازك.</string>
+    <string name="lock_enroll_action">تأمين الجهاز الآن</string>
+    <string name="lock_failed">تجاوزت عدد المحاولات المسموح — البصمة مقفلة مؤقتاً. أعد المحاولة بعد قليل.</string>
+    <string name="lock_retry">إعادة المحاولة</string>
+    <string name="lock_icon_cd">التطبيق مقفل</string>
+
     <string name="sync_synced">تمت المزامنة</string>
     <string name="sync_pending">بانتظار المزامنة (%1$d)</string>
     <string name="sync_offline">غير متصل — ستستأنف الرفعات تلقائياً</string>

@@ -84,10 +84,10 @@ class CaseRepositoryImpl @Inject constructor(
                     ),
                 )
 
-                // 3) If online, attempt an immediate drain; else SyncManager will
-                //    pick it up on the next connectivity event.
+                // 3) If online, request an immediate drain without blocking this
+                //    write; SyncManager serializes it after any running drain.
                 if (networkMonitor.isOnline.value) {
-                    syncManager.drainQueue()
+                    syncManager.requestDrain()
                 }
             }
         }
@@ -108,7 +108,7 @@ class CaseRepositoryImpl @Inject constructor(
                     ),
                 )
                 if (networkMonitor.isOnline.value) {
-                    syncManager.drainQueue()
+                    syncManager.requestDrain()
                 }
             }
         }

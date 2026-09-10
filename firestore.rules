@@ -1,0 +1,59 @@
+rules_version = '2';
+
+// CRIM-SYS 2026 — Firestore security rules (deployed with the Firebase CLI).
+//
+// Threat model: the APK is distributed directly to lawyers (closed beta +
+// direct distribution), so the embedded google-services.json is effectively
+// PUBLIC. These rules therefore assume every client is hostile and enforce:
+//
+//  1. Authentication is mandatory — no request.auth means no access (R1).
+//  2. Owners may only read their own documents (per-lawyer data isolation).
+//  3. Writes must carry `ownerUid == request.auth.uid` and a payload, so a
+//     hostile client cannot forge rows into another lawyer's namespace.
+//  4. Documents are immutable once accepted (queue semantics: the client
+//     deletes its local row after push; server-side processing retires
+//     documents — clients never overwrite a pushed action, which also
+//     structurally prevents the R2 overwrite-style collisions).
+//
+// Collections:
+//   crimsys/{actionType}/items/{actionUuid}
+//     actionType: CREATE_CASE | UPDATE_MEMO | CREATE_HEARING
+//     actionUuid: device-independent UUID (R2) — unguessable document id.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Marker document for the offline action queue.
+    function isActionDoc() {
+      return request.path.matches('.*/crimsys/[^/]+/items/[^/]+');
+    }
+
+    // Payload-bearing, self-owned create (only operation clients may perform).
+    function validActionWrite() {
+      return request.resource.data.keys().hasAll(['type', 'payload', 'clientCreatedAt', 'ownerUid'])
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.type is string
+          && request.resource.data.type.size() > 0
+          && request.resource.data.type.size() <= 64
+          && request.resource.data.payload is string
+          && request.resource.data.payload.size() <= 1_000_000  // ~1 MB guard
+          && request.resource.data.clientCreatedAt is number;
+    }
+
+    // Default deny for everything not matched below.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Offline action queue: create-only, self-owned, immutable.
+    match /crimsys/{actionType}/items/{actionUuid} {
+      allow create: if request.auth != null && validActionWrite();
+      // Clients may retire ONLY their own processed actions (uid-scoped).
+      allow delete: if request.auth != null
+                    && resource.data.ownerUid == request.auth.uid;
+      // No update, no cross-owner read. Reads happen server-side (Admin SDK
+      // bypasses rules) or via a future per-owner query surface.
+      allow read, update: if false;
+    }
+  }
+}

@@ -26,6 +26,18 @@
     <string name="action_notifications">Notifications</string>
     <string name="action_profile">Profile</string>
 
+    <!-- App lock (R1) -->
+    <string name="lock_title">CRIM-SYS is locked</string>
+    <string name="lock_subtitle">Unlock with your fingerprint or device credentials to view case files</string>
+    <string name="lock_prompt_title">Unlock CRIM-SYS 2026</string>
+    <string name="lock_prompt_subtitle">Case data is protected on this device</string>
+    <string name="lock_unlock">Unlock</string>
+    <string name="lock_no_authenticator">No screen lock or fingerprint is set up. For your clients\' protection, case data stays hidden until you secure this device.</string>
+    <string name="lock_enroll_action">Secure this device</string>
+    <string name="lock_failed">Too many failed attempts — biometrics are temporarily locked. Try again shortly.</string>
+    <string name="lock_retry">Try again</string>
+    <string name="lock_icon_cd">App locked</string>
+
     <string name="sync_synced">Synced</string>
     <string name="sync_pending">Pending sync (%1$d)</string>
     <string name="sync_offline">Offline — uploads resume automatically</string>

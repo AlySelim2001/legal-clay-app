@@ -64,9 +64,9 @@ class HearingRepositoryImpl @Inject constructor(
                     ),
                 )
 
-                // 3) Opportunistic immediate drain; SyncManager owns the rest.
+                // 3) Opportunistic immediate drain request; SyncManager owns the rest.
                 if (networkMonitor.isOnline.value) {
-                    syncManager.drainQueue()
+                    syncManager.requestDrain()
                 }
             }
         }

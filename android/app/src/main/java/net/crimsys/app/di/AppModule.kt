@@ -12,6 +12,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import net.crimsys.app.core.DatabasePassphraseProvider
+import net.crimsys.app.data.auth.AuthRepository
+import net.crimsys.app.data.auth.FirebaseAuthHolder
+import net.crimsys.app.data.auth.FirebaseAuthRepository
 import net.crimsys.app.data.local.CrimSysDatabase
 import net.crimsys.app.data.local.CaseDao
 import net.crimsys.app.data.local.HearingDao
@@ -38,6 +41,14 @@ object AppModule {
      * generated on first launch and stored in the Android Keystore — the
      * database file itself is useless if pulled off the device.
      *
+     * R4 remediation: `fallbackToDestructiveMigration` is GONE, permanently.
+     * This database holds the only local copy of the practice's case files and
+     * is excluded from cloud backup by design — wiping it on a forgotten
+     * migration would be irreversible data loss. Schema evolution goes
+     * exclusively through explicit `CrimSysDatabase.MIGRATION_x_y` objects.
+     * If a future schema change ships without a migration, the app fails
+     * loudly at open time (IllegalStateException) instead of destroying data.
+     *
      * Failure handling: if the native `sqlcipher` .so is missing for the current
      * ABI, [System.loadLibrary] throws [UnsatisfiedLinkError] at first DB
      * injection — a loud, early failure beats a silently corrupted store.
@@ -60,7 +71,7 @@ object AppModule {
             )
         return Room.databaseBuilder(context, CrimSysDatabase::class.java, "crimsys.db")
             .openHelperFactory(factory)
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .addMigrations(CrimSysDatabase.MIGRATION_1_2)
             .build()
     }
 
@@ -83,14 +94,28 @@ object AppModule {
         )
 
     /**
+     * Firebase Auth singleton holder. Lazily resolves the SDK instance on
+     * first use; when google-services.json is absent (offline-only installs)
+     * every auth call degrades to [net.crimsys.app.data.auth.AuthStatus.Unavailable].
+     */
+    @Provides
+    @Singleton
+    fun provideFirebaseAuthHolder(): FirebaseAuthHolder = FirebaseAuthHolder()
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(impl: FirebaseAuthRepository): AuthRepository = impl
+
+    /**
      * Remote data source behind an interface so unit tests can swap in a fake
-     * (the Firebase SDK itself is never needed on the JVM).
+     * (the Firebase SDK itself is never needed on the JVM). R1: every push is
+     * authenticated — the source of the uid is [AuthRepository].
      */
     @Provides
     @Singleton
     fun provideRemoteDataSource(
-        @ApplicationContext context: Context,
-    ): RemoteDataSource = FirebaseAuthRemoteDataSource(context)
+        authRepository: AuthRepository,
+    ): RemoteDataSource = FirebaseAuthRemoteDataSource(authRepository)
 
     @Provides
     @Singleton
