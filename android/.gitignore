@@ -13,3 +13,5 @@
 keystore.properties
 *.jks
 *.keystore
+# Firebase config contains identifiers + API keys — provision per-build, never commit.
+google-services.json

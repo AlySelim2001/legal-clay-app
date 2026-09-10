@@ -10,6 +10,16 @@
 # hand-maintained floor that ships in the meantime.
 # ============================================================================
 
+# Activity + lock gate: the ACTUAL first frame is LockScreen (biometric),
+# not the case list — the profile must cover both paths.
+Lnet/crimsys/app/MainActivity;
+Lnet/crimsys/app/MainActivity$$ExternalSyntheticLambda*;
+Lnet/crimsys/app/core/BiometricAuthManager;
+Lnet/crimsys/app/ui/screens/lock/LockScreen;
+Lnet/crimsys/app/ui/screens/lock/LockScreen$*;
+Lnet/crimsys/app/ui/screens/lock/LockViewModel;
+Lnet/crimsys/app/ui/screens/lock/LockViewModel$*;
+
 # Application bootstrap + Hilt entry points
 Lnet/crimsys/app/CrimSysApplication;
 Lnet/crimsys/app/CrimSysApplication$$ExternalSyntheticLambda*;
@@ -32,7 +42,7 @@ Lnet/crimsys/app/data/local/OfflineActionDao;
 Lnet/crimsys/app/data/sync/NetworkMonitor;
 Lnet/crimsys/app/data/sync/NetworkMonitor$special$$inlined$callbackFlow$1;
 Lnet/crimsys/app/data/sync/SyncManager;
-Lnet/crimsys/app/data/sync/SyncManager$drainQueue$1;
+Lnet/crimsys/app/data/sync/SyncManager$*;
 Lnet/crimsys/app/data/remote/RemoteDataSource;
 Lnet/crimsys/app/data/remote/FirebaseAuthRemoteDataSource;
 

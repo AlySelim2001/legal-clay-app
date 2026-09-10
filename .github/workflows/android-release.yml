@@ -1,16 +1,20 @@
-name: CRIM-SYS 2026 — Release (signed APK)
+name: CRIM-SYS 2026 — Release (signed APK + AAB)
 
 # Tag-driven release: push a tag like `v2026.1.0` and this workflow builds,
-# signature-verifies, and attaches the release APK + SHA256SUMS to a GitHub
-# Release — the delivery channel for the closed beta (see docs/LAUNCH_STRATEGY.md).
+# signature-verifies, and attaches the release APK, AAB, SHA256SUMS, and the
+# ProGuard mapping.txt to a GitHub Release — the delivery channel for the
+# closed beta (see docs/LAUNCH_STRATEGY.md).
 #
-# Optional secrets (release is signed only when they are set):
+# The workflow can also be run manually (workflow_dispatch) from any branch;
+# in that mode it only uploads build artifacts — no GitHub Release is created.
+#
+# Required secrets (build deliberately FAILS the signature check without them,
+# because an unsigned APK can install nowhere and must never reach users):
 #   KEYSTORE_BASE64     — base64 of crimsys-release.jks
 #   KEYSTORE_PASSWORD   — keystore password
 #   KEY_ALIAS           — key alias
 #   KEY_PASSWORD        — key password
-# Without them the build intentionally FAILS after assembling, because an
-# unsigned APK cannot be installed and must never reach users.
+# Generate the base64 locally with:  base64 -w0 android/crimsys-release.jks
 
 on:
   push:
@@ -39,7 +43,8 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           cache: "gradle"
 
-      - name: Verify tag matches versionName
+      - name: Verify tag matches versionName (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           VERSION=$(grep -oP 'versionName = "\K[^"]+' android/app/build.gradle.kts | head -1)
           TAG="${GITHUB_REF_NAME#v}"
@@ -50,7 +55,7 @@ jobs:
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - name: Restore signing keystore (optional secrets)
+      - name: Restore signing keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -70,20 +75,24 @@ jobs:
             echo "::warning::KEYSTORE_BASE64 secret not set — build will fail signature verification by design"
           fi
 
-      - name: Build Release APK
+      - name: Build Release APK + AAB
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease \
+          ./gradlew assembleRelease bundleRelease \
             --no-daemon \
             --stacktrace \
             -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8"
         timeout-minutes: 30
 
-      - name: Verify signature (must be signed)
+      - name: Verify signatures (APK + AAB must be signed)
         run: |
           APK="android/app/build/outputs/apk/release/app-release.apk"
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
+          MAPPING="android/app/build/outputs/mapping/release/mapping.txt"
           [ -f "$APK" ] || { echo "::error::$APK missing"; exit 1; }
+          [ -f "$AAB" ] || { echo "::error::$AAB missing"; exit 1; }
+          [ -s "$MAPPING" ] || { echo "::error::$MAPPING missing or empty — R8 must have run (isMinifyEnabled)."; exit 1; }
           BT="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)"
           if "$BT/apksigner" verify --print-certs "$APK"; then
             echo "✅ APK signature verified"
@@ -91,20 +100,43 @@ jobs:
             echo "::error::APK is not correctly signed. Set KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD repo secrets."
             exit 1
           fi
+          if jarsigner -verify "$AAB" > /dev/null 2>&1; then
+            echo "✅ AAB signature verified"
+          else
+            echo "::error::AAB is not correctly signed."
+            exit 1
+          fi
+          echo "MAPPING=$MAPPING" >> "$GITHUB_ENV"
 
-      - name: Checksums + publish GitHub Release
+      - name: Upload build artifacts (incl. mapping.txt)
+        uses: actions/upload-artifact@v4
+        with:
+          name: crimsys-release-${{ github.run_number }}
+          if-no-files-found: error
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/mapping/release/mapping.txt
+
+      - name: Checksums + publish GitHub Release (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           APK="android/app/build/outputs/apk/release/app-release.apk"
-          DIST="CRIM-SYS-${{ env.VERSION }}.apk"
-          cp "$APK" "$DIST"
-          sha256sum "$DIST" > SHA256SUMS.txt
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
+          DIST_APK="CRIM-SYS-${{ env.VERSION }}.apk"
+          DIST_AAB="CRIM-SYS-${{ env.VERSION }}.aab"
+          cp "$APK" "$DIST_APK"
+          cp "$AAB" "$DIST_AAB"
+          sha256sum "$DIST_APK" "$DIST_AAB" > SHA256SUMS.txt
+          # mapping.txt is attached so every release's obfuscated stack traces
+          # remain de-obfuscatable forever — it is unique per build.
           gh release create "${{ github.ref_name }}" \
             --title "CRIM-SYS ${{ env.VERSION }}" \
             --generate-notes \
-            "$DIST" SHA256SUMS.txt
-          echo "✅ Release published: $DIST"
+            "$DIST_APK" "$DIST_AAB" SHA256SUMS.txt "$MAPPING"
+          echo "✅ Release published: $DIST_APK + $DIST_AAB + mapping.txt"
 
       - name: Summary
         if: always()
@@ -113,6 +145,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Tag | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Ref | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Version | \`${{ env.VERSION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| APK | \`app-release.apk\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| AAB | \`app-release.aab\` (Google Play) |" >> $GITHUB_STEP_SUMMARY
+          echo "| mapping.txt | archived in artifacts + release |" >> $GITHUB_STEP_SUMMARY
           echo "| Status | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
