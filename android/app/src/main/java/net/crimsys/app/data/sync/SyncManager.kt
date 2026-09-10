@@ -7,17 +7,37 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.UUID
 import net.crimsys.app.data.local.CaseDao
 import net.crimsys.app.data.local.OfflineActionDao
+import net.crimsys.app.data.local.OfflineActionStatus
 import net.crimsys.app.data.local.OfflineActionType
 import net.crimsys.app.data.remote.RemoteDataSource
+
+/** One notable occurrence in the sync pipeline, surfaced to the UI. */
+sealed interface SyncEvent {
+    /**
+     * An action exhausted [net.crimsys.app.data.local.OfflineActionEntity.maxRetries]
+     * and was moved to the dead-letter state. The UI must warn the user — this
+     * mutation will NOT be retried automatically.
+     */
+    data class ActionDeadLettered(
+        val actionType: String,
+        val localId: Long,
+        val attempts: Int,
+    ) : SyncEvent
+}
 
 /**
  * Owns the Offline Action Queue.
@@ -25,19 +45,31 @@ import net.crimsys.app.data.remote.RemoteDataSource
  * Strategy:
  * 1. Collect [NetworkMonitor.observe] forever in the application-scoped
  *    [CoroutineScope] passed to [start] (CrimSysApplication owns it).
- * 2. On every `true`, drain the queue FIFO. Events are funnelled through a
- *    [Channel] with a conflated latest-wins flag, so a connectivity flap
- *    during a drain schedules exactly one follow-up instead of coalescing
- *    into a silent no-op — the classic collectLatest restart race, closed.
- * 3. Per action: attempt remote push. Success → delete the action and flip
+ * 2. On every `true`, drain the queue FIFO. Drain requests travel through a
+ *    [Channel] with a conflated latest-wins flag. The collector is a plain
+ *    `collect` (NOT collectLatest): a request arriving while a drain is
+ *    running *waits* behind the Mutex instead of being cancelled, so no
+ *    signal can ever be consumed by a restarted collector and lost.
+ * 3. Single-flight execution (P1): every entry into the drain passes through
+ *    [syncMutex]. Two triggers (connectivity flap + repository requestDrain)
+ *    can never interleave two drains on the same DAO snapshot.
+ * 4. Per action: attempt remote push. Success → delete the action and flip
  *    the local `isSynced` flag for CREATE_CASE payloads. Failure → increment
  *    the retry counter and STOP the drain (preserving strict order; a later
  *    mutation must never overtake a failed earlier one).
+ * 5. Dead Letter Queue (P1): an action whose retryCount has reached
+ *    [net.crimsys.app.data.local.OfflineActionEntity.maxRetries] is marked
+ *    [OfflineActionStatus.DEAD] and a [SyncEvent.ActionDeadLettered] is
+ *    emitted. It no longer blocks the FIFO for the actions behind it — the
+ *    classic "poison pill" head-of-line blocking is gone. Dead actions stay
+ *    in the table (never destroyed, zero data loss) and can be requeued
+ *    through [OfflineActionDao.requeueDeadLettered] after user inspection.
  *
  * Cancellation (R3): the drain runs in a child coroutine, so scope teardown
  * propagates naturally; the finally block restores [isSyncing]. Suspension
  * points surface CancellationException untouched — a cancelled sync is a
- * cancelled sync, never a "rejected" push.
+ * cancelled sync, never a "rejected" push. `Mutex.withLock` releases the
+ * lock on cancellation via its own finally.
  *
  * Ordering guarantee: OfflineActionEntity ids are auto-incrementing, so
  * `ORDER BY id ASC` is exactly insertion order.
@@ -55,7 +87,24 @@ class SyncManager @Inject constructor(
     /** Latest-wins drain requests; UNCONFIRMED guarantees no signal is lost. */
     private val drainRequests = Channel<Unit>(Channel.CONFLATED)
 
+    /**
+     * Single-flight gate for the drain loop (P1). Locked for the entire
+     * queue pass; waiting callers queue up on it instead of racing.
+     */
+    private val syncMutex = Mutex()
+
     private var listenJob: Job? = null
+
+    /**
+     * Buffered event stream. DROP_OLDEST + tryEmit means emitting is never
+     * suspending and never lost due to a missing subscriber (e.g. the UI is
+     * in the background when an action dies).
+     */
+    private val _syncEvents = MutableSharedFlow<SyncEvent>(
+        extraBufferCapacity = 16,
+        onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST,
+    )
+    val syncEvents: SharedFlow<SyncEvent> = _syncEvents.asSharedFlow()
 
     /**
      * Starts listening for connectivity changes. Call once from
@@ -67,12 +116,14 @@ class SyncManager @Inject constructor(
         listenJob =
             scope.launch {
                 launch {
-                    networkMonitor.observe().collectLatest { online ->
+                    networkMonitor.observe().collect { online ->
                         if (online) drainRequests.send(Unit)
                     }
                 }
                 launch {
-                    drainRequests.receiveAsFlow().collectLatest {
+                    // Plain collect: never cancels a waiting drain attempt.
+                    // The Mutex below serializes execution instead.
+                    drainRequests.receiveAsFlow().collect {
                         runDrainCatching()
                     }
                 }
@@ -89,16 +140,19 @@ class SyncManager @Inject constructor(
     }
 
     /**
-     * Executes every queued action in FIFO order. Retained for callers that
-     * must observe completion; repositories should prefer [requestDrain].
+     * Executes every queued action in FIFO order. Single-flight via
+     * [syncMutex]; concurrent callers wait and then observe an empty queue.
+     * Retained for callers that must observe completion; repositories should
+     * prefer [requestDrain].
      */
     suspend fun drainQueue() {
-        if (_isSyncing.value) return
-        _isSyncing.value = true
-        try {
-            drainLoop()
-        } finally {
-            _isSyncing.value = false
+        syncMutex.withLock {
+            _isSyncing.value = true
+            try {
+                drainLoop()
+            } finally {
+                _isSyncing.value = false
+            }
         }
     }
 
@@ -127,6 +181,22 @@ class SyncManager @Inject constructor(
 
         while (true) {
             val next = offlineActionDao.pendingInOrder().firstOrNull() ?: break
+
+            // P1 — poison-pill handling: exhausted retries go to the dead
+            // letter state and the loop CONTINUES, so the rest of the queue
+            // keeps flowing. No data is destroyed (zero data loss).
+            if (next.retryCount >= next.maxRetries) {
+                offlineActionDao.markDeadLetter(next.id)
+                Log.w(TAG, "Action id=${next.id} type=${next.type} dead-lettered after ${next.retryCount} attempts")
+                _syncEvents.tryEmit(
+                    SyncEvent.ActionDeadLettered(
+                        actionType = next.type,
+                        localId = next.id,
+                        attempts = next.retryCount,
+                    ),
+                )
+                continue
+            }
 
             val accepted = remote.push(next)
             if (!accepted) {

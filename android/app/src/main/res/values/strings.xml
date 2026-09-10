@@ -42,6 +42,7 @@
     <string name="sync_pending">Pending sync (%1$d)</string>
     <string name="sync_offline">Offline — uploads resume automatically</string>
     <string name="syncing">Syncing…</string>
+    <string name="sync_dead_letter">%1$d failed upload(s) — need attention</string>
     <string name="error_unknown">Unexpected error</string>
 
     <string name="cases_title">Case Directory</string>

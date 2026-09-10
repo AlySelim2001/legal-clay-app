@@ -51,8 +51,10 @@ class CaseDetailViewModel @Inject constructor(
             if (id.isBlank()) {
                 flowOf(emptyList())
             } else {
-                repository.getUpcomingHearings(fromEpochDay = 0)
-                    .map { all -> all.filter { it.caseId == id } }
+                // P1: filtered + sorted in SQLite (WHERE caseId = ? AND epochDay >= ?),
+                // not by fetching the whole docket and filtering in Kotlin —
+                // the old pattern re-scanned every hearing on every Room emission.
+                repository.getUpcomingHearingsForCase(caseId = id, fromEpochDay = 0L)
             }
         }
         .stateIn(

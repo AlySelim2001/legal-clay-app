@@ -5,6 +5,25 @@ import androidx.room.PrimaryKey
 import java.util.UUID
 
 /**
+ * Lifecycle of one queued mutation. Kept as plain string constants (not an
+ * enum stored by Room) so schema evolution stays explicit and migration
+ * SQL can reference the values directly.
+ */
+object OfflineActionStatus {
+    /** Waiting for its push attempt (normal FIFO queue). */
+    const val PENDING = "PENDING"
+
+    /**
+     * Exhausted [OfflineActionEntity.maxRetries] attempts. Never deleted
+     * automatically — surfaced via [net.crimsys.app.data.sync.SyncEvent.ActionDeadLettered]
+     * and requeueable by the user through
+     * [OfflineActionDao.requeueDeadLettered] after inspection. This is the
+     * Dead Letter Queue.
+     */
+    const val DEAD = "DEAD"
+}
+
+/**
  * One deferred mutation created while offline. Actions are executed strictly
  * in insertion order by [net.crimsys.app.data.sync.SyncManager] once
  * connectivity returns, then deleted.
@@ -25,6 +44,13 @@ data class OfflineActionEntity(
     val payloadJson: String,
     val createdAt: Long = System.currentTimeMillis(),
     val retryCount: Int = 0,
+    /**
+     * P1: push attempts allowed before the action is dead-lettered instead of
+     * blocking the FIFO forever (poison-pill protection).
+     */
+    val maxRetries: Int = 3,
+    /** One of [OfflineActionStatus]; defaults to the live queue. */
+    val status: String = OfflineActionStatus.PENDING,
 )
 
 /** Canonical action types. */

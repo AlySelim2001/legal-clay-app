@@ -1,5 +1,6 @@
 package net.crimsys.app.ui.screens.calendar
 
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,6 +51,21 @@ import net.crimsys.app.ui.components.claySurface
 import net.crimsys.app.ui.theme.ClayPrimary
 import net.crimsys.app.ui.theme.UrgencyHigh
 
+/**
+ * P1: single source for date-related formatting. Resolves the EFFECTIVE
+ * per-app locale (in-app override → OS default) instead of hardcoding
+ * `Locale("ar")` at every call site, so an English-preferring user gets
+ * correctly localized month/weekday names and digits without any branch.
+ */
+@Composable
+internal fun rememberAppLocale(): Locale {
+    val perApp = AppCompatDelegate.getApplicationLocales()[0]
+    val configuration = LocalConfiguration.current
+    return remember(perApp, configuration) {
+        perApp ?: configuration.locales[0]
+    }
+}
+
 @Composable
 fun HearingsCalendarScreen(
     viewModel: HearingsCalendarViewModel = hiltViewModel(),
@@ -57,6 +74,8 @@ fun HearingsCalendarScreen(
     val selectedDay by viewModel.selectedDay.collectAsState()
     val hearingDays by viewModel.hearingDays.collectAsState()
     val dayHearings by viewModel.dayHearings.collectAsState()
+
+    val appLocale = rememberAppLocale()
 
     val calendarState = rememberCalendarState(
         startMonth = today.minusMonths(12),
@@ -94,6 +113,7 @@ fun HearingsCalendarScreen(
                         MonthHeader(
                             month = month,
                             firstDayOfWeek = DayOfWeek.SATURDAY,
+                            appLocale = appLocale,
                         )
                     },
                 )
@@ -102,7 +122,7 @@ fun HearingsCalendarScreen(
 
         Spacer(Modifier.height(16.dp))
         Text(
-            text = selectedDay.dateLabel(),
+            text = selectedDay.dateLabel(appLocale),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp),
         )
@@ -125,22 +145,24 @@ fun HearingsCalendarScreen(
     }
 }
 
-private fun LocalDate.dateLabel(): String =
-    "${dayOfWeek.getDisplayName(TextStyle.FULL, Locale("ar"))} $dayOfMonth ${
-        month.getDisplayName(TextStyle.FULL, Locale("ar"))
+/** Locale-aware long date, e.g. "الأربعاء 14 يناير 2026". */
+private fun LocalDate.dateLabel(locale: Locale): String =
+    "${dayOfWeek.getDisplayName(TextStyle.FULL, locale)} $dayOfMonth ${
+        month.getDisplayName(TextStyle.FULL, locale)
     } $year"
 
 @Composable
 private fun MonthHeader(
     month: CalendarMonth,
     firstDayOfWeek: DayOfWeek,
+    appLocale: Locale,
 ) {
     val daysOfWeek = remember(firstDayOfWeek) {
         DayOfWeek.entries.sortedBy { if (it.value < firstDayOfWeek.value) it.value + 7 else it.value }
     }
     Column {
         Text(
-            text = "${month.yearMonth.month.getDisplayName(TextStyle.FULL, Locale("ar"))} ${month.yearMonth.year}",
+            text = "${month.yearMonth.month.getDisplayName(TextStyle.FULL, appLocale)} ${month.yearMonth.year}",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp),
         )
@@ -148,7 +170,7 @@ private fun MonthHeader(
             daysOfWeek.forEach { dow ->
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     Text(
-                        dow.getDisplayName(TextStyle.NARROW, Locale("ar")),
+                        dow.getDisplayName(TextStyle.NARROW, appLocale),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

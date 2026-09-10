@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DockedSearchBar
@@ -77,8 +78,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import net.crimsys.app.R
+import net.crimsys.app.ui.components.clayInset
 import net.crimsys.app.ui.components.claySurface
 import net.crimsys.app.ui.theme.ClayPrimary
+import net.crimsys.app.ui.theme.UrgencyCritical
 
 /** One entry in the RTL navigation drawer. */
 private data class DrawerEntry(
@@ -148,6 +151,7 @@ fun CrimSysApp(syncViewModel: SyncStatusViewModel = hiltViewModel()) {
     val isOnline by syncViewModel.isOnline.collectAsState()
     val isSyncing by syncViewModel.isSyncing.collectAsState()
     val pending by syncViewModel.pendingActions.collectAsState()
+    val deadLettered by syncViewModel.deadLettered.collectAsState()
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -192,6 +196,7 @@ fun CrimSysApp(syncViewModel: SyncStatusViewModel = hiltViewModel()) {
                 isOnline = isOnline,
                 isSyncing = isSyncing,
                 pendingCount = pending,
+                deadLetteredCount = deadLettered,
                 onMenuClick = openDrawer,
             )
 
@@ -227,6 +232,7 @@ private fun CrimSysTopBar(
     isOnline: Boolean,
     isSyncing: Boolean,
     pendingCount: Int,
+    deadLetteredCount: Int,
     onMenuClick: () -> Unit,
 ) {
     Row(
@@ -246,6 +252,34 @@ private fun CrimSysTopBar(
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.weight(1f),
         )
+
+        // P1 — Dead Letter Queue warning: persistent, critical-tinted chip.
+        // Takes visual precedence over the passive sync-state icons because a
+        // dead-lettered mutation will NOT retry on its own.
+        if (deadLetteredCount > 0) {
+            Row(
+                modifier =
+                    Modifier
+                        .clayInset(RoundedCornerShape(12.dp))
+                        .background(UrgencyCritical.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Filled.ReportProblem,
+                    contentDescription = null,
+                    tint = UrgencyCritical,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = stringResource(R.string.sync_dead_letter, deadLetteredCount),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = UrgencyCritical,
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+        }
 
         // Sync status icon: cloud with check / cross / progress ring.
         when {

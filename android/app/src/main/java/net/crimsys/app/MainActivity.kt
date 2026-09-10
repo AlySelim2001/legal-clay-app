@@ -5,6 +5,7 @@ import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -14,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -64,8 +64,16 @@ class MainActivity : AppCompatActivity() {
                 ) {
                     // The app is RTL-first: pin the layout direction unless the
                     // resolved locale is LTR (e.g. user switched to English).
+                    // P1: read the EFFECTIVE per-app locales —
+                    // AppCompatDelegate.getApplicationLocales() returns the user's
+                    // in-app choice (set in Settings) or the application default,
+                    // while LocaleListCompat.getDefault() returns the OS locale list,
+                    // which ignores the in-app override entirely and could render a
+                    // chosen-English session with an RTL-pinned layout (or vice versa).
+                    val resolvedLocale = AppCompatDelegate.getApplicationLocales()[0]
+                        ?: resources.configuration.locales[0]
                     val isRtl =
-                        LocaleListCompat.getDefault()[0]?.language == "ar" ||
+                        resolvedLocale.language == "ar" ||
                             LocalLayoutDirection.current == LayoutDirection.Rtl
                     CompositionLocalProvider(
                         LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr,

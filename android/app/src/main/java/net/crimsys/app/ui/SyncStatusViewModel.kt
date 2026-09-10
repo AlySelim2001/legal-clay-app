@@ -44,4 +44,17 @@ class SyncStatusViewModel
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = 0,
             )
+
+        /**
+         * P1: actions parked in the Dead Letter Queue. Non-zero means one or
+         * more offline mutations failed permanently (e.g. server rejected the
+         * payload) and will NOT retry by themselves — the user must inspect
+         * and requeue them.
+         */
+        val deadLettered: StateFlow<Int> =
+            offlineActionDao.observeDeadLetterCount().stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = 0,
+            )
     }

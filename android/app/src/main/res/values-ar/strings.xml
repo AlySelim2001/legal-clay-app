@@ -39,6 +39,7 @@
     <string name="sync_synced">تمت المزامنة</string>
     <string name="sync_pending">بانتظار المزامنة (%1$d)</string>
     <string name="sync_offline">غير متصل — ستستأنف الرفعات تلقائياً</string>
+    <string name="sync_dead_letter">رفعات فاشلة (%1$d) — تحتاج مراجعتك</string>
     <string name="syncing">جارٍ المزامنة…</string>
     <string name="error_unknown">خطأ غير متوقع</string>
 

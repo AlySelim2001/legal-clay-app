@@ -18,6 +18,12 @@ interface CaseRepository {
     fun getUpcomingHearings(fromEpochDay: Long): Flow<List<HearingEntity>>
 
     /**
+     * P1: upcoming sessions for ONE case — filtered and sorted in SQLite, so
+     * the case-detail screen never scans the whole docket in memory.
+     */
+    fun getUpcomingHearingsForCase(caseId: String, fromEpochDay: Long): Flow<List<HearingEntity>>
+
+    /**
      * Validates + persists locally immediately, then pushes immediately when
      * online or enqueues into the offline action queue when not.
      */
