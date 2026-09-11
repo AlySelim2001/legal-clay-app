@@ -4,10 +4,13 @@
 SHELL := /bin/bash
 KEY := $(shell grep -E '^INTERNAL_API_KEY=' .env 2>/dev/null | cut -d= -f2)
 
-.PHONY: up down build env models ingest legal-matrix smoke ask import-n8n logs
+.PHONY: up down build env models ingest legal-matrix precedents smoke ask import-n8n logs
 
 legal-matrix:
 	docker compose run --rm legal-matrix-ingest
+
+precedents:
+	docker compose run --rm precedents-indexer
 
 env:
 	bash scripts/gen-env.sh
@@ -51,5 +54,6 @@ ask:
 
 import-n8n:
 	@echo "Open http://127.0.0.1:5678 → Workflows → Import from File →"
-	@echo "  n8n/workflows/daily-court-monitor.json"
-	@echo "Then activate it. Credentials stay in n8n env (TELEGRAM_*)."
+	@echo "  n8n/workflows/daily-court-monitor.json  (daily rulings monitor)"
+	@echo "  n8n/workflows/case-alerts.json          (case-development alerts)"
+	@echo "Then activate each. Credentials stay in n8n env (TELEGRAM_*)."

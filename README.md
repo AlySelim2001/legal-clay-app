@@ -144,7 +144,7 @@ flowchart LR
 
 | المسار | المحتوى |
 |--------|---------|
-| [`local-ai/`](local-ai/) | **البنية المحصّنة** — 10 خدمات Docker على شبكتين معزولتين (التفاصيل: [local-ai/README.md](local-ai/README.md)) |
+| [`local-ai/`](local-ai/) | **البنية المحصّنة** — 11 خدمة Docker على شبكتين معزولتين (التفاصيل: [local-ai/README.md](local-ai/README.md)) |
 | [جذر المستودع](./) | تطبيق ويب مرجعي لإدارة القضايا (React + TypeScript + Vite) — واجهة المطور والتحقق التجريبي |
 | [`android/`](android/) | تطبيق أندرويد أصلي للإنتاج (Kotlin + Compose + SQLCipher) — [دليل البناء](android/README.md) |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | توثيق معمارية Zero-Trust وبوابة PII |
@@ -158,7 +158,7 @@ flowchart LR
 ### 1. البيئة المحصّنة (Zero-Trust Local Stack)
 
 <p dir="rtl">
-عشر خدمات مجانية ومفتوحة المصدر بالكامل، تعمل محلياً بعدة أوامر:
+إحدى عشرة خدمة مجانية ومفتوحة المصدر بالكامل، تعمل محلياً بعدة أوامر:
 
 ```bash
 # 1. الانتقال لمجلد البيئة المحصنة
