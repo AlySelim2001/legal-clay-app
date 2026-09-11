@@ -59,10 +59,13 @@ docker compose up -d                       # full stack
 bash scripts/prepare-models.sh             # pull LLMs + bge-m3 cache + ingest docs
 
 # Daily use
-make ingest      # re-index documents dropped into ./data/raw
-make smoke       # end-to-end health check of all internal services
-make ask Q="..." # query the pipeline
-make import-n8n  # import workflows/daily-court-monitor.json (n8n UI → Import from File)
+make ingest        # re-index documents dropped into ./data/raw
+make legal-matrix  # upsert the Egyptian legal knowledge matrix (courts,
+                   # police/prosecution workflows, citations, digital gateways)
+                   # add --fresh to wipe + re-ingest, or --dry-run to validate
+make smoke         # end-to-end health check of all internal services
+make ask Q="..."   # query the pipeline
+make import-n8n    # import workflows/daily-court-monitor.json (n8n UI → Import from File)
 
 # Teardown / reset
 docker compose down                 # keeps data

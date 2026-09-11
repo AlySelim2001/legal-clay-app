@@ -66,6 +66,40 @@ failures, phone numbers, embedded Arabic text, offset mapping).
   **Any evaluation error scores 0.0 → the pre-defined legal blocking
   message is returned, never hallucinated content.**
 
+### 3.1 The Egyptian Legal Knowledge Matrix
+
+`services/legal-backend/egyptian_legal_matrix.py` upserts structured
+workflow knowledge into the same `legal_docs` collection: forgery defense
+(الطعن بالتزوير)، custody-receipt defense (انتفاء ركن التسليم)، extortion
+and false-report counter-action, police-station and prosecution protocols,
+the multi-tier court map, and the official digital gateways (PPO / Ministry
+of Justice / Digital Egypt).
+
+Two integrity mechanisms are built in:
+
+1. **Citation review gates.** Every entry carries `review_status`:
+   `statute_verified` (article number confirmed against Egyptian law),
+   `needs_legal_review` (procedure encoded, article numbers deliberately
+   withheld until counsel approves), or `portal_unverified` (gateway URL
+   pending re-confirmation). The retrieval layer must surface
+   `review_status` with every answer — un-reviewed entries are advisory
+   only. No unverified article number is ever encoded.
+2. **Deterministic idempotency.** Point IDs are `uuid5` of
+   `collection/entry/part`, so re-running overwrites in place; `--fresh`
+   wipes `kind=legal_matrix` points so removed entries disappear too.
+
+Run (profile-gated, never started by `up`):
+
+```bash
+cd local-ai
+make legal-matrix              # upsert all matrix entries (scrub-first)
+docker compose run --rm legal-matrix-ingest --fresh    # wipe + re-ingest
+docker compose run --rm legal-matrix-ingest --dry-run  # schema check only
+```
+
+All matrix text passes the same PII scrub gate before embedding; the
+matrix adds 35 retrievable points across 10 workflow entries.
+
 ## 4. Supply-chain & secrets
 
 - Upstream images **pinned by tag** (`ollama/ollama:0.5.7`,

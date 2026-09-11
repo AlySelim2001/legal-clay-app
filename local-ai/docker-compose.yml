@@ -145,6 +145,31 @@ services:
       - qdrant-vectorstore
       - presidio-scrubber
 
+  # ── Egyptian legal knowledge matrix (one-shot upsert: courts, police,
+  #    prosecution workflows, Penal-Code citations, digital gateways) ──────
+  legal-matrix-ingest:
+    build:
+      context: ./services/legal-backend
+    image: crimsys/legal-backend:latest
+    container_name: crimsys-legal-matrix
+    profiles: ["tools"]           # not started by `up`
+    environment:
+      <<: *internal-env
+      SCRUBBER_URL: http://presidio-scrubber:8100
+      QDRANT_URL: http://qdrant-vectorstore:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+      QDRANT_COLLECTION: legal_docs
+      EMBED_MODEL: BAAI/bge-m3
+      HF_HUB_OFFLINE: "1"
+    volumes:
+      - ./data/models:/models
+    command: ["python", "egyptian_legal_matrix.py"]
+    networks: [ai-internal]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      - qdrant-vectorstore
+      - presidio-scrubber
+
   # ── Court scraper (Playwright) — called by n8n Cron node ────────────────
   court-scraper:
     build:
