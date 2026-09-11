@@ -1,0 +1,221 @@
+{
+  "name": "CRIM-SYS — تنبيهات تطورات القضايا (Case Alerts)",
+  "meta": {
+    "description": "Case-development alerting pipeline (M5): a WhatsApp-style status webhook is mirrored into a local-only n8n Webhook node, then PII-scrubbed (fail-closed), then routed by severity to the closed lawyers' Telegram channel — every outbound message carries the MANDATORY legal disclaimer. App pushes via FCM/OneSignal are a roadmap item; this n8n pipeline is the notification backbone meanwhile."
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataSuccessExecution": "none"
+  },
+  "tags": [
+    { "name": "crim-sys", "createdAt": "2026-09-11T00:00:00.000Z", "updatedAt": "2026-09-11T00:00:00.000Z" }
+  ],
+  "staticData": null,
+  "nodes": [
+    {
+      "id": "b1c2d3e4-0001-4000-8000-000000000001",
+      "name": "استقبال تحديث القضية (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "crimsys-case-alert",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crimsys-case-alert",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "notes": "POST /webhook/crimsys-case-alert  { caseCode, event, titleAr?, detailsAr?, severity? }  — Caller must be inside ai-internal (e.g. another container) or local 127.0.0.1; the endpoint is NOT exposed to the internet (n8n binds 127.0.0.1:5678 on the host). Severity must be one of: info, warning, critical."
+    },
+    {
+      "id": "b1c2d3e4-0002-4000-8000-000000000002",
+      "name": "Validate + Normalize Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Validate the alert contract BEFORE any external effect.\nconst b = $json.body || $json;\nconst SEVERITIES = ['info', 'warning', 'critical'];\nconst sev = SEVERITIES.includes(String(b.severity || '').toLowerCase())\n  ? String(b.severity).toLowerCase() : 'info';\nconst caseCode = String(b.caseCode || '').trim();\nconst event = String(b.event || '').trim();\nif (!caseCode) {\n  throw new Error('caseCode is required');\n}\nif (!event) {\n  throw new Error('event is required');\n}\nreturn {\n  json: {\n    caseCode,\n    event,\n    titleAr: String(b.titleAr || 'تحديث بشأن القضية').slice(0, 300),\n    detailsAr: String(b.detailsAr || '').slice(0, 3000),\n    severity: sev,\n    occurredAt: new Date().toISOString(),\n  }\n};"
+      }
+    },
+    {
+      "id": "b1c2d3e4-0003-4000-8000-000000000003",
+      "name": "Scrub PII (fail-closed)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "http://presidio-scrubber:8100/scrub",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Internal-Key", "value": "={{ $env.INTERNAL_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: [$json.titleAr, $json.detailsAr].filter(Boolean).join('\\n') }) }}",
+        "options": { "timeout": 60000 }
+      }
+    },
+    {
+      "id": "b1c2d3e4-0004-4000-8000-000000000004",
+      "name": "Scrub OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [660, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "cond-scrub-clean",
+              "leftValue": "={{ $json.risk }}",
+              "rightValue": "blocked",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b1c2d3e4-0005-4000-8000-000000000005",
+      "name": "Dissolve Scrubbed Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// The scrubber returns { scrubbed_text, ... } overwriting the item;\n// re-attach the metadata we validated earlier so later nodes see one item.\nconst s = $json.scrubbed_text || '';\nconst prev = $('Validate + Normalize Event').item.json;\nconst [titleAr = '', ...rest] = s.split('\\n');\nreturn { json: {\n  caseCode: prev.caseCode,\n  event: prev.event,\n  severity: prev.severity,\n  occurredAt: prev.occurredAt,\n  titleAr: titleAr || prev.titleAr,\n  detailsAr: rest.join('\\n'),\n} };"
+      }
+    },
+    {
+      "id": "b1c2d3e4-0006-4000-8000-000000000006",
+      "name": "Route by Severity",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [1100, 0],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+                "conditions": [
+                  {
+                    "id": "cond-critical",
+                    "leftValue": "={{ $json.severity }}",
+                    "rightValue": "critical",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "critical"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+                "conditions": [
+                  {
+                    "id": "cond-warning",
+                    "leftValue": "={{ $json.severity }}",
+                    "rightValue": "warning",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "warning"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "info"
+        }
+      }
+    },
+    {
+      "id": "b1c2d3e4-0007-4000-8000-000000000007",
+      "name": "Build Message + Disclaimer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, -140],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Assemble the channel message with the MANDATORY disclaimer.\nconst esc = (s) => String(s ?? '')\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;');\nconst item = $json;\nconst DISCLAIMER =\n  '⚠️ <b>إخلاء مسؤولية إلزامي:</b> هذا التنبيه مُولّد آلياً كأداة تنظيمية مساعدة، ' +\n  'ولا يُغني بأي حال عن مراجعة ملف القضية أو استشارة محامٍ مقيّد بنقابة المحامين المصريين. ' +\n  'المنظومة لا تتحمل مسؤولية أي تصرف بناءً عليها.';\nconst SEV_ICON = { info: 'ℹ️', warning: '⚠️', critical: '🚨' };\nconst SEV_TITLE = { info: 'تحديث', warning: 'تنبيه', critical: 'عاجل' };\nconst sev = ['info', 'warning', 'critical'].includes(item.severity) ? item.severity : 'info';\nconst lines = [\n  SEV_ICON[sev] + ' <b>CRIM-SYS — ' + SEV_TITLE[sev] + ' قضية</b>',\n  '',\n  '📁 القضية: ' + esc(item.caseCode),\n  '🔖 الحدث: ' + esc(item.event),\n];\nif (item.titleAr) lines.push('📌 ' + esc(item.titleAr));\nif (item.detailsAr) lines.push('📝 ' + esc(item.detailsAr));\nlines.push('', '🕒 ' + esc(new Date(item.occurredAt).toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })), '', DISCLAIMER);\nreturn { json: { message: lines.join('\\n') } };"
+      }
+    },
+    {
+      "id": "b1c2d3e4-0008-4000-8000-000000000008",
+      "name": "Send to Lawyers Channel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, -140],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHANNEL_ID, text: $json.message, parse_mode: \"HTML\", disable_web_page_preview: true }) }}",
+        "options": { "timeout": 30000 }
+      }
+    },
+    {
+      "id": "b1c2d3e4-0009-4000-8000-000000000009",
+      "name": "Alert Admin (scrub blocked / node error)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 160],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_ADMIN_CHAT_ID, text: \"🚨 CRIM-SYS case-alerts: تم حجب تنبيه قضية بوابة PII أو تعذر تنفيذ مرحلة — راجع سجل n8n فوراً.\", parse_mode: \"HTML\" }) }}",
+        "options": { "timeout": 30000 }
+      }
+    }
+  ],
+  "connections": {
+    "استقبال تحديث القضية (Webhook)": {
+      "main": [[{ "node": "Validate + Normalize Event", "type": "main", "index": 0 }]]
+    },
+    "Validate + Normalize Event": {
+      "main": [[{ "node": "Scrub PII (fail-closed)", "type": "main", "index": 0 }]]
+    },
+    "Scrub PII (fail-closed)": {
+      "main": [[{ "node": "Scrub OK?", "type": "main", "index": 0 }]]
+    },
+    "Scrub OK?": {
+      "main": [
+        [{ "node": "Dissolve Scrubbed Text", "type": "main", "index": 0 }],
+        [{ "node": "Alert Admin (scrub blocked / node error)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Dissolve Scrubbed Text": {
+      "main": [[{ "node": "Route by Severity", "type": "main", "index": 0 }]]
+    },
+    "Route by Severity": {
+      "main": [
+        [{ "node": "Build Message + Disclaimer", "type": "main", "index": 0 }],
+        [{ "node": "Build Message + Disclaimer", "type": "main", "index": 0 }],
+        [{ "node": "Build Message + Disclaimer", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Message + Disclaimer": {
+      "main": [[{ "node": "Send to Lawyers Channel", "type": "main", "index": 0 }]]
+    }
+  }
+}

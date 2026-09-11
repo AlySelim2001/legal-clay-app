@@ -40,6 +40,10 @@ SCRUBBER_URL = os.environ.get("SCRUBBER_URL", "http://presidio-scrubber:8100")
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://qdrant-vectorstore:6333")
 QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY", "")
 QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "legal_docs")
+QDRANT_PRECEDENTS_COLLECTION = os.environ.get(
+    "QDRANT_PRECEDENTS_COLLECTION", "egypt_cassation_rulings"
+)
+OCR_SERVICE_URL = os.environ.get("OCR_SERVICE_URL", "http://paddle-ocr-service:8200")
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://ollama-engine:11434")
 PRIMARY_MODEL = os.environ.get("PRIMARY_MODEL", "qwen2.5:7b")
 ALTERNATE_MODEL = os.environ.get("ALTERNATE_MODEL", "jais-family-13b")
@@ -129,6 +133,58 @@ def retrieve(query: str, top_k: int = 5) -> list[str]:
     return [str(p.payload.get("text", "")) for p in hits if p.payload]
 
 
+def retrieve_precedents(query: str, top_k: int = 4) -> list[dict]:
+    """
+    Retrieve Court-of-Cassation doctrine from the dedicated precedents
+    collection (M2). Returns raw payloads — not just text — so the crew can
+    cite the pillar/statute AND the citation-review flag, which the
+    retrieval layer MUST surface with every answer (never present an
+    un-reviewed citation as settled law).
+    Query is scrubbed first — same gate as every other retrieval path.
+    """
+    from qdrant_client import QdrantClient
+
+    clean_query = scrub_or_block(query)
+    if clean_query is None:
+        return []
+
+    vector = _get_embed_model().get_text_embedding(clean_query)
+    client = QdrantClient(
+        url=QDRANT_URL, api_key=QDRANT_API_KEY or None, timeout=30
+    )
+    try:
+        hits = client.query_points(
+            collection_name=QDRANT_PRECEDENTS_COLLECTION,
+            query=vector,
+            limit=top_k,
+            with_payload=True,
+        ).points
+    except Exception:  # noqa: BLE001 — empty collection must not 500 /analyze
+        logger.warning("precedents collection unavailable — returning none")
+        return []
+    finally:
+        client.close()
+    return [dict(p.payload) for p in hits if p.payload]
+
+
+def _format_precedent_block(payloads: list[dict]) -> str:
+    """Render precedent payloads into a crew-consumable text block."""
+    if not payloads:
+        return ""
+    lines: list[str] = []
+    for i, p in enumerate(payloads, 1):
+        review = (
+            "[مراجعة استشهاد مطلوبة — استخدمه كمبدأ عام فقط]"
+            if p.get("needs_citation_review") else ""
+        )
+        lines.append(
+            f"{i}. المبدأ: {p.get('pillar', '')} — {p.get('title', '')}\n"
+            f"   النص: {p.get('text', '')}\n"
+            f"   المرجع التشريعي: {p.get('statute_ref', '')} {review}"
+        )
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # CrewAI + local Ollama
 # ---------------------------------------------------------------------------
@@ -152,6 +208,45 @@ def build_crew():
             return "لا توجد نتائج ذات صلة في القاعدة المحلية."
         return "\n---\n".join(chunks)
 
+    @tool("بحث في مبادئ محكمة النقض")
+    def cassation_doctrine_search(query: str) -> str:
+        """يبحث في قاعدة مبادئ النقض الموثقة محلياً (الطعن بالجهالة، انتفاء ركن التسليم، البلاغ الكاذب والابتزاز) ويعيد المبدأ مع حالة مراجعة الاستشهاد."""
+        block = _format_precedent_block(retrieve_precedents(query, top_k=4))
+        return block if block else "لا توجد مبادئ مطابقة في قاعدة النقض المحلية."
+
+    @tool("فحص جنائي مقارن للمستندات")
+    def forensic_document_check(original_url: str, suspect_url: str) -> str:
+        """يقارن مستنداً أصلياً بنسخة مشتبه فيها عبر محرك SSIM الجنائي المحلي ويعيد المؤشرات الاسترشادية فقط. أدخل رابطَي الصورتين (JPG/PNG) المتاحين داخلياً."""
+        try:
+            orig = _client.get(original_url)
+            orig.raise_for_status()
+            susp = _client.get(suspect_url)
+            susp.raise_for_status()
+            files = {
+                "original": ("original.png", orig.content, "image/png"),
+                "suspect": ("suspect.png", susp.content, "image/png"),
+            }
+            r = _client.post(f"{OCR_SERVICE_URL}/forensics/ssim", files=files)
+            r.raise_for_status()
+        except httpx.HTTPError as exc:
+            # Honest failure — the agent must report unavailability, never invent results.
+            return (
+                f"تعذّر إجراء الفحص الجنائي ({exc.__class__.__name__}) — "
+                "لا تختلق نتائج؛ أبلغ بتعذّر الفحص واقترح عرض المستندات على خبير."
+            )
+        data = r.json()
+        ev = data.get("evidence", {})
+        ink = data.get("ink_density", {})
+        return (
+            f"{data.get('disclaimer_ar', '')}\n"
+            f"درجة التطابق البنيوي SSIM: {data.get('ssim')}\n"
+            f"النتيجة الاسترشادية: {data.get('verdict_ar')}\n"
+            f"مكوّنات فرق معتبرة: {ev.get('significant_components')}\n"
+            f"فرق كثافة الحبر: {ink.get('delta')}\n"
+            "تذكّر: مؤشرات آلية استرشادية وليست إثبات تزوير — الإثبات بخبرة "
+            "مصلحة الطب الشرعي."
+        )
+
     # -- Agent 1: case analysis -------------------------------------------------
     analyst = Agent(
         role="محلل إجراءات جنائية",
@@ -161,7 +256,7 @@ def build_crew():
             "والمواعيد ولا يخترع أحكاماً."
         ),
         llm=llm,
-        tools=[],
+        tools=[forensic_document_check],
         allow_delegation=False,
         verbose=False,
     )
@@ -175,7 +270,7 @@ def build_crew():
             "وينسب كل اقتباس إلى مصدره."
         ),
         llm=llm,
-        tools=[precedent_search],
+        tools=[precedent_search, cassation_doctrine_search],
         allow_delegation=False,
         verbose=False,
     )
@@ -197,7 +292,9 @@ def build_crew():
     task_analyze = Task(
         description=(
             "حلل وقائع القضية التالية:\n{question}\n\n"
-            "حدد التوصيف الجنائي، والمدة الإجرائية المعنية، وأي إشكالات شكلية."
+            "حدد التوصيف الجنائي، والمدة الإجرائية المعنية، وأي إشكالات شكلية.\n"
+            "إذا اشتملت الوقائع على رابطَي مستند (أصلي ومشتبه فيه) استخدم أداة "
+            "الفحص الجنائي واعرض مؤشراتها كما هي دون تضخيم أو حسم."
         ),
         expected_output="تحليل منظم في نقاط، بالعربية، بلا استنتاجات غير مسندة.",
         agent=analyst,
@@ -206,8 +303,9 @@ def build_crew():
     task_precedent = Task(
         description=(
             "بناءً على تحليل الزميل:\n{context}\n"
-            "استخدم أداة البحث المحلية لاسترجاع النصوص والسوابق ذات الصلة، "
-            "ووثّق كل اقتباس بمصدره من القاعدة."
+            "استخدم أداتَي البحث المحليتين لاسترجاع النصوص والسوابق ومبادئ "
+            "النقض ذات الصلة، ووثّق كل اقتباس بمصدره من القاعدة، "
+            "وبيّن أي مبدأ ما زال بانتظار مراجعة استشهاده."
         ),
         expected_output="قائمة سوابق/نصوص مرقمة مع مصدر كل واحد منها.",
         agent=researcher,
@@ -217,8 +315,10 @@ def build_crew():
     task_simplify = Task(
         description=(
             "أعد صياغة ما يلي بلغة مبسطة دون إضافة أي معلومة جديدة:\n"
-            "التحليل:\n{analysis}\n\nالسوابق:\n{precedent}\n"
-            "اختم بجملة إخلاء مسؤولية واحدة."
+            "التحليل:\n{analysis}\n\nالسوابق:\n{precedent}\n\n"
+            "مبادئ النقض:\n{cassation}\n"
+            "اختم بجملة إخلاء مسؤولية واحدة، وبيّن إن كانت مبادئ النقض "
+            "المذكورة ما زالت بانتظار مراجعة استشهادها."
         ),
         expected_output="شرح مبسط بالعربية + سطر إخلاء مسؤولية.",
         agent=simplifier,
@@ -362,6 +462,15 @@ def analyze(req: AnalyzeRequest, x_internal_key: str = Header(default="")) -> An
             trace_id=trace_id,
         )
 
+    # ---- Cassation doctrine context (M2) -------------------------------------
+    # Injected verbatim into the researcher/simplifier inputs so doctrine is
+    # grounded even if the researcher never calls the tool. The
+    # needs_citation_review flag travels inside the block and must survive
+    # into the final answer.
+    precedent_block = _format_precedent_block(
+        retrieve_precedents(clean_question, top_k=4)
+    )
+
     # ---- Run the crew --------------------------------------------------------
     try:
         crew = build_crew()
@@ -370,6 +479,8 @@ def analyze(req: AnalyzeRequest, x_internal_key: str = Header(default="")) -> An
             "context": "\n".join(contexts)[:6000],
             "analysis": "",
             "precedent": "",
+            "cassation": precedent_block[:6000] if precedent_block
+                         else "لا توجد مبادئ نقض مفهرسة مطابقة بعد.",
         }
         result = crew.kickoff(inputs=inputs)
         raw_answer = str(getattr(result, "final", None) or result)

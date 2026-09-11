@@ -52,8 +52,10 @@ import httpx
 # ---------------------------------------------------------------------------
 SCRUBBER_URL = os.environ.get("SCRUBBER_URL", "http://presidio-scrubber:8100")
 INTERNAL_API_KEY = os.environ.get("INTERNAL_API_KEY", "")
-if not INTERNAL_API_KEY or len(INTERNAL_API_KEY) < 32:
-    raise RuntimeError("INTERNAL_API_KEY missing — refusing to run.")
+# The key is validated lazily in _get_client() (the network path), not at
+# import time: `--dry-run` is a pure offline schema check and must run
+# without secrets present. The fail-closed guarantee is unchanged — any
+# scrub/ingest attempt without a valid key raises immediately.
 
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://qdrant-vectorstore:6333")
 QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY", "")
@@ -438,15 +440,28 @@ def validate_matrix() -> list[str]:
 # ---------------------------------------------------------------------------
 # Scrub-first PII gate (identical contract to rag_ingestion.py)
 # ---------------------------------------------------------------------------
-_client = httpx.Client(
-    headers={"X-Internal-Key": INTERNAL_API_KEY},
-    timeout=httpx.Timeout(120.0, connect=10.0),
-)
+_client: httpx.Client | None = None
+
+
+def _get_client() -> httpx.Client:
+    """Fail-closed client: refuses network work without a valid key."""
+    global _client
+    if _client is None:
+        if not INTERNAL_API_KEY or len(INTERNAL_API_KEY) < 32:
+            raise RuntimeError(
+                "INTERNAL_API_KEY missing or too short — refusing network work."
+            )
+        _client = httpx.Client(
+            headers={"X-Internal-Key": INTERNAL_API_KEY},
+            timeout=httpx.Timeout(120.0, connect=10.0),
+        )
+    return _client
 
 
 def scrub_text(text: str) -> str:
+    client = _get_client()
     try:
-        r = _client.post(f"{SCRUBBER_URL}/scrub", json={"text": text})
+        r = client.post(f"{SCRUBBER_URL}/scrub", json={"text": text})
         r.raise_for_status()
     except httpx.HTTPError as exc:
         raise RuntimeError(f"scrubber unreachable: {exc}") from exc

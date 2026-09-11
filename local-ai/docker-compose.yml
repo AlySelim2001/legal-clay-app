@@ -101,6 +101,8 @@ services:
       QDRANT_URL: http://qdrant-vectorstore:6333
       QDRANT_API_KEY: ${QDRANT_API_KEY}
       QDRANT_COLLECTION: legal_docs
+      QDRANT_PRECEDENTS_COLLECTION: egypt_cassation_rulings
+      OCR_SERVICE_URL: http://paddle-ocr-service:8200
       OLLAMA_BASE_URL: http://ollama-engine:11434
       PRIMARY_MODEL: ${PRIMARY_MODEL:-qwen2.5:7b}
       ALTERNATE_MODEL: ${ALTERNATE_MODEL:-jais-family-13b}
@@ -164,6 +166,31 @@ services:
     volumes:
       - ./data/models:/models
     command: ["python", "egyptian_legal_matrix.py"]
+    networks: [ai-internal]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      - qdrant-vectorstore
+      - presidio-scrubber
+
+  # ── Cassation precedents indexer (one-shot: dedicated collection,
+  #    verified doctrine only, scrub-first) ──────────────────────────────
+  precedents-indexer:
+    build:
+      context: ./services/legal-backend
+    image: crimsys/legal-backend:latest
+    container_name: crimsys-precedents
+    profiles: ["tools"]           # not started by `up`
+    environment:
+      <<: *internal-env
+      SCRUBBER_URL: http://presidio-scrubber:8100
+      QDRANT_URL: http://qdrant-vectorstore:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+      QDRANT_PRECEDENTS_COLLECTION: egypt_cassation_rulings
+      EMBED_MODEL: BAAI/bge-m3
+      HF_HUB_OFFLINE: "1"
+    volumes:
+      - ./data/models:/models
+    command: ["python", "cassation_precedents.py"]
     networks: [ai-internal]
     security_opt: ["no-new-privileges:true"]
     depends_on:

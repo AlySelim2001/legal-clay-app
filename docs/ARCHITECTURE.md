@@ -102,7 +102,78 @@ docker compose run --rm legal-matrix-ingest --dry-run  # schema check only
 All matrix text passes the same PII scrub gate before embedding; the
 matrix adds 35 retrievable points across 10 workflow entries.
 
-### 3.2 The Accessible Citizen UI (`frontend-ui`)
+### 3.2 Cassation precedents collection (`egypt_cassation_rulings`)
+
+`services/legal-backend/cassation_precedents.py` upserts Court-of-Cassation
+council doctrine into a **dedicated** collection, separate from `legal_docs`,
+covering the three defense pillars: الطعن بالجهالة، انتفاء ركن التسليم،
+البلاغ الكاذب والابتزاز.
+
+- **Doctrine-only integrity rule.** Each entry carries `statute_ref`
+  (verified legislation) plus `cassation_ref`/`needs_citation_review`:
+  the well-established PRINCIPLE text is encoded, but the exact طعن numbers
+  stay `null` and flagged until legal counsel pins them from the Cassation
+  database. The crew's doctrine tool and injected context carry that flag
+  into every answer — the system never presents an un-reviewed citation as
+  settled law.
+- **Same invariants** as the matrix: scrub-first (fail-closed), local
+  bge-m3 embeddings, deterministic `uuid5` ids, `--fresh` wipe, and a
+  `--dry-run` schema validator that runs with **no secrets at all** (the
+  key check is lazy, on the network path only).
+
+```bash
+cd local-ai
+make precedents                # upsert doctrine into egypt_cassation_rulings
+docker compose run --rm precedents-indexer --fresh    # wipe + re-ingest
+docker compose run --rm precedents-indexer --dry-run  # schema check, offline
+```
+
+### 3.3 Forensic SSIM engine (`paddle-ocr-service`)
+
+`services/paddle-ocr-service/ssim_analyzer.py` implements real, deterministic
+document forensics (no ML hand-waving): scale/contrast-normalized SSIM,
+Otsu-thresholded difference maps → connected-component localization of
+edits, and an ink-density delta (over-writing signal). Calibrated on
+synthetic receipt tests — **global SSIM barely moves on real edits (an
+added digit still scores ~0.999)**, so the verdict bands are driven by
+localized components + density, not the global score alone.
+
+- `POST /forensics/ssim` — original vs. suspect scan → advisory signals
+- `POST /forensics/seals` — YOLO seal/signature detection that **degrades
+  honestly**: without a trained model mounted at `YOLO_MODEL_PATH` it
+  reports `model_loaded=false` and zero detections — never fabricated boxes.
+
+Every response carries `advisory_only: true` and the Arabic banner: the
+service measures, it never issues forgery verdicts (الإثبات بخبرة مصلحة
+الطب الشرعي). The crew's analyst agent can invoke this engine via the
+`فحص جنائي مقارن للمستندات` tool; tool failures are reported as
+unavailability, never as invented results.
+
+### 3.4 Case-alert automation (`n8n/workflows/case-alerts.json`)
+
+Mirrors the daily-monitor pattern for case developments: a local-only
+webhook (reachable from `ai-internal` or `127.0.0.1`; n8n binds the host
+loopback) → strict event validation → fail-closed PII scrub → severity
+routing (`info` / `warning` / `critical`) → closed Telegram channel, every
+message ending with the mandatory legal disclaimer. Scrub-blocked events
+go to the admin chat instead of users. App-side push (FCM/OneSignal)
+remains a roadmap item; this pipeline is the notification backbone.
+
+### 3.5 Android deadline calculator (dual verification)
+
+`android/.../domain/legal/EgyptianDeadlineCalculator.kt` implements the
+three criminal channels (المعارضة 10، الاستئناف الجنائي 10، الطعن بالنقض 60)
+with **two fully independent date engines** — `java.time` arithmetic and a
+hand-rolled proleptic-Gregorian day-count with Zeller weekdays sharing zero
+code. A disagreement yields `DUAL_CHECK_FAILED` and the UI must block,
+never render a silently wrong legal date. Deadlines landing on Fri/Sat
+roll forward to Sunday (direction flagged as a policy question for
+counsel). Channel article numbers are `needsLegalReview=true` until
+counsel signs off — same citation-integrity policy as the RAG layer.
+Engine-2 arithmetic is cross-verified against an independent reference
+over 1990–2060 (25,933 days × windows); JVM unit tests pin the contract.
+
+### 3.6 The Accessible Citizen UI (`frontend-ui`)
 
 `services/frontend` is a React + Vite + Tailwind v4 SPA (RTL, `ar-EG`)
 behind an **nginx sidecar** — the only way the browser reaches the
