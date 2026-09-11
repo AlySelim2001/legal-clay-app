@@ -3,6 +3,12 @@ CRIM-SYS 2026 — Arabic OCR service (PaddleOCR lang=ar).
 
 Contract:
   POST /ocr   multipart file=...  ->  {"text": "...", "pages": N, "confidence": 0.98}
+  POST /forensics/ssim   multipart original=..., suspect=...
+        -> SSIM comparison: structural-difference components + ink-density
+           delta. Advisory only — never a forgery verdict.
+  POST /forensics/seals  multipart file=...
+        -> YOLO seal/signature detection; degrades honestly when the
+           (roadmap) model is not mounted.
   GET  /health                    ->  {"status": "ok"}
 
 Auth: X-Internal-Key header (same shared key as every ai-internal service).
@@ -77,3 +83,52 @@ async def ocr_endpoint(
     avg_conf = sum(scores) / len(scores) if scores else 0.0
     logger.info("OCR done: pages=%d lines=%d avg_conf=%.3f", pages, len(texts), avg_conf)
     return {"text": "\n".join(texts), "pages": pages, "confidence": round(avg_conf, 4)}
+
+
+@app.post("/forensics/ssim")
+async def forensics_ssim_endpoint(
+    original: UploadFile = File(...),
+    suspect: UploadFile = File(...),
+    x_internal_key: str = Header(default=""),
+) -> dict:
+    """SSIM comparison of an original vs. suspect scan (advisory only)."""
+    for f in (original, suspect):
+        if f.content_type not in ALLOWED_TYPES:
+            raise HTTPException(status_code=415, detail="unsupported file type")
+    orig_bytes, susp_bytes = await original.read(), await suspect.read()
+    if len(orig_bytes) > MAX_BYTES or len(susp_bytes) > MAX_BYTES:
+        raise HTTPException(status_code=413, detail="file too large")
+
+    from ssim_analyzer import compare_ssim
+
+    try:
+        report = compare_ssim(orig_bytes, susp_bytes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception:  # noqa: BLE001 — analysis failures logged, not leaked
+        logger.exception("SSIM analysis failed (%d/%d bytes)",
+                         len(orig_bytes), len(susp_bytes))
+        raise HTTPException(status_code=500, detail="analysis_failed")
+    logger.info("SSIM done: score=%.4f components=%d",
+                report["ssim"], len(report["components"]))
+    return report
+
+
+@app.post("/forensics/seals")
+async def forensics_seals_endpoint(
+    file: UploadFile = File(...),
+    x_internal_key: str = Header(default=""),
+) -> dict:
+    """YOLO seal/signature detection — honest degradation without a model."""
+    if file.content_type not in ALLOWED_TYPES:
+        raise HTTPException(status_code=415, detail="unsupported file type")
+    payload = await file.read()
+    if len(payload) > MAX_BYTES:
+        raise HTTPException(status_code=413, detail="file too large")
+
+    from ssim_analyzer import detect_seals_and_signatures
+
+    report = detect_seals_and_signatures(payload)
+    logger.info("Seals detection: model_loaded=%s detections=%d",
+                report["model_loaded"], len(report["detections"]))
+    return report
