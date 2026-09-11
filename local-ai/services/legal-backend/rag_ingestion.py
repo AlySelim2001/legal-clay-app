@@ -89,8 +89,8 @@ def scrub_text(text: str) -> str:
 
 # ---------------------------------------------------------------------------
 # Step 2 — Arabic-aware semantic chunking
+# (`re` already imported at module scope)
 # ---------------------------------------------------------------------------
-import re  # noqa: F811  (kept at step scope for readability)
 
 # Legal Arabic sentence enders + statutory clause markers ("مادة ١...").
 _SENTENCE_RE = re.compile(r"(?<=[.!?؟؛۔])\s+")
@@ -160,7 +160,6 @@ def ensure_collection(dimension: int) -> None:
 
 
 def ingest_file(path: Path, embed_model) -> int:
-    from llama_index.core import Document
 
     suffix = path.suffix.lower()
     if suffix in {".txt", ".md"}:

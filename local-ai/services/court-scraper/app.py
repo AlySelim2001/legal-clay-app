@@ -25,7 +25,6 @@ import os
 import re
 import urllib.robotparser as robotparser
 from datetime import datetime, timezone
-from typing import Optional
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, Header, HTTPException

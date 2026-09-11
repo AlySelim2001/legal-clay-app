@@ -1,4 +1,40 @@
-.env.local
+# ============================================================================
+# legal-clay-app — hardened ignore rules
+# ============================================================================
+
+# Secrets & credentials — NEVER commit
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+keystore.properties
+*.jks
+*.keystore
+google-services.json
+
+# Node / web app
 node_modules
 dist
+
+# Convex codegen
 src/convex/_generated
+
+# Local AI stack data stores (case documents, vectors, models, n8n state)
+local-ai/data/raw/*
+!local-ai/data/raw/.gitkeep
+local-ai/data/models/
+local-ai/data/qdrant/
+local-ai/data/ollama/
+local-ai/data/n8n/
+local-ai/.venv/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Playwright & test artifacts
+test-results/
+playwright-report/

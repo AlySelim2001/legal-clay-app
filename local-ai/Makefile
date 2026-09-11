@@ -4,7 +4,10 @@
 SHELL := /bin/bash
 KEY := $(shell grep -E '^INTERNAL_API_KEY=' .env 2>/dev/null | cut -d= -f2)
 
-.PHONY: up down build models ingest smoke ask import-n8n logs
+.PHONY: up down build env models ingest smoke ask import-n8n logs
+
+env:
+	bash scripts/gen-env.sh
 
 up:
 	docker compose up -d

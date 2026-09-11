@@ -12,6 +12,9 @@
   <a href="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/android-release.yml">
     <img src="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/android-release.yml/badge.svg" alt="CI/CD Build Status">
   </a>
+  <a href="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/ci.yml">
+    <img src="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/ci.yml/badge.svg" alt="Security CI: Bandit + Flake8 + Compose Validation">
+  </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT%20%2B%20Notice-yellow.svg" alt="License: MIT + Notice">
   </a>
@@ -160,7 +163,43 @@ flowchart LR
 | **UI Extras (Android)** | kizitonwose Calendar Compose, richeditor-compose, Baseline Profiles, R8 + resource shrinking |
 | **Web (المرجع التجريبي)** | React 19, TypeScript, Vite 7, Tailwind CSS 4, shadcn/ui, TanStack Query (offline persistence) |
 | **Web OCR/Calendar** | Tesseract.js (Arabic), FullCalendar (Arabic RTL) |
-| **CI/CD** | GitHub Actions — Gradle debug build QC + tag-driven release APK |
+| **CI/CD** | GitHub Actions — Gradle debug build QC + tag-driven release APK + خط أنابيب أمني (Bandit/Flake8/Compose) |
+| **Local AI Stack** | Ollama (qwen2.5:7b), Qdrant, Presidio (PII), LlamaIndex + bge-m3, CrewAI + Ragas, n8n — كلها محلية 100% |
+
+---
+
+## 🤖 المنظومة الذكية المحلية / Local AI Stack (Zero-Trust)
+
+<p dir="rtl">
+
+منظومة تحليل قانوني محلية بالكامل (دون أي APIs مدفوعة أو خارجية): استرجاع معزز RAG على نصوص قانونية عربية، ووكلاء CrewAI فوق نموذج محلي، مع **بوابة حماية بيانات شخصية (PII) إغلاقية الفشل** تحجب الرقم القومي المصري وبيانات الأطراف قبل أي معالجة، و**بوابة دقة Ragas ≥ 0.95** تحجب أي إجابة غير موثوقة.
+
+البنية المعتمدة: `local-ai/docker-compose.yml` — 8 خدمات على شبكتين معزولتين (`ai-internal` بلا إنترنت + `edge` لـ n8n فقط)، وكل المنافذ المربوطة على `127.0.0.1` حصراً.
+
+</p>
+
+### أوامر التشغيل الموحدة
+
+```bash
+cd local-ai
+make env        # توليد .env بأسرار حقيقية (openssl rand -hex 32) — أضف TELEGRAM_* يدوياً
+make models     # سحب النماذج: qwen2.5:7b + bge-m3
+make up         # إقلاع البنية المحصّنة (docker compose up -d --build)
+make smoke      # فحص صحة كل الخدمات على loopback
+make ingest     # إدخال الوثائق (scrub-first ثم التضمين في Qdrant)
+```
+
+### ✅ قائمة التحقق الحاكمة قبل التشغيل (Pre-Flight — إلزامية)
+
+- [ ] `.env` مولّد بـ `scripts/gen-env.sh` وصلاحياته `chmod 600` ومستثنى من Git
+- [ ] خدمة الـ scrubber ترفض الإقلاع دون `INTERNAL_API_KEY` (≥ 32 حرفاً) — إغلاقية الفشل
+- [ ] `docker compose ps` تُظهر كل المنافذ على `127.0.0.1` حصراً
+- [ ] `ping -c1 8.8.8.8` من داخل `ai-internal` **يفشل** (عزل مؤكد)
+- [ ] Qdrant يرد بـ 401 على أي طلب بلا ترويسة `API-KEY`
+- [ ] `ollama list` يُظهر `qwen2.5:7b` و`bge-m3`
+- [ ] مجلد `data/` نظيف قبل أول عملية استيعاب
+
+> 📖 التفاصيل الكاملة للمعمارية وضمانات Zero-Trust: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ---
 

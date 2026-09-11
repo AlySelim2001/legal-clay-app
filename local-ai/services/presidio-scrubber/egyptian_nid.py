@@ -19,11 +19,10 @@ what allows the scrubber to sit as a hard gate in front of every LLM call.
 from __future__ import annotations
 
 import re
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from presidio_analyzer import (
     AnalysisExplanation,
-    EntityRecognizer,
     LocalRecognizer,
     Pattern,
     RecognizerResult,

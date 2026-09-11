@@ -58,7 +58,7 @@ services:
   # ── PII scrubber — the gate in front of every LLM / vector call ─────────
   presidio-scrubber:
     build:
-      context: ./presidio-scrubber
+      context: ./services/presidio-scrubber
     image: crimsys/presidio-scrubber:latest
     container_name: crimsys-scrubber
     restart: unless-stopped
@@ -75,7 +75,7 @@ services:
   # ── Arabic OCR (PaddleOCR lang=ar) ──────────────────────────────────────
   paddle-ocr-service:
     build:
-      context: ./ocr-service
+      context: ./services/paddle-ocr-service
     image: crimsys/paddle-ocr:latest
     container_name: crimsys-ocr
     restart: unless-stopped
@@ -91,7 +91,7 @@ services:
   # ── RAG + CrewAI pipeline (the "legal-backend-api") ─────────────────────
   legal-backend-api:
     build:
-      context: ./legal-backend
+      context: ./services/legal-backend
     image: crimsys/legal-backend:latest
     container_name: crimsys-backend
     restart: unless-stopped
@@ -124,7 +124,7 @@ services:
   # ── One-shot ingestion job (run manually: docker compose run --rm ingest)
   ingest:
     build:
-      context: ./legal-backend
+      context: ./services/legal-backend
     image: crimsys/legal-backend:latest
     container_name: crimsys-ingest
     profiles: ["tools"]           # not started by `up`
@@ -148,7 +148,7 @@ services:
   # ── Court scraper (Playwright) — called by n8n Cron node ────────────────
   court-scraper:
     build:
-      context: ./court-scraper
+      context: ./services/court-scraper
     image: crimsys/court-scraper:latest
     container_name: crimsys-scraper
     restart: unless-stopped
