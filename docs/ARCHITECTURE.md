@@ -36,6 +36,8 @@
 | `legal-backend-api` | build `services/legal-backend` | 127.0.0.1:8300 | ai-internal | `INTERNAL_API_KEY` |
 | `court-scraper` | build `services/court-scraper` | 127.0.0.1:8400 | ai-internal | `INTERNAL_API_KEY` |
 | `ingest` | build `services/legal-backend` | none | ai-internal | profile-gated tool |
+| `legal-matrix-ingest` | build `services/legal-backend` | none | ai-internal | profile-gated tool |
+| `frontend-ui` | build `services/frontend` | 127.0.0.1:3000 | ai-internal | nginx-injected key |
 | `n8n` | `n8nio/n8n:1.62.1` | 127.0.0.1:5678 | edge + ai-internal | encryption key + basic auth |
 
 ## 2. The PII gate (non-negotiable)
@@ -99,6 +101,40 @@ docker compose run --rm legal-matrix-ingest --dry-run  # schema check only
 
 All matrix text passes the same PII scrub gate before embedding; the
 matrix adds 35 retrievable points across 10 workflow entries.
+
+### 3.2 The Accessible Citizen UI (`frontend-ui`)
+
+`services/frontend` is a React + Vite + Tailwind v4 SPA (RTL, `ar-EG`)
+behind an **nginx sidecar** — the only way the browser reaches the
+pipeline. `INTERNAL_API_KEY` is injected into nginx server-side at
+container start (`NGINX_ENVSUBST_FILTER` limits substitution to that one
+variable); the browser bundle contains **no secrets**.
+
+Accessibility architecture (WCAG 2.2 AAA targets):
+
+- **Contrast-verified themes** — base clay, high-contrast black/yellow
+  (14.7:1), deuteranopia-safe (blue/orange axis), tritanopia-safe; every
+  body-text pair ≥ 7:1.
+- **Dynamic typography** — 100% / 125% / 200% root-size scales; the whole
+  layout is rem-based so nothing breaks (WCAG 1.4.4).
+- **Touch targets ≥ 56px** everywhere; the Emergency Mode buttons are
+  ~112px with 4px borders.
+- **Screen reader support** — semantic landmarks, labelled groups,
+  `aria-pressed` toggles, polite + assertive ARIA live regions for legal
+  alerts, visible `:focus-visible` outlines, skip link.
+- **Voice out/in** — TTS playback with sentence-synced caption
+  highlighting (karaoke pattern); STT via the Web Speech API with honest,
+  announced fallbacks ("use the text box" — never a silent failure).
+  The TTS/STT seams are designed for a Piper-TTS / local ASR container
+  swap without changing call sites.
+- **One-Tap Emergency Mode** — three giant buttons: scan the receipt,
+  speak your complaint, emergency legal steps (with spoken walkthrough).
+
+Honesty gates in the UI: the scanner shows OCR progress only (no fake
+forgery-detection stages), blocked pipeline answers surface the legal
+hold message verbatim with the Ragas score and trace id, and the
+portals hub states that government gateways are independent of this
+tool.
 
 ## 4. Supply-chain & secrets
 

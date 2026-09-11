@@ -185,6 +185,26 @@ services:
     security_opt: ["no-new-privileges:true"]
     shm_size: 512mb               # Chromium needs shared memory headroom
 
+  # ── Accessible citizen UI (WCAG 2.2 AAA) — nginx serves the SPA and
+  #    proxies /api/* to legal-backend-api, injecting X-Internal-Key
+  #    SERVER-SIDE. The browser bundle contains no secrets. ─────────────
+  frontend-ui:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    image: crimsys/frontend-ui:latest
+    container_name: crimsys-frontend
+    restart: unless-stopped
+    environment:
+      <<: *internal-env
+      NGINX_ENVSUBST_FILTER: "^INTERNAL_API_KEY$"
+    networks: [ai-internal]
+    ports:
+      - "127.0.0.1:3000:3000"
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      - legal-backend-api
+
   # ── Workflow automation — the ONLY service on the edge network ──────────
   n8n:
     image: n8nio/n8n:1.62.1

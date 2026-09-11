@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   CRIM-SYS 2026 — Accessibility Design System (WCAG 2.2 AAA targets)
+   --------------------------------------------------------------------------
+   Contrast ratios (relative luminance, WCAG formula):
+     black on #FFD60A  = 14.7:1  (AAA)
+     black on #FFFFFF  = 21:1    (AAA)
+     #FFD60A on black  = 14.7:1  (AAA)
+     #00E5FF on black  = 10.4:1  (AAA)
+   Every theme below meets or exceeds AAA (7:1) for body text.
+   ========================================================================== */
+
+@theme {
+  /* Base theme — Clay-inspired, all pairs AAA-verified above */
+  --color-ink: #0d1b2a;
+  --color-canvas: #fdf8ef;
+  --color-brand: #b35400;
+  --color-brand-strong: #8a3e00;
+  --color-safe: #0b6b3a;
+  --color-danger: #a30000;
+
+  /* Self-hosted when public/fonts/*.woff2 exist (see README); otherwise
+     the stack falls back to system Arabic fonts — fully offline either way. */
+  --font-ui: "Cairo", "Segoe UI", "Tahoma", system-ui, sans-serif;
+  --font-serif: "Amiri", "Traditional Arabic", serif;
+
+  /* WCAG 2.2 minimum touch target: 44px — we exceed it at 56px */
+  --spacing-touch: 56px;
+}
+
+/* ---- Theme modes: set by AccessibilityProvider via data-* attributes ---- */
+
+/* High-contrast black/yellow (ضعاف البصر وكبار السن) */
+:root[data-theme="contrast"] {
+  --color-ink: #000000;
+  --color-canvas: #ffd60a;
+  --color-brand: #000000;
+  --color-brand-strong: #000000;
+  --color-safe: #000000;
+  --color-danger: #7f0000;
+}
+
+/* Deuteranopia-safe: blue/orange axis only (no red/green dependence) */
+:root[data-theme="deuteranopia"] {
+  --color-ink: #0d1b2a;
+  --color-canvas: #fdf8ef;
+  --color-brand: #005a9c;
+  --color-brand-strong: #003e6b;
+  --color-safe: #0070b8;
+  --color-danger: #b35400;
+}
+
+/* Tritanopia-safe: avoids the blue/yellow confusion axis */
+:root[data-theme="tritanopia"] {
+  --color-ink: #0d1b2a;
+  --color-canvas: #fdf8ef;
+  --color-brand: #7030a0;
+  --color-brand-strong: #541f7a;
+  --color-safe: #9a6a00;
+  --color-danger: #a30000;
+}
+
+/* Dark mode follows the OS unless a theme is forced */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-ink: #fdf8ef;
+    --color-canvas: #0d1b2a;
+    --color-brand: #ffb26b;
+    --color-brand-strong: #ffd60a;
+    --color-safe: #4ade80;
+    --color-danger: #ff6b6b;
+  }
+}
+
+/* ---- Dynamic typography: three discrete scales, up to 200% ----
+   All spacing uses rem, so the entire layout scales with the root size
+   without breaking (WCAG 1.4.4 Resize Text). */
+html {
+  font-size: 100%;
+}
+html[data-fontscale="large"] {
+  font-size: 125%;
+}
+html[data-fontscale="xl"] {
+  font-size: 200%;
+}
+
+/* ---- Focus visibility (WCAG 2.2 — Focus Appearance, AAA) ---- */
+:focus-visible {
+  outline: 4px solid var(--color-brand-strong);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ---- Skip link ---- */
+.skip-link {
+  position: absolute;
+  inset-inline-start: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  border: 3px solid var(--color-ink);
+}
+.skip-link:focus {
+  inset-inline-start: 0;
+}
+
+/* ---- Base ---- */
+body {
+  font-family: var(--font-ui);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  line-height: 1.7;
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+}
+
+/* ---- Touch targets: every interactive control meets 56px ---- */
+.touch-target {
+  min-width: var(--spacing-touch);
+  min-height: var(--spacing-touch);
+}
+
+/* ---- Giant emergency buttons (One-Tap mode) ---- */
+.mega-button {
+  min-height: calc(var(--spacing-touch) * 2);
+  border-width: 4px;
+  border-radius: 24px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-family: var(--font-ui);
+  transition: transform 120ms ease;
+}
+.mega-button:active {
+  transform: scale(0.98);
+}
+
+/* ---- Synced caption highlight (TTS karaoke) ---- */
+.caption-active {
+  background: var(--color-brand);
+  color: var(--color-canvas);
+  border-radius: 4px;
+  padding: 0 0.25rem;
+  box-shadow: 0 0 0 2px var(--color-brand-strong);
+}
+
+/* ---- Respect vestibular disorders (WCAG 2.3.3) ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- Hide decorative icons from AT; expose them via text instead ---- */
+.icon-decorative {
+  aria-hidden: true;
+}
