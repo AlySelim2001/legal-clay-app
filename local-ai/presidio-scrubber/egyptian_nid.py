@@ -2,11 +2,15 @@
 Egyptian National ID (الرقم القومي) recognizer for Microsoft Presidio.
 
 The Egyptian NID is exactly 14 digits and is information-dense:
-  digits 1     -> century/century+1 (2 = born 1900s, 3 = born 2000s)
+  digit  1     -> century (2 = born 1900s, 3 = born 2000s)
   digits 2-7   -> YYMMDD date of birth
-  digits 8-10  -> governorate code (11..88; 88 = born abroad)
-  digits 11-13 -> sequencing number
-  digit  14    -> checksum (Luhn-style over the first 13 digits)
+  digits 8-9   -> governorate code (01 Cairo .. 33 Matrouh; 88 = born abroad)
+  digits 10-13 -> birth serial (13th digit: odd = male, even = female)
+  digit  14    -> checksum (standard Luhn check digit over the first 13)
+
+Input text may contain Arabic-Indic digits (٠١٢٣٤٥٦٧٨٩) — common in OCR
+output — so analyze() normalizes them before matching. The translation is
+1:1 per character, so match offsets stay valid against the original text.
 
 The checksum makes this recognizer essentially false-positive-free, which is
 what allows the scrubber to sit as a hard gate in front of every LLM call.
@@ -27,15 +31,29 @@ from presidio_analyzer import (
 
 ENTITIES = ["EG_NATIONAL_ID"]
 
-# 14 digits, with boundaries so a 15-digit number is not partially matched.
+# 14 digits total: century(1) + YY(2) + MM(2) + DD(2) + governorate(2)
+# + serial(4) + checksum(1), with boundaries so a 15-digit number is not
+# partially matched.
 PATTERN = Pattern(
     name="egyptian_nid_14_digits",
     regex=r"(?<!\d)([23]\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])"
-          r"(?:0[1-9]|[1-8][0-9]|88)\d{6})(?!\d)",
+          r"(?:0[1-9]|[1-8][0-9]|88)\d{5})(?!\d)",
     score=0.4,
 )
 
-_GOV_CODES = {f"{g:02d}" for g in list(range(11, 36)) + list(range(88, 89))}
+# Egyptian governorate codes (NID digits 8-9): 01-33 allocated (05-10, 20, 30
+# reserved), 88 = born abroad. We accept 01-35 + 88: for a scrubber,
+# over-inclusion is harmless (the Luhn checksum still filters randoms) while
+# excluding real codes like 01 (Cairo) or 02 (Alexandria) would leak PII
+# straight through to the LLM.
+_GOV_CODES = {f"{g:02d}" for g in list(range(1, 36)) + [88]}
+
+# Arabic-Indic (U+0660-0669) and Extended Arabic-Indic (U+06F0-06F9) digits
+# -> ASCII. Equal-length per-character translation, so string offsets are
+# preserved and results still index into the ORIGINAL text.
+_DIGIT_TRANSLATION = str.maketrans(
+    "٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789"
+)
 
 _CONTEXT_WORDS = [
     "رقم قومي",
@@ -99,8 +117,11 @@ class EgyptianNationalIDRecognizer(LocalRecognizer):
         regex_flags: Optional[int] = None,
     ) -> List[RecognizerResult]:
         results: List[RecognizerResult] = []
+        # Normalize Arabic-Indic/Persian digits to ASCII before matching.
+        # 1:1 per-char translation => offsets remain valid in `text`.
+        normalized = text.translate(_DIGIT_TRANSLATION)
         for match in re.finditer(
-            PATTERN.regex, text, flags=re.UNICODE
+            PATTERN.regex, normalized, flags=re.UNICODE
         ):
             nid = match.group(1)
             score = self._score(nid, match.start(), text)
