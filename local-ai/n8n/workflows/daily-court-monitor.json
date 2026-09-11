@@ -1,0 +1,366 @@
+{
+  "name": "CRIM-SYS — مراقبة أحكام محكمة النقض اليومية",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 6,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "يومياً 06:30 (Cairo)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://court-scraper:8400/scrape",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ keyword: $env.SCRAPE_KEYWORD, limit: 5, source: \"cassation\" }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Scrape Court Site",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Flatten scrape results into items and drop already-seen URLs.\nconst seen = $getWorkflowStaticData('global');\nseen.urls = Array.isArray(seen.urls) ? seen.urls : [];\nconst seenSet = new Set(seen.urls);\nconst out = [];\nfor (const item of items) {\n  for (const r of item.json.results || []) {\n    if (!r.url || seenSet.has(r.url)) continue;\n    seenSet.add(r.url);\n    out.push({ json: r });\n  }\n}\n// Cap the memory footprint of the static store.\nseen.urls = Array.from(seenSet).slice(-500);\nreturn out;"
+      },
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Split + Dedupe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://presidio-scrubber:8100/scrub",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.text, operator: \"redact\" }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Scrub PII (Presidio)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-scrub-clean",
+              "leftValue": "={{ $json.risk }}",
+              "rightValue": "blocked",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "cond-scrub-nonempty",
+              "leftValue": "={{ ($json.scrubbed_text || '').length }}",
+              "rightValue": "50",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "name": "Scrub OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://legal-backend-api:8300/analyze",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ question: $json.scrubbed_text }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "a1b2c3d4-0006-4000-8000-000000000006",
+      "name": "Analyze (CrewAI + RAG)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-analysis-ok",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ok",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0007-4000-8000-000000000007",
+      "name": "Faithfulness Passed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Assemble the channel message with the MANDATORY disclaimer.\nconst esc = (s) => String(s ?? '')\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;');\nconst item = $json;\nconst DISCLAIMER =\n  '⚠️ إخلاء مسؤولية إلزامي: هذا المحتوى مُولّد آلياً كأداة تنظيمية مساعدة، ' +\n  'ولا يُغني بأي حال عن الاستشارة القانونية أو مراجعة ملف القضية الأصلي. ' +\n  '— CRIM-SYS 2026';\nconst message = [\n  '📄 <b>' + esc(item.title) + '</b>',\n  '🔗 ' + esc(item.url),\n  '',\n  '⚖️ <b>التحليل القانوني المبسط:</b>',\n  esc(item.answer).slice(0, 3000),\n  '',\n  DISCLAIMER,\n].join('\\n');\nreturn { json: { message } };"
+      },
+      "id": "a1b2c3d4-0008-4000-8000-000000000008",
+      "name": "Build Message + Disclaimer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHANNEL_ID, text: $json.message, parse_mode: \"HTML\", disable_web_page_preview: true }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "a1b2c3d4-0009-4000-8000-000000000009",
+      "name": "Send to Lawyers Channel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_ADMIN_CHAT_ID, text: \"🚨 CRIM-SYS daily run: تم حجب/تعذر تحليل ملف في سير العمل اليومي — راجع سجل n8n.\", parse_mode: \"HTML\" }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "a1b2c3d4-0010-4000-8000-000000000010",
+      "name": "Alert Admin (held/blocked)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 120]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_ADMIN_CHAT_ID, text: \"🚨 CRIM-SYS daily run فشل في مرحلة من مراحل العمل — راجع تنبيهات n8n.\", parse_mode: \"HTML\" }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "a1b2c3d4-0011-4000-8000-000000000011",
+      "name": "Alert Admin (node error)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 160]
+    }
+  ],
+  "connections": {
+    "يومياً 06:30 (Cairo)": {
+      "main": [
+        [
+          {
+            "node": "Scrape Court Site",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Court Site": {
+      "main": [
+        [
+          {
+            "node": "Split + Dedupe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split + Dedupe": {
+      "main": [
+        [
+          {
+            "node": "Scrub PII (Presidio)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrub PII (Presidio)": {
+      "main": [
+        [
+          {
+            "node": "Scrub OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrub OK?": {
+      "main": [
+        [
+          {
+            "node": "Analyze (CrewAI + RAG)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert Admin (held/blocked)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze (CrewAI + RAG)": {
+      "main": [
+        [
+          {
+            "node": "Faithfulness Passed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Faithfulness Passed?": {
+      "main": [
+        [
+          {
+            "node": "Build Message + Disclaimer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert Admin (held/blocked)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Message + Disclaimer": {
+      "main": [
+        [
+          {
+            "node": "Send to Lawyers Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveExecutionProgress": true,
+    "saveDataSuccessExecution": "none"
+  },
+  "staticData": null,
+  "meta": {
+    "description": "Daily Egyptian court ruling monitor: scrape → PII scrub (hard gate) → CrewAI+RAG analysis (Ragas ≥ 0.95 fail-safe) → closed Telegram channel with mandatory disclaimer. Local-only stack; only Telegram egress."
+  },
+  "tags": [
+    {
+      "name": "crim-sys",
+      "createdAt": "2026-09-11T00:00:00.000Z",
+      "updatedAt": "2026-09-11T00:00:00.000Z"
+    }
+  ]
+}

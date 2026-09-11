@@ -1,0 +1,16 @@
+# Secrets — NEVER commit
+.env
+*.key
+
+# Local data (case documents, vectors, models, n8n db)
+data/raw/*
+!data/raw/.gitkeep
+data/models/
+data/qdrant/
+data/ollama/
+data/n8n/
+
+# Python
+__pycache__/
+*.pyc
+.venv/

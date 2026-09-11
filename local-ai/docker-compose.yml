@@ -1,0 +1,202 @@
+# ============================================================================
+# CRIM-SYS 2026 — Local AI stack (100% localhost, no paid external APIs)
+#
+# Topology (Zero-Trust segmentation — two networks):
+#   edge        : n8n only (sole service with internet egress: Telegram API).
+#   ai-internal : ollama, qdrant, presidio-scrubber, paddle-ocr-service,
+#                 legal-backend-api, court-scraper. No direct internet egress.
+#   Host bindings are loopback-only (127.0.0.1:...) — nothing is reachable
+#   from outside the machine. Service-to-service auth = shared
+#   INTERNAL_API_KEY (>= 32 chars, generated at setup) + internal DNS names.
+#
+# All secrets come from .env (copied from .env.example). No secrets in code.
+# ============================================================================
+
+x-internal-env: &internal-env
+  INTERNAL_API_KEY: ${INTERNAL_API_KEY:?set INTERNAL_API_KEY in .env (openssl rand -hex 32)}
+
+services:
+  # ── Local LLM runtime (qwen2.5:7b / jais-family-13b via `ollama pull`) ──
+  ollama-engine:
+    image: ollama/ollama:0.5.7
+    container_name: crimsys-ollama
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0        # bind inside the container (compose default)
+      - OLLAMA_ORIGINS=*           # intra-compose origin; port is NOT published
+      - OLLAMA_KEEP_ALIVE=24h      # keep the model warm for scheduled runs
+      - OLLAMA_MAX_LOADED_MODELS=2
+    volumes:
+      - ./data/ollama:/root/.ollama
+    networks: [ai-internal]
+    # No ports: reachable only via the ai-internal network.
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 60s
+      timeout: 15s
+      retries: 5
+
+  # ── Vector store (API-key protected) ────────────────────────────────────
+  qdrant-vectorstore:
+    image: qdrant/qdrant:v1.11.3
+    container_name: crimsys-qdrant
+    restart: unless-stopped
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY in .env}
+      # Bind strictly inside the container network.
+      QDRANT__SERVICE__HOST: 0.0.0.0
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    networks: [ai-internal]
+    # No ports: reachable only via the ai-internal network.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':< /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  # ── PII scrubber — the gate in front of every LLM / vector call ─────────
+  presidio-scrubber:
+    build:
+      context: ./presidio-scrubber
+    image: crimsys/presidio-scrubber:latest
+    container_name: crimsys-scrubber
+    restart: unless-stopped
+    environment:
+      <<: *internal-env
+      PII_CONFIDENCE_THRESHOLD: "0.5"
+    networks: [ai-internal]
+    ports:
+      - "127.0.0.1:8100:8100"   # loopback-only: host-side smoke tests
+    security_opt: ["no-new-privileges:true"]
+    read_only: false
+    depends_on: []
+
+  # ── Arabic OCR (PaddleOCR lang=ar) ──────────────────────────────────────
+  paddle-ocr-service:
+    build:
+      context: ./ocr-service
+    image: crimsys/paddle-ocr:latest
+    container_name: crimsys-ocr
+    restart: unless-stopped
+    environment:
+      <<: *internal-env
+    volumes:
+      - ocr-models:/models
+    networks: [ai-internal]
+    ports:
+      - "127.0.0.1:8200:8200"
+    security_opt: ["no-new-privileges:true"]
+
+  # ── RAG + CrewAI pipeline (the "legal-backend-api") ─────────────────────
+  legal-backend-api:
+    build:
+      context: ./legal-backend
+    image: crimsys/legal-backend:latest
+    container_name: crimsys-backend
+    restart: unless-stopped
+    environment:
+      <<: *internal-env
+      SCRUBBER_URL: http://presidio-scrubber:8100
+      QDRANT_URL: http://qdrant-vectorstore:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+      QDRANT_COLLECTION: legal_docs
+      OLLAMA_BASE_URL: http://ollama-engine:11434
+      PRIMARY_MODEL: ${PRIMARY_MODEL:-qwen2.5:7b}
+      ALTERNATE_MODEL: ${ALTERNATE_MODEL:-jais-family-13b}
+      EMBED_MODEL: BAAI/bge-m3
+      FAITHFULNESS_THRESHOLD: "0.95"
+    volumes:
+      - ./data/models:/models
+      - ./data/raw:/data/raw:ro   # ingestion source (read-only from container)
+    networks: [ai-internal]
+    ports:
+      - "127.0.0.1:8300:8300"
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      qdrant-vectorstore:
+        condition: service_started
+      presidio-scrubber:
+        condition: service_started
+      ollama-engine:
+        condition: service_started
+
+  # ── One-shot ingestion job (run manually: docker compose run --rm ingest)
+  ingest:
+    build:
+      context: ./legal-backend
+    image: crimsys/legal-backend:latest
+    container_name: crimsys-ingest
+    profiles: ["tools"]           # not started by `up`
+    environment:
+      <<: *internal-env
+      SCRUBBER_URL: http://presidio-scrubber:8100
+      QDRANT_URL: http://qdrant-vectorstore:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+      QDRANT_COLLECTION: legal_docs
+      EMBED_MODEL: BAAI/bge-m3
+      HF_HUB_OFFLINE: "1"
+    volumes:
+      - ./data/models:/models
+      - ./data/raw:/data/raw:ro
+    command: ["python", "rag_ingestion.py", "--input-dir", "/data/raw"]
+    networks: [ai-internal]
+    depends_on:
+      - qdrant-vectorstore
+      - presidio-scrubber
+
+  # ── Court scraper (Playwright) — called by n8n Cron node ────────────────
+  court-scraper:
+    build:
+      context: ./court-scraper
+    image: crimsys/court-scraper:latest
+    container_name: crimsys-scraper
+    restart: unless-stopped
+    environment:
+      <<: *internal-env
+    networks: [ai-internal]
+    ports:
+      - "127.0.0.1:8400:8400"
+    security_opt: ["no-new-privileges:true"]
+    shm_size: 512mb               # Chromium needs shared memory headroom
+
+  # ── Workflow automation — the ONLY service on the edge network ──────────
+  n8n:
+    image: n8nio/n8n:1.62.1
+    container_name: crimsys-n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=127.0.0.1
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:?set N8N_USER in .env}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:?set N8N_PASSWORD in .env}
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - GENERIC_TIMEZONE=Africa/Cairo
+      - TZ=Africa/Cairo
+      # Injected so the workflow nodes can reference $env.* (compose-only vars).
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
+      - SCRAPE_KEYWORD=${SCRAPE_KEYWORD:-محكمة النقض}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHANNEL_ID=${TELEGRAM_CHANNEL_ID:-}
+      - TELEGRAM_ADMIN_CHAT_ID=${TELEGRAM_ADMIN_CHAT_ID:-}
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+      - ./n8n/workflows:/workflows:ro   # importable from the n8n UI
+    networks: [edge, ai-internal]       # n8n is the bridge (by design)
+    ports:
+      - "127.0.0.1:5678:5678"
+    security_opt: ["no-new-privileges:true"]
+
+volumes:
+  ocr-models:
+
+networks:
+  ai-internal:
+    driver: bridge
+    internal: true                # ← no internet egress at all
+  edge:
+    driver: bridge                # ← internet egress allowed (Telegram only)
