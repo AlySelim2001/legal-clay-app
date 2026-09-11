@@ -1,34 +1,29 @@
 <p dir="rtl" align="center">
 
-# ⚖️ CRIM-SYS 2026 — منظومة إدارة القضايا الجنائية
+# 🛡️ CRIM-SYS 2026 — الدرع القانوني الرقمي للمواطن
 
-### LAW-SYS 2026 Master Edition
-
-منظومة عمل رقمية للمكاتب القانونية المصرية — offline-first، مشفّرة محلياً، وعربية بالكامل.
+### Legal Clay App — منظومة ذكاء اصطناعي محلية مفتوحة المصدر لتمكين المواطن وحمايته من جرائم الابتزاز المستندي وتزوير إيصالات الأمانة
 
 </p>
 
 <p align="center">
-  <a href="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/android-release.yml">
-    <img src="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/android-release.yml/badge.svg" alt="CI/CD Build Status">
-  </a>
   <a href="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/ci.yml">
     <img src="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/ci.yml/badge.svg" alt="Security CI: Bandit + Flake8 + Compose Validation">
   </a>
+  <a href="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/android-release.yml">
+    <img src="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/android-release.yml/badge.svg" alt="Android Release Status">
+  </a>
+  <a href="docs/ARCHITECTURE.md">
+    <img src="https://img.shields.io/badge/Security-Zero--Trust-green.svg" alt="Zero-Trust Architecture">
+  </a>
+  <a href="docs/ARCHITECTURE.md">
+    <img src="https://img.shields.io/badge/PII-Presidio%20Protected-blue.svg" alt="PII: Presidio Protected">
+  </a>
+  <a href="docs/ARCHITECTURE.md">
+    <img src="https://img.shields.io/badge/AI-Local%20100%25%20(Ollama%20%2B%20Qwen2.5)-orange.svg" alt="Local LLM: Ollama + Qwen2.5">
+  </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT%20%2B%20Notice-yellow.svg" alt="License: MIT + Notice">
-  </a>
-  <a href="https://kotlinlang.org">
-    <img src="https://img.shields.io/badge/Kotlin-2.1.0-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin 2.1.0">
-  </a>
-  <a href="https://developer.android.com/jetpack/compose">
-    <img src="https://img.shields.io/badge/Jetpack%20Compose-BOM%202024.12-4285F4?logo=android&logoColor=white" alt="Jetpack Compose">
-  </a>
-  <a href="https://developer.android.com/about/versions/15">
-    <img src="https://img.shields.io/badge/API-26%20%2B%20(Android%208.0%2B)-3DDC84" alt="API 26+">
-  </a>
-  <a href="https://github.com/AlySelim2001/legal-clay-app/pulls">
-    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
   </a>
   <a href="DISCLAIMER.md">
     <img src="https://img.shields.io/badge/Disclaimer-أداة%20تنظيمية%20فقط-orange" alt="Disclaimer: organizational tool only">
@@ -39,157 +34,154 @@
 
 <p dir="rtl">
 
-## 🇪🇬 نظرة عامة — لماذا هذا المشروع؟
+## 📌 الرؤية والهدف الاجتماعي
 
-**المشكلة:** ملف القضية الجنائية في المكتب المصري يعيش اليوم بين ورقٍ مبعثر، ومفكرات شخصية، ورسائل واتساب — بينما الموعد النهائي للطعن أو حضور الجلسة لا يحتمل خطأً واحداً. ضياع موعد واحد قد يضيّع قضية كاملة.
+**المشكلة:** آلاف المواطنين في مصر يواجهون ظاهرة **التشكيلات العصابية المتخصصة في تزوير إيصالات الأمانة** وتوزيع **المحاضر الكيدية** عبر أقسام الشرطة على مستوى الجمهورية، بغرض الابتزاز والضغط المادي والمعنوي. المواطن العادي يجد نفسه أمام محرّر موقّع "بحقه" لا يعرف كيف يدحضه، وإجراءات قانونية لا يفهم لغتها، وموعد نائي لا يحتمل خطأً واحداً.
 
-**الحل:** CRIM-SYS 2026 تطبيق أندرويد أصلي يعمل **دون اتصال بالإنترنت داخل قاعة المحكمة**، يخزّن كل شيء **مشفّراً على الجهاز** (SQLCipher)، ويحتفظ بأي إجراء أُضيف دون شبكة في **طابور مزامنة مؤجل** يُفرَّغ تلقائياً عند عودة الاتصال.
+**الحل:** منظومة عمل رقمية مفتوحة المصدر تعمل **محلياً 100% دون أي خدمات خارجية مدفوعة**، تمنح المواطن والمحامي معاً:
 
-> **إخلاء مسؤولية:** هذه **أداة تنظيمية مساعدة** ولا تُغني بأي حال عن الاستشارة القانونية المتخصصة — راجع [DISCLAIMER.md](DISCLAIMER.md).
+1. **الفحص الجنائي الافتراضي للمحررات** — كشف مؤشرات التلاعب في إيصالات الأمانة والمحاضر.
+2. **الدليل الإجرائي المدعوم بأحكام محكمة النقض** — خارطة طريق عملية لمواجهة القضايا الكيدية وإثبات التزوير والمطالبة بالتعويض.
+3. **التبسيط بالعامية المصرية** — شرح الإجراءات والمسؤوليات بلغة يفهمها المواطن دون خلفية قانونية.
+4. **إدارة كاملة للملف القضائي** — مواعيد، جلسات، مذكرات، ومزامنة مؤجلة تعمل داخل قاعة المحكمة بلا إنترنت.
+
+> **⚠️ إخلاء مسؤولية:** هذه **أداة تنظيمية ومساعدة فنية** ولا تُغني بأي حال عن الاستشارة القانونية المتخصصة أو محامٍ مقيد بنقابة المحامين — راجع [DISCLAIMER.md](DISCLAIMER.md).
 
 </p>
 
 ---
-
-## ✨ الميزات الرئيسية / Key Features
-
-### 📱 تطبيق أندرويد أصلي (الإصدار المرجعي للإنتاج)
-
-| الميزة | الوصف |
-|--------|-------|
-| 🔐 **تشفير كامل محلياً** | قاعدة بيانات Room مشفّرة بـ SQLCipher؛ المفتاح 256-bit ملفوف بمفتاح Android Keystore (AES-GCM) |
-| 📴 **Offline-First** | Room هو مصدر الحقيقة الوحيد؛ القراءات لا تلمس الشبكة أبداً |
-| 🔄 **طابور المزامنة المؤجلة** | أي إجراء دون اتصال يُسجَّل ويُفرَّغ FIFO إلى Firestore عند عودة الشبكة، مع الحفاظ على الترتيب وعدّاد المحاولات |
-| 📅 **تقويم الجلسات** | تقويم kizitonwose Compose مع مؤشرات أيام الجلسات |
-| 📝 **محرر المذكرات** | محرر نصوص غني (richeditor-compose) يدعم العربية وRTL بالكامل |
-| 🌐 **عربي أولاً** | واجهة RTL أصيلة عبر `stringResource` — عربي/إنجليزي بدون إعادة بناء |
-| ⚡ **بدء سريع** | Baseline Profile يسرّع الإقلاع البارد حتى ~30% |
-| 🛡️ **سياسة شبكة صارمة** | منع Cleartext، وربط TLS بالنطاقات المسموحة فقط (Network Security Config) |
-
-### 🤖 وكيل الذكاء الاصطناعي المتعدد (مرجع الويب)
-
-| الوكيل | التخصص | القوانين المرجعية |
-|--------|--------|-------------------|
-| **مستشار الإجراءات والجنايات** | جنائي | قانون الإجراءات الجنائية 150/1950، القانون 174/2025 |
-| **مستشار المدني والتجاري** | مدني وتجاري | القانون المدني 131/1948، قانون الإجراءات المدنية 13/1968 |
-| **مستشار الأحوال الشخصية** | أسرة | القانون 25/1920، القانون 1/2000 |
-| **مستشار القضاء الإداري** | إداري | قانون مجلس الدولة 47/1972 |
-| **مستشار العمل والتأمينات** | عمل | قانون العمل 12/2003، التأمينات 148/2019 |
-| **وكيل كولومبو التفتيشي** | تدقيق جنائي | المواد 40، 41، 44، 137 إجراءات جنائية |
-
-### 📊 إدارة القضايا (مرجع الويب + جوهر الأندرويد)
-
-- **سجل القضايا** — بحث وفرز وتصنيف ذكي
-- **ملف القضية التفصيلي** — هوية القضية، المذكرة، الجلسات، المرفقات
-- **حاسبة المواعيد** — جنائي، مدني، إداري، أحوال شخصية، عمل
-- **كتالوج الدفوع الجنائية** — دفوع مرفقة بأحكام محكمة النقض
-- **تصدير PDF** — مذكرات وجلسات بالخط العربي (Amiri)
-
----
-
-## 🖼️ لقطات الشاشة / Screenshots
-
-<p align="center">
-  <img src="docs/screenshots/dashboard.svg" alt="لوحة المؤشرات" width="240" style="max-width:30%; border-radius:16px; margin:4px"/>
-  <img src="docs/screenshots/cases.svg" alt="سجل القضايا" width="240" style="max-width:30%; border-radius:16px; margin:4px"/>
-  <img src="docs/screenshots/calendar.svg" alt="تقويم الجلسات" width="240" style="max-width:30%; border-radius:16px; margin:4px"/>
-</p>
-
-> 📷 *Placeholders — يُستبدل هذا القسم بلقطات فعلية عند الإطلاق التجريبي المغلق (انظر [docs/LAUNCH_STRATEGY.md](docs/LAUNCH_STRATEGY.md)).*
-
----
-
-## 🏗️ المعمارية / Architecture (English)
-
-Clean Architecture on Android. **Room is the single source of truth**; Firestore is a
-best-effort remote mirror reached through a FIFO offline action queue.
-
-```mermaid
-flowchart LR
-    subgraph UI["Presentation Layer"]
-        S["Compose Screens<br/>(RTL, stringResource)"]
-        VM["ViewModels<br/>StateFlow / SharedFlow"]
-        S -->|events| VM
-        VM -->|state| S
-    end
-
-    subgraph DOMAIN["Domain Layer"]
-        UC["Use Cases<br/>(validation gates)"]
-        RI["Repository Interfaces"]
-        UC --> RI
-    end
-
-    subgraph DATA["Data Layer"]
-        REPO["Repositories<br/>(offline-first impl)"]
-        DB[("Room + SQLCipher<br/>single source of truth")]
-        Q[("OfflineActionQueue<br/>(Room table)")]
-        RDS["RemoteDataSource<br/>(Firestore, optional)"]
-        SYNC["SyncManager<br/>+ NetworkMonitor"]
-    end
-
-    VM --> UC
-    RI -.-> REPO
-    REPO -->|reactive Flow reads| DB
-    REPO -->|write + isSynced=false| DB
-    REPO -->|enqueue| Q
-    REPO -->|opportunistic push if online| RDS
-    SYNC -->|drain FIFO on reconnect| Q
-    SYNC --> RDS
-```
-
-**Key invariants:**
-
-- **Reads never touch the network** — `CaseDao.observeCases()` flows straight into
-  ViewModels via `stateIn`.
-- **Writes land locally first** (`isSynced = false`), enqueue an offline action, then
-  attempt an immediate push; on failure the queue preserves FIFO order and retries
-  on reconnect (booted in `CrimSysApplication` via an app-scoped `SupervisorJob`).
-- **The SQLCipher passphrase** is a random 256-bit key wrapped by an Android Keystore
-  AES-GCM key; DB file and key blob are excluded from cloud backups.
-- **Firestore is optional** — without `google-services.json` the remote layer degrades
-  gracefully and the app runs fully offline.
-
-📖 Full module map and data-flow details: [android/README.md](android/README.md)
-
----
-
-## 🛠️ التقنيات المستخدمة / Tech Stack
-
-| الطبقة | التقنيات |
-|--------|----------|
-| **Android Native** | Kotlin 2.1, Jetpack Compose (Material 3), Navigation Compose, Hilt DI, Coroutines + Flow |
-| **Data (Android)** | Room 2.6 + KSP, SQLCipher (`sqlcipher-android`), DataStore Preferences, kotlinx.serialization |
-| **Sync (Android)** | Firebase Firestore (BOM 33.7), `NetworkMonitor` callbackFlow, `SyncManager` FIFO drain |
-| **UI Extras (Android)** | kizitonwose Calendar Compose, richeditor-compose, Baseline Profiles, R8 + resource shrinking |
-| **Web (المرجع التجريبي)** | React 19, TypeScript, Vite 7, Tailwind CSS 4, shadcn/ui, TanStack Query (offline persistence) |
-| **Web OCR/Calendar** | Tesseract.js (Arabic), FullCalendar (Arabic RTL) |
-| **CI/CD** | GitHub Actions — Gradle debug build QC + tag-driven release APK + خط أنابيب أمني (Bandit/Flake8/Compose) |
-| **Local AI Stack** | Ollama (qwen2.5:7b), Qdrant, Presidio (PII), LlamaIndex + bge-m3, CrewAI + Ragas, n8n — كلها محلية 100% |
-
----
-
-## 🤖 المنظومة الذكية المحلية / Local AI Stack (Zero-Trust)
 
 <p dir="rtl">
 
-منظومة تحليل قانوني محلية بالكامل (دون أي APIs مدفوعة أو خارجية): استرجاع معزز RAG على نصوص قانونية عربية، ووكلاء CrewAI فوق نموذج محلي، مع **بوابة حماية بيانات شخصية (PII) إغلاقية الفشل** تحجب الرقم القومي المصري وبيانات الأطراف قبل أي معالجة، و**بوابة دقة Ragas ≥ 0.95** تحجب أي إجابة غير موثوقة.
+## 💡 محاور الحماية القانونية
 
-البنية المعتمدة: `local-ai/docker-compose.yml` — 8 خدمات على شبكتين معزولتين (`ai-internal` بلا إنترنت + `edge` لـ n8n فقط)، وكل المنافذ المربوطة على `127.0.0.1` حصراً.
+### 1. 🔍 الفحص الجنائي الافتراضي للمحررات (Document Authenticity)
+
+- **الاستخراج النصي العربي:** معالجة صور الإيصالات والمحاضر عبر OCR عربي محلي (`PaddleOCR` بخدمة `paddle-ocr-service`) — بدون رفع أي صورة لخوادم خارجية.
+- **كشف التلاعب (قيد التطوير 🚧):** طبقة رؤية حاسوب مخططة (`YOLO` + مقارنة SSIM عبر OpenCV) لرصد اختلاف أنماط الخطوط، والإضافات اللاحقة للتوقيع، وفحص سلامة الأختام — راجع [خارطة الطريق](#-خارطة-الطريق--roadmap).
+- **ما هو متاح اليوم:** استخراج نص موثوق من المحرر، تحليله عبر محرك RAG القانوني، وتمييز البنية الشرعية/الشكلية الناقصة في إيصال الأمانة (ركن التسليم، توصيف المحرر، البيانات الإلزامية).
+
+### 2. 🏛️ الدليل الإجرائي لمواجهة المحاضر الكيدية
+
+محرك RAG محلي (`Qdrant` + تضمينات `BAAI/bge-m3`) مفهرس على نصوص قانونية وأحكام النقض المتصلة بـ:
+- **الطعن بالتزوير** وإجراءاته أمام النيابة وأرباب الخبرة.
+- **انتفاء ركن التسليم** في دعوى إيصال الأمانة، وصورية المحرر، والتوقيع على بياض.
+- **خارطة طريق مواجهة عملية** بالعامية: طلبات الفحص والتجنيب، إجراءات التقرير بالطعن بالتزوير، دعاوى التزوير المباشر، والتعويض عن البلاغ الكاذب.
+
+> يظل ناتج النظام **دليلاً معرفياً تنظيمياً** للتحضير مع المحامي — وليس رأياً قانونياً ملزماً.
+
+### 3. 🗣️ التبسيط بلغة الشارع (العامية المصرية)
+
+سلسلة وكلاء CrewAI فوق نموذج محلي (`qwen2.5:7b`، وبديل `jais-family-13b`) ينتهي بوكيل مخصص لتبسيط المفاهيم القانونية بالعامية، مع توضيح الفارق بين **المسؤولية الجنائية والمدنية**، وتحويل كل مخرَج إلى خطوات تنفيذية مرقمة. كل إجابة تمر على **بوابة دقة Ragas ≥ 0.95** — وأي إجابة أقل موثوقية تُستبدل برسالة حجب قانونية محددة سلفاً.
+
+### 4. 🗂️ إدارة ملف القضية (للمحامي والمكاتب القانونية)
+
+- سجل قضايا بحث وفرز، ملف قضية تفصيلي، تقويم جلسات، محرر مذكرات عربي RTL.
+- **حاسبة المواعيد** القانونية المربوطة بالمنطقة الزمنية للقاهرة مع تخطي الجمعة/السبت (ومنظومة عطل رسمية قيد الاستكمال القانوني).
+- **تطبيق أندرويد أصلي (الإصدار المرجعي للإنتاج):** offline-first مشفّر بالكامل (SQLCipher) مع طابور مزامنة مؤجل — مصمم لواقع قاعة المحكمة بلا شبكة.
 
 </p>
 
-### أوامر التشغيل الموحدة
+---
 
-```bash
-cd local-ai
-make env        # توليد .env بأسرار حقيقية (openssl rand -hex 32) — أضف TELEGRAM_* يدوياً
-make models     # سحب النماذج: qwen2.5:7b + bge-m3
-make up         # إقلاع البنية المحصّنة (docker compose up -d --build)
-make smoke      # فحص صحة كل الخدمات على loopback
-make ingest     # إدخال الوثائق (scrub-first ثم التضمين في Qdrant)
+<p dir="rtl">
+
+## 🔒 البنية التحتية وحماية الخصوصية (Zero-Trust Security Stack)
+
+بيانات الضحايا ومستنداتهم **لا تغادر جهازك أبداً**:
+
+| الضمانة | التنفيذ |
+|---------|---------|
+| **تجهيل البيانات الشخصية (PII)** | بوابة `Microsoft Presidio` **إغلاقية الفشل**: كل نص يمر عليها قبل أي تحليل، مع مُعرِّف مخصص للرقم القومي المصري (14 خانة + تحقق Luhn + رموز المحافظات + الأرقام العربية-الهندية). نص محجوب أو خدمة متوقفة = رفض المعالجة، لا تجاوز للحماية |
+| **عزل شبكي صارم** | شبكتان: `ai-internal` بلا أي اتصال بالإنترنت (`internal: true`)، و`edge` لخدمة n8n وحدها. لا منفذ يُنشر خارج `127.0.0.1` |
+| **استدلال محلي 100%** | نماذج `Ollama` (`Qwen 2.5`) ومخزن متجهات `Qdrant` محمي بمفتاح API — لا اتصال بأي خادم خارجي |
+| **أسرار مُدارة بشكل صحيح** | توليد تلقائي بـ `openssl rand -hex 32`، صلاحيات `600`، واستبعاد تام من Git |
+| **بناء حتمي** | كل الصور المرفوعة من Docker Hub مثبتة بالإصدار — لا `:latest` |
+
+📖 التفاصيل الكاملة: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+</p>
+
+---
+
+## 🏗️ المعمارية البرمجية (System Architecture)
+
+```text
+[مستند/إيصال أمانة مشبوه أو محضر كيدي]
+        │
+        ▼
+[PaddleOCR عربي] ──► استخراج النص (التحقق البصري للتلاعب: قيد التطوير 🚧)
+        │
+        ▼
+[Presidio PII Scrubber] ──► تجهيل الرقم القومي والأسماء (إغلاقي الفشل)
+        │
+        ▼
+[Qdrant RAG + CrewAI / Qwen2.5 محلي] ──► مطابقة أحكام النقض + شرح الإجراءات
+        │
+        ▼
+[بوابة Ragas ≥ 0.95] ──► إجابة موثوقة بالعامية المصرية، أو رسالة حجب قانونية
 ```
 
+```mermaid
+flowchart LR
+    DOC["مستند مشبوه<br/>(صورة/مسح ضوئي)"] --> OCR["paddle-ocr-service<br/>(OCR عربي محلي)"]
+    OCR --> PII["presidio-scrubber<br/>(بوابة PII إغلاقية الفشل)"]
+    PII -->|نص مجهّل| RAG["legal-backend-api<br/>(RAG + CrewAI محلي)"]
+    QDR[("Qdrant<br/>أحكام النقض")] --> RAG
+    LLM["ollama-engine<br/>(qwen2.5:7b)"] --> RAG
+    RAG --> GATE{"بوابة Ragas<br/>≥ 0.95؟"}
+    GATE -->|نعم| OUT["إجابة مبسطة بالعامية<br/>+ خطوات الطعن"]
+    GATE -->|لا| BLOCK["رسالة الحجب القانونية"]
+    N8N["n8n<br/>(مراقبة يومية للجريدة الرسمية<br/>+ إشعارات Telegram)"] -.->|scrub → analyze| PII
+```
+
+---
+
+<p dir="rtl">
+
+## 🗺️ خريطة المستودع
+
+| المسار | المحتوى |
+|--------|---------|
+| [`local-ai/`](local-ai/) | **البنية المحصّنة** — 8 خدمات Docker على شبكتين معزولتين (التفاصيل: [local-ai/README.md](local-ai/README.md)) |
+| [جذر المستودع](./) | تطبيق ويب مرجعي لإدارة القضايا (React + TypeScript + Vite) — واجهة المطور والتحقق التجريبي |
+| [`android/`](android/) | تطبيق أندرويد أصلي للإنتاج (Kotlin + Compose + SQLCipher) — [دليل البناء](android/README.md) |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | توثيق معمارية Zero-Trust وبوابة PII |
+
+</p>
+
+---
+
+## 🚀 التشغيل المباشر (Quick Start)
+
+### 1. البيئة المحصّنة (Zero-Trust Local Stack)
+
+<p dir="rtl">
+ثماني خدمات مجانية ومفتوحة المصدر بالكامل، تعمل محلياً بعدة أوامر:
+
+```bash
+# 1. الانتقال لمجلد البيئة المحصنة
+cd local-ai
+
+# 2. توليد ملف الأسرار بمفاتيح حقيقية (32+ حرفاً تلقائياً) — لا يوجد قالب
+#    .env.example عمداً؛ المولّد ينتج أسراراً فعلية بصلاحيات 600
+make env           # ثم املأ TELEGRAM_BOT_TOKEN / TELEGRAM_CHANNEL_ID يدوياً
+
+# 3. سحب النماذج المحلية (مرة واحدة)
+make models        # qwen2.5:7b + bge-m3
+
+# 4. إطلاق المنظومة بالكامل
+make up            # docker compose up -d --build
+
+# 5. فحص صحة كل الخدمات (إلزامي قبل الاستخدام)
+make smoke
+```
+
+</p>
+
 ### ✅ قائمة التحقق الحاكمة قبل التشغيل (Pre-Flight — إلزامية)
+
+<p dir="rtl">
 
 - [ ] `.env` مولّد بـ `scripts/gen-env.sh` وصلاحياته `chmod 600` ومستثنى من Git
 - [ ] خدمة الـ scrubber ترفض الإقلاع دون `INTERNAL_API_KEY` (≥ 32 حرفاً) — إغلاقية الفشل
@@ -197,15 +189,11 @@ make ingest     # إدخال الوثائق (scrub-first ثم التضمين ف�
 - [ ] `ping -c1 8.8.8.8` من داخل `ai-internal` **يفشل** (عزل مؤكد)
 - [ ] Qdrant يرد بـ 401 على أي طلب بلا ترويسة `API-KEY`
 - [ ] `ollama list` يُظهر `qwen2.5:7b` و`bge-m3`
-- [ ] مجلد `data/` نظيف قبل أول عملية استيعاب
+- [ ] مجلد `data/` نظيف قبل أول عملية استيعاب — لا يدخل المخزن المتجهي إلا نص مُجهَّل
 
-> 📖 التفاصيل الكاملة للمعمارية وضمانات Zero-Trust: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+</p>
 
----
-
-## 🚀 البدء السريع / Getting Started
-
-### تطبيق الويب (مرجع تجريبي) — Web reference app
+### 2. تطبيق الويب المرجعي (Reference Web App)
 
 ```bash
 git clone https://github.com/AlySelim2001/legal-clay-app.git
@@ -215,73 +203,74 @@ bun run dev          # خادم التطوير
 bun tsc -b --noEmit  # فحص الأنواع
 ```
 
-### تطبيق الأندرويد الأصلي — Native Android app
+### 3. تطبيق الأندرويد الأصلي (Production Android App)
 
 ```bash
 cd android
 ./gradlew assembleDebug        # → app/build/outputs/apk/debug/app-debug.apk
-./gradlew copyReleaseApk       # → app/build/distribution/CRIM-SYS-<ver>-<sha>.apk (يتطلب keystore.properties)
+./gradlew copyReleaseApk       # → إصدار موقّع (يتطلب keystore.properties خارج المستودع)
 ```
 
-**المتطلبات:** JDK 17 + Android SDK (platform 35). يستخدم Gradle wrapper تلقائياً 8.9.
+<p dir="rtl">
 
-> 📖 أدلة تفصيلية: [android/README.md](android/README.md) • [BUILD_GUIDE.md](BUILD_GUIDE.md) • [android/RELEASE_CHECKLIST.md](android/RELEASE_CHECKLIST.md)
+**المتطلبات:** JDK 17 + Android SDK (platform 35). أدلة تفصيلية: [android/README.md](android/README.md) • [BUILD_GUIDE.md](BUILD_GUIDE.md) • [android/RELEASE_CHECKLIST.md](android/RELEASE_CHECKLIST.md)
 
----
-
-## 📦 تحميل النسخة الجاهزة / Downloads
-
-- **أحدث إصدار موقّع:** صفحة [Releases](https://github.com/AlySelim2001/legal-clay-app/releases) — التطبيق يتحقق من التحديثات تلقائياً عبر GitHub Releases API.
-- **بناء CI اليومي (debug):** [Actions → CRIM-SYS 2026 — Android Build](https://github.com/AlySelim2001/legal-clay-app/actions) ← artifact `CRIM-SYS-2026-Debug-APK`.
-
----
-
-## 🤝 الحوكمة / Governance
-
-هذا المشروع يرحّب بالمساهمات وفق ضوابط واضحة — خصوصاً لأن أي خطأ في منطق المواعيد قد يؤثر على قضايا حقيقية:
-
-| المستند | الغرض |
-|---------|-------|
-| [CONTRIBUTING.md](CONTRIBUTING.md) | كيفية الإبلاغ عن خطأ / طلب ميزة / تقديم PR (التزام Clean Architecture + `Result<T>`) |
-| [.github/pull_request_template.md](.github/pull_request_template.md) | قائمة تحقق الـ PR (معمارياً + RTL + بوابة الحساسية القانونية) |
-| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | بيئة محترمة للجميع |
-| [SECURITY.md](SECURITY.md) | الإبلاغ الخاص عن الثغرات الأمنية |
-| [.github/ISSUE_TEMPLATE/legal_compliance.yml](.github/ISSUE_TEMPLATE/legal_compliance.yml) | ⚠️ قالب حساس: أخطاء الحسابات القانونية والمواعيد |
-| [DISCLAIMER.md](DISCLAIMER.md) | الحدود القانونية لاستخدام الأداة |
+</p>
 
 ---
 
 ## 🔒 الأمان والخصوصية / Security & Privacy
 
-- **تشفير على الجهاز** — SQLCipher بكلمة مرور عشوائية غير قابلة للاستخراج (Keystore-wrapped)
-- **استبعاد النسخ السحابي** — قاعدة البيانات ومفتاحها مستثنيان من Android Backup (`backup_rules.xml`)
-- **مصادقة ويب** — Supabase Auth مع سياسات RLS على كل الجداول (المرجع التجريبي)
-- **شبكة مغلقة** — Cleartext محظور؛ TLS مقيّد بنطاقات Google/Firebase + GitHub API لفاحص التحديثات
-- **CI بدون أسرار** — توقيع الإصدار من `keystore.properties` خارج المستودع؛ `google-services.json` مستثنى من Git
+<p dir="rtl">
+
+- **على الجهاز (الأندرويد):** SQLCipher بكلمة مرور عشوائية Keystore-wrapped، استبعاد النسخ السحابي، منع Cleartext، قفل بيومتري.
+- **على الخادم المحلي (local-ai):** بوابة PII إغلاقية الفشل، شبكة داخلية بلا إنترنت، استدلال محلي بالكامل، أسرار مولّدة لا قوالب جاهزة.
+- **في CI:** فحص Bandit الأمني + قواعد Ruff + تحقق بنيوي من الـ compose (منافذ loopback فقط، صور مثبتة، حرس الأسرار) — راجع [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+</p>
 
 ---
 
 ## 🗺️ خارطة الطريق / Roadmap
 
-- [x] طبقة بيانات مشفّرة + مزامنة مؤجلة (Room + SQLCipher + SyncManager)
-- [x] قائمة القضايا، ملف القضية، تقويم الجلسات، محرر المذكرات
-- [x] تصلّب الإنتاج: R8، Baseline Profile، Network Security Config، قواعد ProGuard
+<p dir="rtl">
+
+- [x] بنية Zero-Trust محلية: RAG (Qdrant + bge-m3) + وكلاء CrewAI + بوابة Ragas 0.95
+- [x] بوابة PII إغلاقية الفشل مع مُعرِّف الرقم القومي المصري (مختبَر 14/14 حالة)
+- [x] طبقة بيانات أندرويد مشفّرة + مزامنة مؤجلة (Room + SQLCipher + SyncManager)
+- [ ] 🔍 **طبقة كشف التلاعب البصري** (YOLO + SSIM عبر OpenCV): مقارنة أنماط الخطوط والإضافات اللاحقة وسلامة الأختام — المحور الأول في خدمة ضحايا إيصالات الأمانة
+- [ ] فهرسة أحكام النقض المتخصصة (طعن بالتزوير / إيصالات الأمانة) في مخزن Qdrant بعد مراجعة قانونية
+- [ ] سير n8n لإبلاغ الضحايا بالإجراءات عبر قناة مغلقة مع إخلاء المسؤولية الإلزامي
 - [ ] حاسبة المواعيد القانونية (الأندرويد) — التحقق المزدوج من كل حساب
 - [ ] مسح المستندات OCR عربي على الجهاز (ML Kit)
-- [ ] سجل العملاء + لوحة المؤشرات التنفيذية (الأندرويد)
-- [ ] التحقق داخل التطبيق من التحديثات → الربط بـ GitHub Releases (الكود جاهز، بانتظار أول إصدار موقّع)
+
+</p>
 
 ---
 
-## ⚠️ إخلاء المسؤولية القانوني
+## ⚠️ إخلاء المسؤولية القانوني (Legal Disclaimer)
 
 <p dir="rtl">
 
 > **⚠️ نتائج تقديرية — يجب التحقق منها مع المحامي المختص قبل اتخاذ أي إجراء.**
 >
-> هذا النظام **أداة مساعدة لإدارة المعلومات وتنظيم البيانات القانونية**، ولا يُغني بأي شكل من الأشكال عن الاستشارة القانونية المتخصصة. جميع حسابات المواعيد النهائية والنتائج والتصنيفات تقديرية. المطوّر غير مسؤول عن أي ضياع قضايا أو حقوق ناجم عن الاعتماد على الحسابات التلقائية أو انقطاع الشبكة أو أخطاء الاستخدام. **النص الكامل:** [DISCLAIMER.md](DISCLAIMER.md).
+> هذا المشروع **أداة تقنية مساعدة** قائمة على الذكاء الاصطناعي ومصادر القانون المصري المفتوحة، تهدف لمساعدة المواطنين على فهم حقوقهم ومواجهة التزوير وتنظيم ملفاتهم — **ولا يُعد بديلاً عن الاستشارة القانونية الرسمية** الصادرة من محامٍ مقيد بنقابة المحامين المصريين أو الجهات القضائية المختصة. جميع نتائج الفحص والتحليل والتصنيفات تقديرية، والمطوّر غير مسؤول عن أي قرارات أو إجراءات تُبنى عليها. **النص الكامل:** [DISCLAIMER.md](DISCLAIMER.md).
 
 </p>
+
+---
+
+## 🤝 الحوكمة / Governance
+
+| المستند | الغرض |
+|---------|-------|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | كيفية الإبلاغ عن خطأ / طلب ميزة / تقديم PR |
+| [.github/pull_request_template.md](.github/pull_request_template.md) | قائمة تحقق الـ PR (معمارياً + RTL + بوابة الحساسية القانونية) |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | بيئة محترمة للجميع |
+| [SECURITY.md](SECURITY.md) | الإبلاغ الخاص عن الثغرات الأمنية |
+| [.github/ISSUE_TEMPLATE/legal_compliance.yml](.github/ISSUE_TEMPLATE/legal_compliance.yml) | ⚠️ قالب حساس: أخطاء الحسابات القانونية والمواعيد |
+| [docs/dependency-decisions.md](docs/dependency-decisions.md) | سجل قرارات الاعتماديات |
+| [docs/LAUNCH_STRATEGY.md](docs/LAUNCH_STRATEGY.md) | استراتيجية الإطلاق والتوزيع |
 
 ---
 
@@ -302,7 +291,7 @@ cd android
 
 ## 📄 الترخيص
 
-Licensed under **MIT** — see [LICENSE](LICENSE). The CRIM-SYS 2026 / LAW-SYS 2026
+Licensed under **MIT** — see [LICENSE](LICENSE). The CRIM-SYS 2026 / Legal Clay App
 name and branding are reserved by the copyright holder (see the NOTICE section of
 the license file).
 
@@ -310,6 +299,6 @@ the license file).
 
 <p align="center">
 
-**✨ صُنع بشغف للمجتمع القانوني المصري ✨**
+**✨ صُنع بشغف لحماية المواطن والمجتمع القانوني المصري ✨**
 
 </p>
