@@ -1,0 +1,10 @@
+# Ruff config for the local-ai stack.
+# Selection matches CI (.github/workflows/ci.yml): flake8 core + Bandit S rules.
+# Tests are exempt from S101/S603: `assert` is pytest's assertion mechanism
+# (not an optimization-removal hazard), and the node subprocess call is a
+# fixed, local, read-only syntax check of our own workflow file.
+[lint]
+select = ["E4", "E7", "E9", "F", "S"]
+
+[lint.per-file-ignores]
+"tests/*" = ["S101", "S603"]
