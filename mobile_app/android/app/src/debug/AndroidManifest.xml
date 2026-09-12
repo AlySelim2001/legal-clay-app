@@ -1,7 +1,12 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- DEBUG ONLY: the compose stack binds plain HTTP on 127.0.0.1/LAN.
-         Release builds keep cleartext disabled (network_security_config). -->
-    <application android:usesCleartextTraffic="true">
+         Release builds keep cleartext disabled (main manifest). The
+         tools:replace resolves the merger conflict against the main
+         manifest's usesCleartextTraffic="false". -->
+    <application
+        android:usesCleartextTraffic="true"
+        tools:replace="android:usesCleartextTraffic">
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"

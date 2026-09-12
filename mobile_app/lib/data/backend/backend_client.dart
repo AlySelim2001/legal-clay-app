@@ -14,7 +14,6 @@
 //  4. NO LOGGING of request/response bodies — a legal case file must never
 //     reach logcat/Crashlytics-style surfaces.
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -138,17 +137,22 @@ class BackendClient {
   /// scrubber failure blocks the request (never leaks). The backend applies
   /// its own fail-closed gates again — we render its hold message verbatim.
   Future<AssistantAnswer> ask(String question) async {
-    final PiiScrubResult scrubbed;
+    // On-device PII gate. The scrubber is fail-closed internally (it reports
+    // `blocked` instead of throwing), but any unexpected failure ALSO blocks.
+    final ScrubResult scrubbed;
     try {
       scrubbed = _scrubber.scrub(question);
     } on Exception {
+      throw PiiBlockedError(LegalText.holdMessage);
+    }
+    if (scrubbed.blocked) {
       throw PiiBlockedError(LegalText.holdMessage);
     }
 
     try {
       final res = await _dio.post<Map<String, dynamic>>(
         ApiPaths.analyze,
-        data: <String, dynamic>{'question': scrubbed.scrubbedText},
+        data: <String, dynamic>{'question': scrubbed.sanitizedText},
       );
       final data = res.data;
       if (data == null) {

@@ -62,7 +62,8 @@ jobs:
       - name: Regenerate Gradle Wrapper (jar not committed)
         working-directory: mobile_app/android
         run: |
-          gradle wrapper --gradle-version 8.7 --distribution-type bin
+          # Must match gradle/wrapper/gradle-wrapper.properties (8.12).
+          gradle wrapper --gradle-version 8.12 --distribution-type bin
           chmod +x gradlew
 
       - name: Setup Android Keystore for App Signing
@@ -78,8 +79,10 @@ jobs:
             exit 1
           fi
           echo "$ENCRYPTED_KEYSTORE" | base64 --decode > app/upload-keystore.jks
+          # storeFile is resolved relative to the APP MODULE dir
+          # (mobile_app/android/app) by build.gradle.kts → just the filename.
           cat > key.properties <<EOF
-          storeFile=app/upload-keystore.jks
+          storeFile=upload-keystore.jks
           storePassword=$KEYSTORE_PASSWORD
           keyAlias=$KEY_ALIAS
           keyPassword=$KEY_PASSWORD
@@ -139,10 +142,11 @@ jobs:
         run: |
           cd build_output
           sha256sum *.apk > SHA256SUMS.txt
+          # The glob covers universal + all per-ABI APKs exactly once —
+          # duplicate assets would make `gh release create` fail.
           gh release create "${{ github.ref_name }}" \
             --title "Legal Clay App v$APP_VERSION (Flutter)" \
             --generate-notes \
-            legal-clay-app-v$APP_VERSION-universal.apk \
             legal-clay-app-v$APP_VERSION-*.apk \
             SHA256SUMS.txt
           echo "✅ Release published"

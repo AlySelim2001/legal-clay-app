@@ -12,7 +12,6 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../core/app_error.dart';
 import '../../core/constants.dart';
-import '../../data/backend/backend_client.dart';
 import '../accessibility/a11y_banner.dart';
 import '../main_container.dart';
 import '../voice/voice_gateway.dart';

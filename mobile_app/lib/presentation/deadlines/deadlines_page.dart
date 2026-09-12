@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants.dart';
 import '../../domain/legal/egyptian_deadline_calculator.dart';
+import '../accessibility/a11y_banner.dart';
 import '../main_container.dart';
 
 class DeadlinesPage extends StatefulWidget {
@@ -73,7 +74,7 @@ class _DeadlinesPageState extends State<DeadlinesPage> {
               style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           DropdownButtonFormField<LegalDeadlineChannel>(
-            initialValue: _channel,
+            value: _channel,
             decoration: const InputDecoration(labelText: 'نوع الطعن'),
             items: LegalDeadlineChannel.values
                 .map((c) => DropdownMenuItem(

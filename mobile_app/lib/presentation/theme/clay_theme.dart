@@ -134,7 +134,9 @@ class ClayTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
-      cardTheme: CardThemeData(
+      // CardTheme (not CardThemeData): the pinned Flutter 3.22 SDK expects
+      // CardTheme here; CardThemeData is a 3.27+ addition.
+      cardTheme: CardTheme(
         color: highContrast ? Colors.black : Colors.white.withValues(alpha: 0.7),
         elevation: 0,
         shape: RoundedRectangleBorder(

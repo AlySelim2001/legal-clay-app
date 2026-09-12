@@ -11,10 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_error.dart';
-import '../../core/constants.dart';
 import '../accessibility/a11y_banner.dart';
 import '../voice/voice_gateway.dart';
-import '../../data/backend/backend_client.dart';
 import '../main_container.dart';
 
 enum ScanStage { idle, capturing, uploading, done, failed }
