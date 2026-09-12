@@ -1,0 +1,170 @@
+name: CRIM-SYS 2026 — Mobile Release (Signed APK)
+
+# Flutter/Android release engine: tag `v*` (or manual dispatch) → analyze +
+# test as a HARD gate, keystore restored from repo secrets (missing secrets
+# FAIL the job — no debug-signed "release" ever ships), split-per-ABI + universal
+# APKs built, signatures verified with apksigner, and the GitHub Release
+# publishes legal-clay-app-v<version>-<abi>.apk artifacts.
+#
+# Required repo secrets:
+#   ANDROID_KEYSTORE_BASE64 — base64 of upload-keystore.jks
+#                             (generate: base64 -w0 mobile_app/android/app/upload-keystore.jks)
+#   KEYSTORE_PASSWORD       — keystore password
+#   KEY_ALIAS               — key alias
+#   KEY_PASSWORD            — key password
+
+on:
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  JAVA_VERSION: "17"
+  FLUTTER_VERSION: "3.22.3"
+  APP_VERSION: "1.0.0"
+
+jobs:
+  mobile-release:
+    name: 📱 Build & Publish Flutter Release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java Development Kit (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter Framework
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install Dependencies
+        working-directory: mobile_app
+        run: flutter pub get
+
+      - name: Run Static Analysis & Unit Tests (hard gate)
+        working-directory: mobile_app
+        run: |
+          flutter analyze
+          flutter test
+
+      - name: Regenerate Gradle Wrapper (jar not committed)
+        working-directory: mobile_app/android
+        run: |
+          gradle wrapper --gradle-version 8.7 --distribution-type bin
+          chmod +x gradlew
+
+      - name: Setup Android Keystore for App Signing
+        env:
+          ENCRYPTED_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        working-directory: mobile_app/android
+        run: |
+          if [ -z "$ENCRYPTED_KEYSTORE" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 secret is not set — refusing to produce an unsigned 'release'."
+            exit 1
+          fi
+          echo "$ENCRYPTED_KEYSTORE" | base64 --decode > app/upload-keystore.jks
+          cat > key.properties <<EOF
+          storeFile=app/upload-keystore.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Verify tag matches version (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: mobile_app
+        run: |
+          VERSION=$(grep -oP 'version: \K[0-9]+\.[0-9]+\.[0-9]+' pubspec.yaml | head -1)
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION  tag=$TAG"
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "::error::Tag v$TAG does not match pubspec version $VERSION. Bump the version before tagging."
+            exit 1
+          fi
+
+      - name: Build Signed Production APKs (split-per-ABI + universal)
+        working-directory: mobile_app
+        run: |
+          flutter build apk --release \
+            --split-per-abi \
+            --build-name=$APP_VERSION \
+            --build-number=${{ github.run_number }}
+
+      - name: Collect & Rename Release Artifacts
+        run: |
+          mkdir -p build_output
+          SRC=mobile_app/build/app/outputs/flutter-apk
+          [ -f "$SRC/app-release.apk" ] || { echo "::error::universal APK missing"; exit 1; }
+          cp "$SRC/app-release.apk" build_output/legal-clay-app-v$APP_VERSION-universal.apk
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            if [ -f "$SRC/app-$abi-release.apk" ]; then
+              cp "$SRC/app-$abi-release.apk" build_output/legal-clay-app-v$APP_VERSION-$abi.apk
+            fi
+          done
+          ls -la build_output
+
+      - name: Verify APK Signatures (must be signed)
+        run: |
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)"
+          FAIL=0
+          for apk in build_output/*.apk; do
+            if "$BT/apksigner" verify --print-certs "$apk"; then
+              echo "✅ $apk signature verified"
+            else
+              echo "::error::$apk is NOT correctly signed. Check ANDROID_KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD secrets."
+              FAIL=1
+            fi
+          done
+          exit $FAIL
+
+      - name: Checksums + publish GitHub Release (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd build_output
+          sha256sum *.apk > SHA256SUMS.txt
+          gh release create "${{ github.ref_name }}" \
+            --title "Legal Clay App v$APP_VERSION (Flutter)" \
+            --generate-notes \
+            legal-clay-app-v$APP_VERSION-universal.apk \
+            legal-clay-app-v$APP_VERSION-*.apk \
+            SHA256SUMS.txt
+          echo "✅ Release published"
+
+      - name: Upload build artifacts (dispatch builds only)
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: legal-clay-mobile-${{ github.run_number }}
+          if-no-files-found: error
+          path: build_output/
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## 📱 Mobile Release Summary"
+            echo ""
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            echo "| Ref | \`${{ github.ref_name }}\` |"
+            echo "| Flutter | \`${{ env.FLUTTER_VERSION }}\` |"
+            echo "| Version | \`${{ env.APP_VERSION }}\` |"
+            echo "| Status | ${{ job.status }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

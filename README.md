@@ -148,6 +148,7 @@ flowchart LR
 | [`local-ai/`](local-ai/) | **البنية المحصّنة** — 11 خدمة Docker على شبكتين معزولتين (التفاصيل: [local-ai/README.md](local-ai/README.md)) |
 | [جذر المستودع](./) | تطبيق ويب مرجعي لإدارة القضايا (React + TypeScript + Vite) — واجهة المطور والتحقق التجريبي |
 | [`android/`](android/) | تطبيق أندرويد أصلي للإنتاج (Kotlin + Compose + SQLCipher) — [دليل البناء](android/README.md) |
+| [`mobile_app/`](mobile_app/) | تطبيق الجوال Flutter/Dart — محرك المواعيد بالتحقق المزدوج وبوابة PII إغلاقية الفشل على الجهاز، تخزين SQLCipher، وتثبيت TLS — [دليل البناء](mobile_app/README.md) |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | توثيق معمارية Zero-Trust وبوابة PII |
 
 </p>
