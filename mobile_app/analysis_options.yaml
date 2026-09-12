@@ -1,0 +1,20 @@
+# Legal Clay App — analyzer rules.
+# Base: flutter_lints (recommended) plus hardening: printing must never leak
+# payloads, and file I/O must stay off the UI isolate.
+
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    avoid_print: true
+    avoid_slow_async_io: true
+    always_declare_return_types: true
+    prefer_single_quotes: true
+    unawaited_futures: true
+    discarded_futures: true

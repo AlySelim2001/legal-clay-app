@@ -1,43 +1,57 @@
 # Legal Clay — Mobile (Flutter, Android-first)
 
 Native mobile client for the Zero-Trust legal stack. Arabic-first, offline-first,
-PII-gated. This directory is self-contained: `flutter pub get && flutter build apk --release`.
+PII-gated. Self-contained: `flutter pub get && flutter build apk --release`.
 
 ## Architecture (Clean Architecture)
 ```
 lib/
-  core/            theme, error model, constants, DI container
-  domain/          entities + pure logic (deadline calculator, PII scrubber)
-  data/            SQLCipher database, repository impl, backend client
-  presentation/    pages, widgets
-test/               deadline + PII + DB + matrix-integrity suites
+  core/            constants, error model, clay theme, service locator
+  domain/          pure logic — NO Flutter imports:
+    legal/         EgyptianDeadlineCalculator (port of the audited Kotlin M4 engine)
+    security/      PiiScrubber (port of presidio-scrubber/egyptian_nid.py)
+  data/            SQLCipher database + DAOs, Dio backend client with pinning
+  presentation/    pages + accessibility controller
+test/               deadline / PII / DAO / cross-repo contract suites
 ```
 
 ### Domain logic — one engine per law, tested twice
-- `domain/legal/egyptian_deadline_calculator.dart` — Dart port of
-  `android/app/.../EgyptianDeadlineCalculator.kt`: three channels (opposition 10d,
-  criminal appeal 10d, cassation 60d), Fri/Sat rolled forward to Sunday, and the
-  same **dual-verification** rule (two independent engines must agree or the UI
-  shows a block, never a date). Windows carry `needsLegalReview` until counsel signs off.
-- `domain/security/pii_scrubber.dart` — Dart port of
-  `local-ai/services/presidio-scrubber/egyptian_nid.py`: 14-digit Egyptian NID,
-  Luhn checksum, governorate table (01–35 + 88), Arabic-Indic digit normalization,
-  context boost. **Fail-closed**: a scrubber exception blocks the payload, never leaks it.
+- **Deadlines** (`domain/legal/egyptian_deadline_calculator.dart`): the three
+  channels (المعارضة 10d, الاستئناف الجنائي 10d, الطعن بالنقض 60d), Fri/Sat
+  rolled **forward** to Sunday, and the same **dual-verification** rule as the
+  Kotlin engine: `java.time`-equivalent arithmetic vs a hand-rolled
+  proleptic-Gregorian day-count that shares zero code. Disagreement →
+  `DualCheckFailed` → the UI blocks, it never renders a possibly-wrong legal
+  date. Every channel carries `needsLegalReview` until counsel signs off.
+- **PII** (`domain/security/pii_scrubber.dart`): byte-parity port of the
+  server recognizer — 14-digit Egyptian NID, Luhn checksum, governorate table
+  (01–35 + 88), Arabic-Indic digit normalization, context boost. **Fail-closed**:
+  if scrubbing itself fails, the payload is blocked, never leaked.
 
 ### Data layer
-- **SQLCipher** (`sqflite_sqlcipher`) AES-256; the DB key is a random 32-byte hex
-  string generated once and stored in `flutter_secure_storage` (Android Keystore T-StrongBox when available).
-- **Backend** — release builds talk **HTTPS only** (`https://host:8443`); a URL
-  scheme check throws before any request. Debug builds may point at
-  `http://127.0.0.1:8300`/LAN for the compose stack. Release additionally pins the
-  server cert fingerprint from `--dart-define=TLS_FINGERPRINT_SHA256`; requests are
-  fail-closed on TLS errors. PII gate runs before every backend call.
-- No Firebase, no Google services, no analytics. Zero telemetry.
+- **SQLCipher** (`sqflite_sqlcipher`) AES-256. The DB key is 32 random bytes
+  (hex), generated once, stored via `flutter_secure_storage`
+  (hardware-backed Android Keystore). It never leaves the device.
+- **Backend**: `dio`. Release builds are **HTTPS-only** — a non-https base URL
+  throws before any request exists. Release can pin the server certificate via
+  `--dart-define=TLS_FINGERPRINT_SHA256=...` (enforced through
+  `HttpClient.badCertificateCallback`; for CA-validated chains the system
+  validator applies — stated honestly, no overclaim).
+- **PII gate**: every *text* payload (assistant questions) is scrubbed on-device
+  before it leaves. Scanned images are sent to the local OCR service, whose
+  pipeline text passes the server-side Presidio gate — images can't be regexed.
+- No Firebase, no Google services, no analytics, no telemetry.
 
 ## Release flow
-1. `security/create-keystore.sh` → generates `key.jks` + `key.properties` locally.
-2. Repo secrets: `ANDROID_KEYSTORE_BASE64` (base64 of `key.jks`),
-   `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
-3. Push a tag `v*` → `.github/workflows/mobile-release.yml` runs analysis + tests
-   (hard-failing), builds `--release --split-per-abi`, renames artifacts to
-   `legal-clay-app-v<version>-<abi>.apk`, and publishes the GitHub Release.
+1. `security/create-keystore.sh` → generates `android/app/upload-keystore.jks`
+   + `android/key.properties` (both gitignored).
+2. Repo secrets: `ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`,
+   `KEY_PASSWORD`.
+3. Tag `v*` (or manual dispatch) → `.github/workflows/mobile-release.yml`:
+   analyze + tests are a **hard gate**, the keystore is **required** (a missing
+   secret fails the job — no debug-signed "release" ever ships), split + universal
+   APKs are built, signatures verified with `apksigner`, and the GitHub Release
+   publishes `legal-clay-app-v<version>-<abi>.apk`.
+
+> Note: `gradle-wrapper.jar` is not committed (binary). CI regenerates the
+> wrapper with the runner's system Gradle before building.
