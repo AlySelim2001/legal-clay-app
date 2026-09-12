@@ -1,0 +1,31 @@
+# Flutter/Dart generated / ephemeral
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+ ephemeral/
+**/GeneratedPluginRegistrant.dart
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Secrets — NEVER commit (mirrors repo root rules)
+key.properties
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+google-services.json
+
+# Android
+/android/.gradle/
+/android/local.properties
+/android/key.properties
+/android/key.jks
+/android/app/upload-keystore.jks
+/android/app/.cxx/
+**/gradle-wrapper.jar

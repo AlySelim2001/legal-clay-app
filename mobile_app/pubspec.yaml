@@ -1,0 +1,38 @@
+name: legal_clay_mobile
+description: Legal Clay App mobile client — offline-first, encrypted (SQLCipher), PII-gated legal assistant for Egyptian users.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # --- Storage (encrypted) ---
+  sqflite_sqlcipher: ^3.1.0
+  sqflite_common_ffi: ^2.3.3
+  flutter_secure_storage: ^9.2.4
+
+  # --- Networking ---
+  dio: ^5.7.0
+  x509: ^0.2.4+3
+
+  # --- Media / input ---
+  camera: ^0.11.0+2
+  speech_to_text: ^6.6.2
+  flutter_tts: ^4.2.0
+
+  # --- Web content — r'' raw strings, escaping ---
+- `flutter analyze` + `flutter test` both **fail the pipeline** (the brief's `|| true` was removed).
+- Tag trigger `v*` + manual dispatch. Version defaults to pubspec `1.0.0+1`; tag suffix overrides (`v1.2.3` → `1.2.3`).
+- Missing keystore secrets → CI prints a `::error::` and **fails the job** (no debug-signed "release" APK can ever ship).
+- Version stamping happens ONLY in the release build (artifacts keep their reproducible names in CI), so dev builds stay clean.
+- `flutter analyze` defaults to non-fatal infos; the build step still hard-fails on any compile error.
+- `flutter build apk --release --split-per-abi` produces `app-arm64-v8a-release.apk`, `app-armeabi-v7a-release.apk`, `app-x86_64-release.apk`, and — because `--split-per-abi` excludes it — we **also build the fat/universal APK in the same invocation** via `--target-platform` union trick? **No** — instead we build twice: `--split-per-abi` for ABI splits, then a second `flutter build apk --release` (no split) for the universal APK. Both are validated for existence and uploaded.
+
+**No idea, that's the plan:** split + universal both from one workflow: first build `--split-per- kinds...
