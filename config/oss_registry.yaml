@@ -1,0 +1,654 @@
+# =============================================================================
+# OSS REGISTRY — CRIM-SYS 2026 (Egyptian Legal AI)
+# =============================================================================
+# Machine-readable source of truth for every open-source component integrated
+# in this repository. Human-readable view: docs/OSS_REGISTRY.md
+#
+# GATE: scripts/oss-registry-lint.mjs fails CI when a direct dependency in any
+# manifest (package.json, local-ai/services/*/package.json, mobile_app/pubspec.yaml,
+# local-ai/services/*/requirements.txt, android/gradle/libs.versions.toml,
+# docker images) is absent from `components` AND unmatched by `default_licenses`.
+#
+# Fields per component:
+#   name, surface, version, license (SPDX), tier (1-6), type (A-L),
+#   purpose, origin (repo URL), update_policy, security_notes, review (date)
+#
+# Integration types (docs/OSS_REGISTRY.md §types):
+#   A dependency · B library · C service · D reference implementation
+#   E code extract · F dev tool · G agent skill · H dataset · I model
+#   J UI component · K docker service · L optional plugin
+
+policy:
+  project: CRIM-SYS 2026 (legal-clay-app)
+  distribution_model: open web app (browser SPA) + local self-hosted services + mobile clients
+  license_preferences:
+    preferred: [MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, CC0-1.0]
+    evaluate:  [GPL-3.0, AGPL-3.0, LGPL-3.0, EPL-2.0, MPL-2.0]
+    restricted:
+      - license: Sustainable Use License
+        component: n8n
+        note: >-
+          fair-code, NOT OSI-approved. Permitted as a self-hosted Docker
+          service (internal automation only) — never redistributed or
+          offered as a hosted service to third parties. Tracked here so
+          the restriction stays visible. Flagged in docs/OSS_LICENSES.md.
+  license_unverified_action: REJECT_FOR_PRODUCTION
+  update_policies: [MANUAL, MONTHLY, QUARTERLY, SECURITY_ONLY, PINNED, AUTO_UPDATE_TEST_ONLY]
+  default_update_policy: SECURITY_ONLY
+  supply_chain:
+    no_floating_refs: true        # no 'latest'/main git deps in prod
+    pin_direct: true              # direct deps pinned in manifests
+    sbom: scripts/generate-sbom.mjs   # CycloneDX JSON at sbom/cyclonedx.json
+    sandbox_required_for: [D, E, G]   # sandbox/oss/<name>/ before integration
+  scoring:
+    weights: {architecture: 15, security: 20, license: 15, maintenance: 10,
+              quality: 10, testing: 10, performance: 5, mobile: 5,
+              docs: 5, community: 5}
+    auto_reject_on: [security_failure, license_failure]
+
+# -----------------------------------------------------------------------------
+# Per-package license defaults — the MIT/BSD tail of npm & pub ecosystems.
+# Lint accepts any direct dep matching a key here with the stated license.
+# Each entry was verified against the package's LICENSE at registration time.
+# -----------------------------------------------------------------------------
+default_licenses:
+  # React ecosystem / infra
+  react: MIT
+  react-dom: MIT
+  vite: MIT
+  typescript: Apache-2.0
+  eslint: MIT
+  "@eslint/js": MIT
+  typescript-eslint: MIT
+  eslint-config-prettier: MIT
+  eslint-plugin-react-hooks: MIT
+  eslint-plugin-react-refresh: MIT
+  prettier: MIT
+  globals: Apache-2.0
+  "@types/node": MIT
+  "@types/react": MIT
+  "@types/react-dom": MIT
+  "@vitejs/plugin-react": MIT
+  tailwindcss: MIT
+  "@tailwindcss/vite": MIT
+  tw-animate-css: MIT
+  tailwind-merge: MIT
+  class-variance-authority: Apache-2.0
+  clsx: MIT
+  zustand: MIT
+  date-fns: MIT
+  lucide-react: ISC
+  sonner: MIT
+  vaul: MIT
+  embla-carousel-react: MIT
+  cmdk: MIT
+  input-otp: MIT
+  next-themes: MIT
+  react-day-picker: MIT
+  react-router: MIT
+  react-hook-form: MIT
+  "@hookform/resolvers": MIT
+  react-intersection-observer: MIT
+  react-resizable-panels: MIT
+  zod: MIT
+  hono: MIT
+  axios: MIT
+  idb: ISC
+  recharts: MIT
+  framer-motion: MIT
+  "@jridgewell/trace-mapping": MIT
+  "@oslojs/crypto": MIT
+  "@zumer/snapdom": MIT
+  # Radix UI primitives (shadcn/ui foundation) — all MIT
+  "@radix-ui/react-accordion": MIT
+  "@radix-ui/react-alert-dialog": MIT
+  "@radix-ui/react-aspect-ratio": MIT
+  "@radix-ui/react-avatar": MIT
+  "@radix-ui/react-checkbox": MIT
+  "@radix-ui/react-collapsible": MIT
+  "@radix-ui/react-context-menu": MIT
+  "@radix-ui/react-dialog": MIT
+  "@radix-ui/react-dropdown-menu": MIT
+  "@radix-ui/react-hover-card": MIT
+  "@radix-ui/react-label": MIT
+  "@radix-ui/react-menubar": MIT
+  "@radix-ui/react-navigation-menu": MIT
+  "@radix-ui/react-popover": MIT
+  "@radix-ui/react-progress": MIT
+  "@radix-ui/react-radio-group": MIT
+  "@radix-ui/react-scroll-area": MIT
+  "@radix-ui/react-select": MIT
+  "@radix-ui/react-separator": MIT
+  "@radix-ui/react-slider": MIT
+  "@radix-ui/react-slot": MIT
+  "@radix-ui/react-switch": MIT
+  "@radix-ui/react-tabs": MIT
+  "@radix-ui/react-toggle": MIT
+  "@radix-ui/react-toggle-group": MIT
+  "@radix-ui/react-tooltip": MIT
+  # Fullcalendar
+  "@fullcalendar/core": MIT
+  "@fullcalendar/daygrid": MIT
+  "@fullcalendar/interaction": MIT
+  "@fullcalendar/react": MIT
+  "@fullcalendar/timegrid": MIT
+  # TanStack
+  "@tanstack/react-query": MIT
+  "@tanstack/query-sync-storage-persister": MIT
+  "@tanstack/react-query-persist-client": MIT
+  # Flutter/Dart pub (mobile_app)
+  camera: Apache-2.0
+  crypto: BSD-3-Clause
+  cupertino_icons: Apache-2.0
+  dio: MIT
+  equatable: MIT
+  flutter: BSD-3-Clause
+  flutter_localizations: BSD-3-Clause
+  flutter_secure_storage: BSD-3-Clause
+  flutter_tts: Apache-2.0
+  intl: BSD-3-Clause
+  path: BSD-3-Clause
+  path_provider: BSD-3-Clause
+  provider: MIT
+  speech_to_text: BSD-3-Clause
+  sqflite: BSD-3-Clause
+  flutter_lints: BSD-3-Clause
+  flutter_test: BSD-3-Clause
+
+# -----------------------------------------------------------------------------
+# INFRASTRUCTURE COMPONENTS — full records (security-relevant / architectural)
+# -----------------------------------------------------------------------------
+components:
+  # ── WEB PLATFORM ──────────────────────────────────────────────────────────
+  - name: convex
+    surface: web
+    version: ^1.30.0
+    license: Apache-2.0
+    tier: 2
+    type: C
+    purpose: reactive backend/database for the evidence-first knowledge platform
+    origin: https://github.com/get-convex/convex-js
+    update_policy: SECURITY_ONLY
+    security_notes: client talks only to *.convex.cloud (CSP-pinned); no local secrets
+    review: 2026-09-13
+
+  - name: "@convex-dev/auth"
+    surface: web
+    version: ^0.0.90
+    license: Apache-2.0
+    tier: 2
+    type: B
+    purpose: auth sessions (anonymous + email OTP) for the knowledge platform
+    origin: https://github.com/get-convex/convex-auth
+    update_policy: SECURITY_ONLY
+    security_notes: anonymous sessions isolate per-citizen data without accounts
+    review: 2026-09-13
+
+  - name: "@supabase/supabase-js"
+    surface: web
+    version: ^2.112.4
+    license: Apache-2.0
+    tier: 1
+    type: C
+    purpose: legacy case-management auth/session context (SupabaseAuthProvider)
+    origin: https://github.com/supabase/supabase-js
+    update_policy: SECURITY_ONLY
+    security_notes: keys browser-exposed by design of the legacy flow; RLS assumed server-side
+    review: 2026-09-13
+
+  - name: tesseract.js
+    surface: web
+    version: ^7.0.0
+    license: Apache-2.0
+    tier: 2
+    type: B
+    purpose: browser-side OCR for scanned receipts (document pipeline)
+    origin: https://github.com/naptha/tesseract.js
+    update_policy: MANUAL
+    security_notes: WASM engine; language data fetched on demand — review CDN origin
+    review: 2026-09-13
+
+  - name: vosk-browser
+    surface: web
+    version: ^0.0.8
+    license: MIT
+    tier: 4
+    type: B
+    purpose: offline court-session speech recognition (WASM vosk)
+    origin: https://github.com/ccoreilly/vosk-browser
+    update_policy: PINNED
+    security_notes: loads local model artifacts only; no telemetry
+    review: 2026-09-13
+
+  - name: xlsx
+    surface: web
+    version: ^0.18.5
+    license: Apache-2.0
+    tier: 2
+    type: B
+    purpose: Excel import for case data (EnterpriseExcelImport)
+    origin: https://github.com/SheetJS/sheetjs
+    update_policy: SECURITY_ONLY
+    security_notes: >-
+      npm 'xlsx' mirrors upstream SheetJS; historical prototype-pollution
+      advisories (CVE-2023-30533 fixed in 0.19.3). Keep >=0.19.3; watch advisories.
+    review: 2026-09-13
+
+  - name: jspdf
+    surface: web
+    version: ^4.2.1
+    license: MIT
+    tier: 2
+    type: B
+    purpose: client PDF generation for reports/e-signature
+    origin: https://github.com/parallax/jsPDF
+    update_policy: SECURITY_ONLY
+    review: 2026-09-13
+
+  - name: pdf-lib
+    surface: web
+    version: ^1.17.1
+    license: MIT
+    tier: 2
+    type: B
+    purpose: PDF append/manipulation for e-signature flows
+    origin: https://github.com/Hopding/pdf-lib
+    update_policy: PINNED
+    review: 2026-09-13
+
+  - name: pdfmake
+    surface: web
+    version: ^0.3.11
+    license: MIT
+    tier: 2
+    type: B
+    purpose: Arabic-capable PDF layout engine for legal documents
+    origin: https://github.com/bpampuch/pdfmake
+    update_policy: MANUAL
+    review: 2026-09-13
+
+  - name: "@capacitor/*"
+    surface: web-android
+    version: ^8.5.0 (cli/core/android), per-plugin pins
+    license: MIT
+    tier: 1
+    type: B
+    purpose: web→Android shell for the PWA (camera/fs/haptics/push/status-bar)
+    origin: https://github.com/ionic-team/capacitor
+    update_policy: QUARTERLY
+    security_notes: plugins request Android permissions individually; manifest audited
+    review: 2026-09-13
+
+  - name: "@playwright/test"
+    surface: web-dev
+    version: ^1.62.1
+    license: Apache-2.0
+    tier: 1
+    type: F
+    purpose: e2e suite (tests/e2e — RTL/auth/navigation contracts)
+    origin: https://github.com/microsoft/playwright
+    update_policy: QUARTERLY
+    review: 2026-09-13
+
+  - name: "@vly-ai/integrations"
+    surface: web
+    version: 0.6.13
+    license: MIT
+    license_evidence: package.json SPDX declaration (no LICENSE file shipped in tarball)
+    tier: 5
+    type: B
+    purpose: platform-managed runtime (imported by src/main.tsx) — provided by hosting environment
+    origin: platform-managed (Vly/Freebuff)
+    update_policy: MANUAL
+    security_notes: >-
+      Environment-managed; not chosen by this project. Tracked because it is
+      imported at runtime. If the platform publishes its license, update here.
+    review: 2026-09-13
+
+  # ── LOCAL ZERO-TRUST STACK (local-ai/) ───────────────────────────────────
+  - name: ollama
+    surface: local-ai
+    version: "0.5.7 (docker pin)"
+    license: MIT
+    tier: 1
+    type: K
+    purpose: local LLM runtime (LLMProvider adapter target)
+    origin: https://github.com/ollama/ollama
+    update_policy: MANUAL
+    security_notes: binds internal network only; no outbound key requirements
+    review: 2026-09-13
+
+  - name: qdrant
+    surface: local-ai
+    version: v1.11.3 (docker pin)
+    license: Apache-2.0
+    tier: 2
+    type: K
+    purpose: local vector store behind the retriever abstraction
+    origin: https://github.com/qdrant/qdrant
+    update_policy: QUARTERLY
+    review: 2026-09-13
+
+  - name: n8n
+    surface: local-ai
+    version: 1.62.1 (docker pin)
+    license: Sustainable Use License
+    tier: 2
+    type: K
+    purpose: internal workflow automation between services
+    origin: https://github.com/n8n-io/n8n
+    update_policy: SECURITY_ONLY
+    security_notes: >-
+      NOT OSI open-source. Allowed strictly as self-hosted internal service;
+      never redistribute, never expose as hosted offering. License notes in
+      docs/OSS_LICENSES.md; candidate for replacement if licensing blocks a
+      future distribution model.
+    review: 2026-09-13
+
+  - name: fastapi
+    surface: local-ai
+    version: 0.115.0
+    license: MIT
+    tier: 1
+    type: B
+    purpose: service API layer (legal-backend, scrubber, OCR, scraper)
+    origin: https://github.com/fastapi/fastapi
+    update_policy: SECURITY_ONLY
+    review: 2026-09-13
+
+  - name: pydantic
+    surface: local-ai
+    version: 2.9.2
+    license: MIT
+    tier: 1
+    type: B
+    purpose: schema validation for all service payloads
+    origin: https://github.com/pydantic/pydantic
+    update_policy: SECURITY_ONLY
+    review: 2026-09-13
+
+  - name: py:uvicorn
+    surface: local-ai
+    version: 0.30.6 (uvicorn[standard] extra installed)
+    license: BSD-3-Clause
+    tier: 1
+    type: B
+    purpose: ASGI server for local services (standard extras: websockets/httptools)
+    origin: https://github.com/encode/uvicorn
+    update_policy: SECURITY_ONLY
+    review: 2026-09-13
+
+  - name: py:numpy
+    surface: local-ai
+    version: <2.0 (constraint — paddle 2.6 compatibility bound)
+    license: BSD-3-Clause
+    tier: 1
+    type: B
+    purpose: numeric core for OCR service; constrained <2.0 by paddlepaddle
+    origin: https://github.com/numpy/numpy
+    update_policy: MANUAL
+    review: 2026-09-13
+
+  - name: kotlinx-serialization-json
+    surface: android
+    gradle_group: org.jetbrains.kotlinx
+    version: via kotlin BOM (libs.versions.toml)
+    license: Apache-2.0
+    tier: 1
+    type: B
+    purpose: typed persistence models in the Kotlin app
+    origin: https://github.com/Kotlin/kotlinx.serialization
+    update_policy: QUARTERLY
+    review: 2026-09-13
+
+  - name: kotlinx-coroutines-play-services
+    surface: android
+    gradle_group: org.jetbrains.kotlinx
+    version: 1.10.1
+    license: Apache-2.0
+    tier: 1
+    type: B
+    purpose: Task<T> → suspend bridging for Firebase calls
+    origin: https://github.com/Kotlin/kotlinx.coroutines
+    update_policy: QUARTERLY
+    review: 2026-09-13
+
+  - name: android-image-cropper
+    surface: android
+    gradle_group: com.vanniktech
+    version: 4.6.0 (com.vanniktech)
+    license: Apache-2.0
+    tier: 3
+    type: B
+    purpose: document photo crop UI in the scanner flow
+    origin: https://github.com/vanniktech/AndroidImageCropper
+    update_policy: MANUAL
+    review: 2026-09-13
+
+  - name: compose-calendar (kizitonwose)
+    surface: android
+    gradle_group: com.kizitonwose
+    version: via libs.versions.toml
+    license: MIT
+    tier: 3
+    type: J
+    purpose: hearing-calendar Compose component
+    origin: https://github.com/kizitonwose/Calendar
+    update_policy: MANUAL
+    review: 2026-09-13
+
+  - name: richeditor-compose
+    surface: android
+    gradle_group: com.mohamedrejeb
+    version: via libs.versions.toml (com.mohamedrejeb)
+    license: Apache-2.0
+    tier: 3
+    type: J
+    purpose: rich text notes editor in the case workspace
+    origin: https://github.com/MohamedRejeb/compose-rich-editor
+    update_policy: MANUAL
+    review: 2026-09-13
+
+  - name: presidio-scrubber (service)
+    surface: local-ai
+    version: repo service @ local-ai/services/presidio-scrubber
+    license: MIT (presidio upstream)
+    tier: 2
+    type: C
+    purpose: PII detection/masking gate (egyptian_nid.py recognizer) before egress
+    origin: https://github.com/microsoft/presidio
+    update_policy: SECURITY_ONLY
+    security_notes: fail-closed contract mirrored on-device (mobile PiiScrubber)
+    review: 2026-09-13
+
+  - name: paddleocr
+    surface: local-ai
+    version: 2.7.3 / paddlepaddle 2.6.2
+    license: Apache-2.0
+    tier: 3
+    type: B
+    purpose: Arabic-capable OCR service for scanned legal documents
+    origin: https://github.com/PaddlePaddle/PaddleOCR
+    update_policy: MANUAL
+    security_notes: headless opencv pin (4.10.0.84); numpy<2 constraint
+    review: 2026-09-13
+
+  - name: llama-index-core
+    surface: local-ai
+    version: 0.11.14
+    license: MIT
+    tier: 2
+    type: B
+    purpose: RAG orchestration inside legal-backend (behind retriever adapter)
+    origin: https://github.com/run-llama/llama_index
+    update_policy: MANUAL
+    security_notes: pinned as a set with qdrant-client/embeddings (see requirements header)
+    review: 2026-09-13
+
+  - name: ragas
+    surface: local-ai
+    version: 0.2.6
+    license: Apache-2.0
+    tier: 3
+    type: F
+    purpose: RAG evaluation metrics feeding the internal eval harness
+    origin: https://github.com/explodinggradients/ragas
+    update_policy: MANUAL
+    review: 2026-09-13
+
+  - name: crewai
+    surface: local-ai
+    version: 0.80.0
+    license: MIT
+    tier: 3
+    type: B
+    purpose: agent orchestration in legal-backend (-court workflow agents)
+    origin: https://github.com/crewAIInc/crewAI
+    update_policy: MANUAL
+    review: 2026-09-13
+
+  - name: playwright (python)
+    surface: local-ai
+    version: 1.47.0
+    license: Apache-2.0
+    tier: 1
+    type: B
+    purpose: court-scraper fetch engine
+    origin: https://github.com/microsoft/playwright-python
+    update_policy: SECURITY_ONLY
+    security_notes: scraper egress limited to official court domains by policy
+    review: 2026-09-13
+
+  # ── ANDROID (Kotlin) ──────────────────────────────────────────────────────
+  - name: androidx.compose
+    surface: android
+    version: BOM 2024.12.01
+    license: Apache-2.0
+    tier: 1
+    type: J
+    purpose: UI toolkit (claymorphism theme implementation)
+    origin: https://android.googlesource.com/platform/frameworks/support
+    update_policy: QUARTERLY
+    review: 2026-09-13
+
+  - name: sqlcipher-android
+    surface: android
+    version: 4.5.4
+    license: BSD-3-Clause
+    tier: 2
+    type: B
+    purpose: AES-256 encrypted local case database
+    origin: https://github.com/sqlcipher/sqlcipher
+    update_policy: SECURITY_ONLY
+    review: 2026-09-13
+
+  - name: androidx.security:security-crypto
+    surface: android
+    version: 1.1.0-alpha06
+    license: Apache-2.0
+    tier: 1
+    type: B
+    purpose: Keystore-backed key storage for the SQLCipher key
+    origin: https://android.googlesource.com/platform/frameworks/support
+    update_policy: SECURITY_ONLY
+    security_notes: alpha channel — re-verify at stable 1.1.0
+    review: 2026-09-13
+
+  - name: hilt
+    surface: android
+    version: 2.55
+    license: Apache-2.0
+    tier: 1
+    type: B
+    purpose: DI for the Kotlin app
+    origin: https://github.com/google/dagger
+    update_policy: QUARTERLY
+    review: 2026-09-13
+
+  - name: mlkit-text-recognition
+    surface: android
+    version: 16.0.1
+    license: Google ML Kit Terms (on-device, free)
+    tier: 3
+    type: I
+    purpose: on-device Arabic text recognition (scanner)
+    origin: https://developers.google.com/ml-kit
+    update_policy: MANUAL
+    security_notes: on-device inference; no image egress; terms not OSI — tracked
+    review: 2026-09-13
+
+  - name: firebase-bom
+    surface: android
+    version: 33.7.0
+    license: Apache-2.0
+    tier: 1
+    type: B
+    purpose: push notification transport
+    origin: https://github.com/firebase/firebase-android-sdk
+    update_policy: SECURITY_ONLY
+    review: 2026-09-13
+
+  # ── FLUTTER (mobile_app) key deps ─────────────────────────────────────────
+  - name: sqflite_sqlcipher
+    surface: flutter
+    version: ^3.1.0
+    license: BSD-2-Clause
+    tier: 3
+    type: B
+    purpose: AES-256 encrypted local DB (SQLCipher binding)
+    origin: https://github.com/davidmartos96/sqflite_sqlcipher
+    update_policy: SECURITY_ONLY
+    review: 2026-09-13
+
+  - name: flutter_secure_storage
+    surface: flutter
+    version: ^9.2.2
+    license: BSD-3-Clause
+    tier: 2
+    type: B
+    purpose: Keystore-backed vault for the DB key
+    origin: https://github.com/juliansteenbakker/flutter_secure_storage
+    update_policy: SECURITY_ONLY
+    review: 2026-09-13
+
+  - name: dio
+    surface: flutter
+    version: ^5.7.0
+    license: MIT
+    tier: 2
+    type: B
+    purpose: HTTP client with TLS-pinning adapter for the local stack
+    origin: https://github.com/cfug/dio
+    update_policy: SECURITY_ONLY
+    review: 2026-09-13
+
+# -----------------------------------------------------------------------------
+# REJECTED CANDIDATES — documented so nobody re-proposes them (full reasoning
+# in docs/dependency-decisions.md §wishlist manifest → disposition)
+# -----------------------------------------------------------------------------
+rejected:
+  - name: langchain
+    reason: heavyweight; project's own hybrid retriever (src/rag/*) is auditable and Arabic-aware
+  - name: ethers
+    reason: replaced by dependency-free signer (src/blockchain/document-verification.ts)
+  - name: neo4j-driver
+    reason: requires bolt server; in-memory knowledge graph facade suffices
+  - name: "@tensorflow/tfjs"
+    reason: 1MB+ runtime with no bundled weights; explainable scoring implemented without it
+  - name: pdf-parse
+    reason: Node-only; SPA creates/embeds documents client-side
+  - name: meilisearch
+    reason: requires hosted server; local fuzzy engine suffices
+  - name: "@pinecone-database/pinecone"
+    reason: SDK rejected; hosted vector integrated via plain REST (Turbopuffer) instead
+  - name: "@mike-oss/legal-client" / "@lawglance/sdk"
+    reason: packages do not exist on npm; local facades implemented
+  - name: vosk (native)
+    reason: Node-native; vosk-browser (WASM) used instead
+  - name: n8n-workflow
+    reason: workflow engine irrelevant in an SPA
+
+# -----------------------------------------------------------------------------
+# ACTIVE CANDIDATES (open evaluation) — none promoted to production
+# -----------------------------------------------------------------------------
+candidates: []

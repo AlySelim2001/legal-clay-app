@@ -1,0 +1,2808 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:a8d01d62-83e3-7599-5279-eacda719c645",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-13T09:56:04.849Z",
+    "tools": [
+      {
+        "vendor": "CRIM-SYS",
+        "name": "generate-sbom.mjs",
+        "version": "1.0.0"
+      }
+    ],
+    "properties": [
+      {
+        "name": "crimsys:project",
+        "value": "CRIM-SYS 2026 (legal-clay-app)"
+      },
+      {
+        "name": "crimsys:registry",
+        "value": "config/oss_registry.yaml"
+      },
+      {
+        "name": "crimsys:license_enriched",
+        "value": "23/197"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.activity:activity-compose@activityCompose",
+      "name": "androidx.activity:activity-compose",
+      "version": "activityCompose",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.activity/activity-compose@activityCompose"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.appcompat:appcompat@appcompat",
+      "name": "androidx.appcompat:appcompat",
+      "version": "appcompat",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.appcompat/appcompat@appcompat"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.biometric:biometric@biometric",
+      "name": "androidx.biometric:biometric",
+      "version": "biometric",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.biometric/biometric@biometric"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.compose:compose-bom@composeBom",
+      "name": "androidx.compose:compose-bom",
+      "version": "composeBom",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.compose/compose-bom@composeBom"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.core:core-ktx@coreKtx",
+      "name": "androidx.core:core-ktx",
+      "version": "coreKtx",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.core/core-ktx@coreKtx"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.core:core-splashscreen@splashscreen",
+      "name": "androidx.core:core-splashscreen",
+      "version": "splashscreen",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.core/core-splashscreen@splashscreen"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.datastore:datastore-preferences@datastore",
+      "name": "androidx.datastore:datastore-preferences",
+      "version": "datastore",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.datastore/datastore-preferences@datastore"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.hilt:hilt-navigation-compose@hiltNavigationCompose",
+      "name": "androidx.hilt:hilt-navigation-compose",
+      "version": "hiltNavigationCompose",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.hilt/hilt-navigation-compose@hiltNavigationCompose"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.lifecycle:lifecycle-runtime-compose@lifecycle",
+      "name": "androidx.lifecycle:lifecycle-runtime-compose",
+      "version": "lifecycle",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.lifecycle/lifecycle-runtime-compose@lifecycle"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.lifecycle:lifecycle-runtime-ktx@lifecycle",
+      "name": "androidx.lifecycle:lifecycle-runtime-ktx",
+      "version": "lifecycle",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.lifecycle/lifecycle-runtime-ktx@lifecycle"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.lifecycle:lifecycle-viewmodel-compose@lifecycle",
+      "name": "androidx.lifecycle:lifecycle-viewmodel-compose",
+      "version": "lifecycle",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.lifecycle/lifecycle-viewmodel-compose@lifecycle"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.navigation:navigation-compose@navigation",
+      "name": "androidx.navigation:navigation-compose",
+      "version": "navigation",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.navigation/navigation-compose@navigation"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.room:room-compiler@room",
+      "name": "androidx.room:room-compiler",
+      "version": "room",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.room/room-compiler@room"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.room:room-ktx@room",
+      "name": "androidx.room:room-ktx",
+      "version": "room",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.room/room-ktx@room"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.room:room-runtime@room",
+      "name": "androidx.room:room-runtime",
+      "version": "room",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.room/room-runtime@room"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.room:room-testing@room",
+      "name": "androidx.room:room-testing",
+      "version": "room",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.room/room-testing@room"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.security:security-crypto@securityCrypto",
+      "name": "androidx.security:security-crypto",
+      "version": "securityCrypto",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.security/security-crypto@securityCrypto",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.sqlite:sqlite-ktx@androidxSqlite",
+      "name": "androidx.sqlite:sqlite-ktx",
+      "version": "androidxSqlite",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.sqlite/sqlite-ktx@androidxSqlite"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.test.espresso:espresso-core@espresso",
+      "name": "androidx.test.espresso:espresso-core",
+      "version": "espresso",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.test.espresso/espresso-core@espresso"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.test.ext:junit@junitExt",
+      "name": "androidx.test.ext:junit",
+      "version": "junitExt",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.test.ext/junit@junitExt"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.test.uiautomator:uiautomator@uiautomator",
+      "name": "androidx.test.uiautomator:uiautomator",
+      "version": "uiautomator",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.test.uiautomator/uiautomator@uiautomator"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.work:work-runtime-ktx@workRuntime",
+      "name": "androidx.work:work-runtime-ktx",
+      "version": "workRuntime",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.work/work-runtime-ktx@workRuntime"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/app.cash.turbine:turbine@turbine",
+      "name": "app.cash.turbine:turbine",
+      "version": "turbine",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/app.cash.turbine/turbine@turbine"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/com.google.dagger:hilt-android-compiler@hilt",
+      "name": "com.google.dagger:hilt-android-compiler",
+      "version": "hilt",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/com.google.dagger/hilt-android-compiler@hilt"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/com.google.dagger:hilt-android@hilt",
+      "name": "com.google.dagger:hilt-android",
+      "version": "hilt",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/com.google.dagger/hilt-android@hilt"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/com.google.firebase:firebase-bom@firebaseBom",
+      "name": "com.google.firebase:firebase-bom",
+      "version": "firebaseBom",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/com.google.firebase/firebase-bom@firebaseBom"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/com.google.mlkit:text-recognition-arabic@mlkitTextRecognition",
+      "name": "com.google.mlkit:text-recognition-arabic",
+      "version": "mlkitTextRecognition",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/com.google.mlkit/text-recognition-arabic@mlkitTextRecognition"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/com.kizitonwose.calendar:compose@calendar",
+      "name": "com.kizitonwose.calendar:compose",
+      "version": "calendar",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/com.kizitonwose.calendar/compose@calendar"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/com.mohamedrejeb.richeditor:richeditor-compose@richeditor",
+      "name": "com.mohamedrejeb.richeditor:richeditor-compose",
+      "version": "richeditor",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/com.mohamedrejeb.richeditor/richeditor-compose@richeditor"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/com.vanniktech:android-image-cropper@imageCropper",
+      "name": "com.vanniktech:android-image-cropper",
+      "version": "imageCropper",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/com.vanniktech/android-image-cropper@imageCropper"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/io.mockk:mockk@mockk",
+      "name": "io.mockk:mockk",
+      "version": "mockk",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/io.mockk/mockk@mockk"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/junit:junit@junit",
+      "name": "junit:junit",
+      "version": "junit",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/junit/junit@junit"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/net.zetetic:sqlcipher-android@sqlcipher",
+      "name": "net.zetetic:sqlcipher-android",
+      "version": "sqlcipher",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/net.zetetic/sqlcipher-android@sqlcipher"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/org.jetbrains.kotlinx:kotlinx-coroutines-play-services@coroutinesPlayServices",
+      "name": "org.jetbrains.kotlinx:kotlinx-coroutines-play-services",
+      "version": "coroutinesPlayServices",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/org.jetbrains.kotlinx/kotlinx-coroutines-play-services@coroutinesPlayServices"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/org.jetbrains.kotlinx:kotlinx-serialization-json@serializationJson",
+      "name": "org.jetbrains.kotlinx:kotlinx-serialization-json",
+      "version": "serializationJson",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/org.jetbrains.kotlinx/kotlinx-serialization-json@serializationJson"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/camera@0.11.0",
+      "name": "camera",
+      "version": "0.11.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/camera@0.11.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/crypto@3.0.3",
+      "name": "crypto",
+      "version": "3.0.3",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/crypto@3.0.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/cupertino_icons@1.0.8",
+      "name": "cupertino_icons",
+      "version": "1.0.8",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/cupertino_icons@1.0.8"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/dio@5.7.0",
+      "name": "dio",
+      "version": "5.7.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/dio@5.7.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/equatable@2.0.5",
+      "name": "equatable",
+      "version": "2.0.5",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/equatable@2.0.5"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/flutter_lints@4.0.0",
+      "name": "flutter_lints",
+      "version": "4.0.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/flutter_lints@4.0.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/flutter_localizations@unknown",
+      "name": "flutter_localizations",
+      "version": "unknown",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/flutter_localizations@unknown"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/flutter_secure_storage@9.2.2",
+      "name": "flutter_secure_storage",
+      "version": "9.2.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/flutter_secure_storage@9.2.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/flutter_test@unknown",
+      "name": "flutter_test",
+      "version": "unknown",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/flutter_test@unknown"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/flutter_tts@4.0.2",
+      "name": "flutter_tts",
+      "version": "4.0.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/flutter_tts@4.0.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/flutter@unknown",
+      "name": "flutter",
+      "version": "unknown",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/flutter@unknown"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/intl@0.19.0",
+      "name": "intl",
+      "version": "0.19.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/intl@0.19.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/path_provider@2.1.4",
+      "name": "path_provider",
+      "version": "2.1.4",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/path_provider@2.1.4"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/path@1.9.0",
+      "name": "path",
+      "version": "1.9.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/path@1.9.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/provider@6.1.2",
+      "name": "provider",
+      "version": "6.1.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/provider@6.1.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/speech_to_text@6.6.2",
+      "name": "speech_to_text",
+      "version": "6.6.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/speech_to_text@6.6.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/sqflite_sqlcipher@3.1.0",
+      "name": "sqflite_sqlcipher",
+      "version": "3.1.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/sqflite_sqlcipher@3.1.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:flutter/sqflite@2.3.3",
+      "name": "sqflite",
+      "version": "2.3.3",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "flutter"
+        }
+      ],
+      "purl": "pkg:pub/sqflite@2.3.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/court-scraper/fastapi@0.115.0",
+      "name": "fastapi",
+      "version": "0.115.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/court-scraper"
+        }
+      ],
+      "purl": "pkg:pypi/fastapi@0.115.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/court-scraper/playwright@1.47.0",
+      "name": "playwright",
+      "version": "1.47.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/court-scraper"
+        }
+      ],
+      "purl": "pkg:pypi/playwright@1.47.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/court-scraper/pydantic@2.9.2",
+      "name": "pydantic",
+      "version": "2.9.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/court-scraper"
+        }
+      ],
+      "purl": "pkg:pypi/pydantic@2.9.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/court-scraper/uvicorn@0.30.6",
+      "name": "uvicorn",
+      "version": "0.30.6",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/court-scraper"
+        }
+      ],
+      "purl": "pkg:pypi/uvicorn@0.30.6"
+    },
+    {
+      "type": "container",
+      "bom-ref": "pkg:local-ai/docker/crimsys/court-scraper@latest",
+      "name": "crimsys/court-scraper",
+      "version": "latest",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/docker"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "pkg:local-ai/docker/crimsys/frontend-ui@latest",
+      "name": "crimsys/frontend-ui",
+      "version": "latest",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/docker"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "pkg:local-ai/docker/crimsys/legal-backend@latest",
+      "name": "crimsys/legal-backend",
+      "version": "latest",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/docker"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "pkg:local-ai/docker/crimsys/paddle-ocr@latest",
+      "name": "crimsys/paddle-ocr",
+      "version": "latest",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/docker"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "pkg:local-ai/docker/crimsys/presidio-scrubber@latest",
+      "name": "crimsys/presidio-scrubber",
+      "version": "latest",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/docker"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "pkg:local-ai/docker/n8nio/n8n@1.62.1",
+      "name": "n8nio/n8n",
+      "version": "1.62.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/docker"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "pkg:local-ai/docker/ollama/ollama@0.5.7",
+      "name": "ollama/ollama",
+      "version": "0.5.7",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/docker"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "pkg:local-ai/docker/qdrant/qdrant@v1.11.3",
+      "name": "qdrant/qdrant",
+      "version": "v1.11.3",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/docker"
+        }
+      ]
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:local-ai/frontend/@tailwindcss/vite@4.0.0",
+      "name": "@tailwindcss/vite",
+      "version": "4.0.0",
+      "group": "@tailwindcss",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/frontend"
+        }
+      ],
+      "purl": "pkg:npm/%40tailwindcss%2Fvite@4.0.0"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:local-ai/frontend/@types/react-dom@18.3.1",
+      "name": "@types/react-dom",
+      "version": "18.3.1",
+      "group": "@types",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/frontend"
+        }
+      ],
+      "purl": "pkg:npm/%40types%2Freact-dom@18.3.1"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:local-ai/frontend/@types/react@18.3.12",
+      "name": "@types/react",
+      "version": "18.3.12",
+      "group": "@types",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/frontend"
+        }
+      ],
+      "purl": "pkg:npm/%40types%2Freact@18.3.12"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:local-ai/frontend/@vitejs/plugin-react@4.3.4",
+      "name": "@vitejs/plugin-react",
+      "version": "4.3.4",
+      "group": "@vitejs",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/frontend"
+        }
+      ],
+      "purl": "pkg:npm/%40vitejs%2Fplugin-react@4.3.4"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/frontend/react-dom@18.3.1",
+      "name": "react-dom",
+      "version": "18.3.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/frontend"
+        }
+      ],
+      "purl": "pkg:npm/react-dom@18.3.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/frontend/react@18.3.1",
+      "name": "react",
+      "version": "18.3.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/frontend"
+        }
+      ],
+      "purl": "pkg:npm/react@18.3.1"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:local-ai/frontend/tailwindcss@4.0.0",
+      "name": "tailwindcss",
+      "version": "4.0.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/frontend"
+        }
+      ],
+      "purl": "pkg:npm/tailwindcss@4.0.0"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:local-ai/frontend/typescript@5.6.3",
+      "name": "typescript",
+      "version": "5.6.3",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/frontend"
+        }
+      ],
+      "purl": "pkg:npm/typescript@5.6.3"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:local-ai/frontend/vite@5.4.11",
+      "name": "vite",
+      "version": "5.4.11",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/frontend"
+        }
+      ],
+      "purl": "pkg:npm/vite@5.4.11"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/crewai-tools@0.14.0",
+      "name": "crewai-tools",
+      "version": "0.14.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/crewai-tools@0.14.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/crewai@0.80.0",
+      "name": "crewai",
+      "version": "0.80.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/crewai@0.80.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/datasets@3.0.1",
+      "name": "datasets",
+      "version": "3.0.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/datasets@3.0.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/fastapi@0.115.0",
+      "name": "fastapi",
+      "version": "0.115.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/fastapi@0.115.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/httpx@0.27.2",
+      "name": "httpx",
+      "version": "0.27.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/httpx@0.27.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/langchain-ollama@0.2.2",
+      "name": "langchain-ollama",
+      "version": "0.2.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/langchain-ollama@0.2.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/llama-index-core@0.11.14",
+      "name": "llama-index-core",
+      "version": "0.11.14",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/llama-index-core@0.11.14",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/llama-index-embeddings-huggingface@0.3.1",
+      "name": "llama-index-embeddings-huggingface",
+      "version": "0.3.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/llama-index-embeddings-huggingface@0.3.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/llama-index-vector-stores-qdrant@0.3.2",
+      "name": "llama-index-vector-stores-qdrant",
+      "version": "0.3.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/llama-index-vector-stores-qdrant@0.3.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/qdrant-client@1.11.3",
+      "name": "qdrant-client",
+      "version": "1.11.3",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/qdrant-client@1.11.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/ragas@0.2.6",
+      "name": "ragas",
+      "version": "0.2.6",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/ragas@0.2.6",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/sentence-transformers@3.1.1",
+      "name": "sentence-transformers",
+      "version": "3.1.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/sentence-transformers@3.1.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/torch@2.4.1",
+      "name": "torch",
+      "version": "2.4.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/torch@2.4.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/legal-backend/uvicorn@0.30.6",
+      "name": "uvicorn",
+      "version": "0.30.6",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/legal-backend"
+        }
+      ],
+      "purl": "pkg:pypi/uvicorn@0.30.6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/paddle-ocr-service/fastapi@0.115.0",
+      "name": "fastapi",
+      "version": "0.115.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/paddle-ocr-service"
+        }
+      ],
+      "purl": "pkg:pypi/fastapi@0.115.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/paddle-ocr-service/numpy@2.0",
+      "name": "numpy",
+      "version": "2.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/paddle-ocr-service"
+        }
+      ],
+      "purl": "pkg:pypi/numpy@2.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/paddle-ocr-service/opencv-python-headless@4.10.0.84",
+      "name": "opencv-python-headless",
+      "version": "4.10.0.84",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/paddle-ocr-service"
+        }
+      ],
+      "purl": "pkg:pypi/opencv-python-headless@4.10.0.84"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/paddle-ocr-service/paddleocr@2.7.3",
+      "name": "paddleocr",
+      "version": "2.7.3",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/paddle-ocr-service"
+        }
+      ],
+      "purl": "pkg:pypi/paddleocr@2.7.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/paddle-ocr-service/paddlepaddle@2.6.2",
+      "name": "paddlepaddle",
+      "version": "2.6.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/paddle-ocr-service"
+        }
+      ],
+      "purl": "pkg:pypi/paddlepaddle@2.6.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/paddle-ocr-service/Pillow@10.4.0",
+      "name": "Pillow",
+      "version": "10.4.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/paddle-ocr-service"
+        }
+      ],
+      "purl": "pkg:pypi/pillow@10.4.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/paddle-ocr-service/python-multipart@0.0.9",
+      "name": "python-multipart",
+      "version": "0.0.9",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/paddle-ocr-service"
+        }
+      ],
+      "purl": "pkg:pypi/python-multipart@0.0.9"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:local-ai/paddle-ocr-service/uvicorn@0.30.6",
+      "name": "uvicorn",
+      "version": "0.30.6",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "local-ai/paddle-ocr-service"
+        }
+      ],
+      "purl": "pkg:pypi/uvicorn@0.30.6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@capacitor/android@8.5.0",
+      "name": "@capacitor/android",
+      "version": "8.5.0",
+      "group": "@capacitor",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40capacitor%2Fandroid@8.5.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@capacitor/app@8.1.1",
+      "name": "@capacitor/app",
+      "version": "8.1.1",
+      "group": "@capacitor",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40capacitor%2Fapp@8.1.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@capacitor/cli@8.5.0",
+      "name": "@capacitor/cli",
+      "version": "8.5.0",
+      "group": "@capacitor",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40capacitor%2Fcli@8.5.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@capacitor/core@8.5.0",
+      "name": "@capacitor/core",
+      "version": "8.5.0",
+      "group": "@capacitor",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40capacitor%2Fcore@8.5.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@capacitor/device@8.0.3",
+      "name": "@capacitor/device",
+      "version": "8.0.3",
+      "group": "@capacitor",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40capacitor%2Fdevice@8.0.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@capacitor/filesystem@8.1.3",
+      "name": "@capacitor/filesystem",
+      "version": "8.1.3",
+      "group": "@capacitor",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40capacitor%2Ffilesystem@8.1.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@capacitor/haptics@8.0.2",
+      "name": "@capacitor/haptics",
+      "version": "8.0.2",
+      "group": "@capacitor",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40capacitor%2Fhaptics@8.0.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@capacitor/keyboard@8.0.5",
+      "name": "@capacitor/keyboard",
+      "version": "8.0.5",
+      "group": "@capacitor",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40capacitor%2Fkeyboard@8.0.5"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@capacitor/push-notifications@8.1.2",
+      "name": "@capacitor/push-notifications",
+      "version": "8.1.2",
+      "group": "@capacitor",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40capacitor%2Fpush-notifications@8.1.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@capacitor/status-bar@8.0.3",
+      "name": "@capacitor/status-bar",
+      "version": "8.0.3",
+      "group": "@capacitor",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40capacitor%2Fstatus-bar@8.0.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@convex-dev/auth@0.0.90",
+      "name": "@convex-dev/auth",
+      "version": "0.0.90",
+      "group": "@convex-dev",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40convex-dev%2Fauth@0.0.90",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/@eslint/js@9.39.1",
+      "name": "@eslint/js",
+      "version": "9.39.1",
+      "group": "@eslint",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40eslint%2Fjs@9.39.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@fullcalendar/core@6",
+      "name": "@fullcalendar/core",
+      "version": "6",
+      "group": "@fullcalendar",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40fullcalendar%2Fcore@6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@fullcalendar/daygrid@6",
+      "name": "@fullcalendar/daygrid",
+      "version": "6",
+      "group": "@fullcalendar",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40fullcalendar%2Fdaygrid@6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@fullcalendar/interaction@6",
+      "name": "@fullcalendar/interaction",
+      "version": "6",
+      "group": "@fullcalendar",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40fullcalendar%2Finteraction@6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@fullcalendar/react@6",
+      "name": "@fullcalendar/react",
+      "version": "6",
+      "group": "@fullcalendar",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40fullcalendar%2Freact@6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@fullcalendar/timegrid@6",
+      "name": "@fullcalendar/timegrid",
+      "version": "6",
+      "group": "@fullcalendar",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40fullcalendar%2Ftimegrid@6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@hookform/resolvers@5.2.2",
+      "name": "@hookform/resolvers",
+      "version": "5.2.2",
+      "group": "@hookform",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40hookform%2Fresolvers@5.2.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@jridgewell/trace-mapping@0.3.31",
+      "name": "@jridgewell/trace-mapping",
+      "version": "0.3.31",
+      "group": "@jridgewell",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40jridgewell%2Ftrace-mapping@0.3.31"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@oslojs/crypto@1.0.1",
+      "name": "@oslojs/crypto",
+      "version": "1.0.1",
+      "group": "@oslojs",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40oslojs%2Fcrypto@1.0.1"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/@playwright/test@1.62.1",
+      "name": "@playwright/test",
+      "version": "1.62.1",
+      "group": "@playwright",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40playwright%2Ftest@1.62.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-accordion@1.2.12",
+      "name": "@radix-ui/react-accordion",
+      "version": "1.2.12",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-accordion@1.2.12"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-alert-dialog@1.1.15",
+      "name": "@radix-ui/react-alert-dialog",
+      "version": "1.1.15",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-alert-dialog@1.1.15"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-aspect-ratio@1.1.8",
+      "name": "@radix-ui/react-aspect-ratio",
+      "version": "1.1.8",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-aspect-ratio@1.1.8"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-avatar@1.1.11",
+      "name": "@radix-ui/react-avatar",
+      "version": "1.1.11",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-avatar@1.1.11"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-checkbox@1.3.3",
+      "name": "@radix-ui/react-checkbox",
+      "version": "1.3.3",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-checkbox@1.3.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-collapsible@1.1.12",
+      "name": "@radix-ui/react-collapsible",
+      "version": "1.1.12",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-collapsible@1.1.12"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-context-menu@2.2.16",
+      "name": "@radix-ui/react-context-menu",
+      "version": "2.2.16",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-context-menu@2.2.16"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-dialog@1.1.15",
+      "name": "@radix-ui/react-dialog",
+      "version": "1.1.15",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-dialog@1.1.15"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-dropdown-menu@2.1.16",
+      "name": "@radix-ui/react-dropdown-menu",
+      "version": "2.1.16",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-dropdown-menu@2.1.16"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-hover-card@1.1.15",
+      "name": "@radix-ui/react-hover-card",
+      "version": "1.1.15",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-hover-card@1.1.15"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-label@2.1.8",
+      "name": "@radix-ui/react-label",
+      "version": "2.1.8",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-label@2.1.8"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-menubar@1.1.16",
+      "name": "@radix-ui/react-menubar",
+      "version": "1.1.16",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-menubar@1.1.16"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-navigation-menu@1.2.14",
+      "name": "@radix-ui/react-navigation-menu",
+      "version": "1.2.14",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-navigation-menu@1.2.14"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-popover@1.1.15",
+      "name": "@radix-ui/react-popover",
+      "version": "1.1.15",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-popover@1.1.15"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-progress@1.1.8",
+      "name": "@radix-ui/react-progress",
+      "version": "1.1.8",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-progress@1.1.8"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-radio-group@1.3.8",
+      "name": "@radix-ui/react-radio-group",
+      "version": "1.3.8",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-radio-group@1.3.8"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-scroll-area@1.2.10",
+      "name": "@radix-ui/react-scroll-area",
+      "version": "1.2.10",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-scroll-area@1.2.10"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-select@2.2.6",
+      "name": "@radix-ui/react-select",
+      "version": "2.2.6",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-select@2.2.6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-separator@1.1.8",
+      "name": "@radix-ui/react-separator",
+      "version": "1.1.8",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-separator@1.1.8"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-slider@1.3.6",
+      "name": "@radix-ui/react-slider",
+      "version": "1.3.6",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-slider@1.3.6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-slot@1.2.4",
+      "name": "@radix-ui/react-slot",
+      "version": "1.2.4",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-slot@1.2.4"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-switch@1.2.6",
+      "name": "@radix-ui/react-switch",
+      "version": "1.2.6",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-switch@1.2.6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-tabs@1.1.13",
+      "name": "@radix-ui/react-tabs",
+      "version": "1.1.13",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-tabs@1.1.13"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-toggle-group@1.1.11",
+      "name": "@radix-ui/react-toggle-group",
+      "version": "1.1.11",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-toggle-group@1.1.11"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-toggle@1.1.10",
+      "name": "@radix-ui/react-toggle",
+      "version": "1.1.10",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-toggle@1.1.10"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@radix-ui/react-tooltip@1.2.8",
+      "name": "@radix-ui/react-tooltip",
+      "version": "1.2.8",
+      "group": "@radix-ui",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40radix-ui%2Freact-tooltip@1.2.8"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@supabase/supabase-js@2.112.4",
+      "name": "@supabase/supabase-js",
+      "version": "2.112.4",
+      "group": "@supabase",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40supabase%2Fsupabase-js@2.112.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@tailwindcss/vite@4.1.17",
+      "name": "@tailwindcss/vite",
+      "version": "4.1.17",
+      "group": "@tailwindcss",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40tailwindcss%2Fvite@4.1.17"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@tanstack/query-sync-storage-persister@5.102.8",
+      "name": "@tanstack/query-sync-storage-persister",
+      "version": "5.102.8",
+      "group": "@tanstack",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40tanstack%2Fquery-sync-storage-persister@5.102.8"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@tanstack/react-query-persist-client@5.102.8",
+      "name": "@tanstack/react-query-persist-client",
+      "version": "5.102.8",
+      "group": "@tanstack",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40tanstack%2Freact-query-persist-client@5.102.8"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@tanstack/react-query@5.102.8",
+      "name": "@tanstack/react-query",
+      "version": "5.102.8",
+      "group": "@tanstack",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40tanstack%2Freact-query@5.102.8"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/@types/node@24.10.1",
+      "name": "@types/node",
+      "version": "24.10.1",
+      "group": "@types",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40types%2Fnode@24.10.1"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/@types/react-dom@19.2.3",
+      "name": "@types/react-dom",
+      "version": "19.2.3",
+      "group": "@types",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40types%2Freact-dom@19.2.3"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/@types/react@19.2.7",
+      "name": "@types/react",
+      "version": "19.2.7",
+      "group": "@types",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40types%2Freact@19.2.7"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/@vitejs/plugin-react@5.1.1",
+      "name": "@vitejs/plugin-react",
+      "version": "5.1.1",
+      "group": "@vitejs",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40vitejs%2Fplugin-react@5.1.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@vly-ai/integrations@0.6.13",
+      "name": "@vly-ai/integrations",
+      "version": "0.6.13",
+      "group": "@vly-ai",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40vly-ai%2Fintegrations@0.6.13",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/@zumer/snapdom@2.0.1",
+      "name": "@zumer/snapdom",
+      "version": "2.0.1",
+      "group": "@zumer",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/%40zumer%2Fsnapdom@2.0.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/axios@1.13.2",
+      "name": "axios",
+      "version": "1.13.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/axios@1.13.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/class-variance-authority@0.7.1",
+      "name": "class-variance-authority",
+      "version": "0.7.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/class-variance-authority@0.7.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/clsx@2.1.1",
+      "name": "clsx",
+      "version": "2.1.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/clsx@2.1.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/cmdk@1.1.1",
+      "name": "cmdk",
+      "version": "1.1.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/cmdk@1.1.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/convex@1.30.0",
+      "name": "convex",
+      "version": "1.30.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/convex@1.30.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/date-fns@4.1.0",
+      "name": "date-fns",
+      "version": "4.1.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/date-fns@4.1.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/embla-carousel-react@8.6.0",
+      "name": "embla-carousel-react",
+      "version": "8.6.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/embla-carousel-react@8.6.0"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/eslint-config-prettier@10.1.8",
+      "name": "eslint-config-prettier",
+      "version": "10.1.8",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/eslint-config-prettier@10.1.8"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/eslint-plugin-react-hooks@7.0.1",
+      "name": "eslint-plugin-react-hooks",
+      "version": "7.0.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/eslint-plugin-react-hooks@7.0.1"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/eslint-plugin-react-refresh@0.4.24",
+      "name": "eslint-plugin-react-refresh",
+      "version": "0.4.24",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/eslint-plugin-react-refresh@0.4.24"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/eslint@9.39.1",
+      "name": "eslint",
+      "version": "9.39.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/eslint@9.39.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/framer-motion@12.23.25",
+      "name": "framer-motion",
+      "version": "12.23.25",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/framer-motion@12.23.25"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/globals@16.5.0",
+      "name": "globals",
+      "version": "16.5.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/globals@16.5.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/hono@4.10.7",
+      "name": "hono",
+      "version": "4.10.7",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/hono@4.10.7"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/idb@8.0.3",
+      "name": "idb",
+      "version": "8.0.3",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/idb@8.0.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/input-otp@1.4.2",
+      "name": "input-otp",
+      "version": "1.4.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/input-otp@1.4.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/jspdf@4.2.1",
+      "name": "jspdf",
+      "version": "4.2.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/jspdf@4.2.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/lucide-react@0.555.0",
+      "name": "lucide-react",
+      "version": "0.555.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/lucide-react@0.555.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/next-themes@0.4.6",
+      "name": "next-themes",
+      "version": "0.4.6",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/next-themes@0.4.6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/pdf-lib@1.17.1",
+      "name": "pdf-lib",
+      "version": "1.17.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/pdf-lib@1.17.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/pdfmake@0.3.11",
+      "name": "pdfmake",
+      "version": "0.3.11",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/pdfmake@0.3.11",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/prettier@3.7.3",
+      "name": "prettier",
+      "version": "3.7.3",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/prettier@3.7.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/react-day-picker@9.13.0",
+      "name": "react-day-picker",
+      "version": "9.13.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/react-day-picker@9.13.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/react-dom@19.2.0",
+      "name": "react-dom",
+      "version": "19.2.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/react-dom@19.2.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/react-hook-form@7.67.0",
+      "name": "react-hook-form",
+      "version": "7.67.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/react-hook-form@7.67.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/react-intersection-observer@10.0.0",
+      "name": "react-intersection-observer",
+      "version": "10.0.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/react-intersection-observer@10.0.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/react-resizable-panels@3.0.6",
+      "name": "react-resizable-panels",
+      "version": "3.0.6",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/react-resizable-panels@3.0.6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/react-router@7.10.0",
+      "name": "react-router",
+      "version": "7.10.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/react-router@7.10.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/react@19.2.0",
+      "name": "react",
+      "version": "19.2.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/react@19.2.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/recharts@2.15.4",
+      "name": "recharts",
+      "version": "2.15.4",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/recharts@2.15.4"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/sonner@2.0.7",
+      "name": "sonner",
+      "version": "2.0.7",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/sonner@2.0.7"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/tailwind-merge@3.4.0",
+      "name": "tailwind-merge",
+      "version": "3.4.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/tailwind-merge@3.4.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/tailwindcss@4.1.17",
+      "name": "tailwindcss",
+      "version": "4.1.17",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/tailwindcss@4.1.17"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/tesseract.js@7.0.0",
+      "name": "tesseract.js",
+      "version": "7.0.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/tesseract.js@7.0.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/tw-animate-css@1.4.0",
+      "name": "tw-animate-css",
+      "version": "1.4.0",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/tw-animate-css@1.4.0"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/typescript-eslint@8.48.1",
+      "name": "typescript-eslint",
+      "version": "8.48.1",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/typescript-eslint@8.48.1"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/typescript@5.9.3",
+      "name": "typescript",
+      "version": "5.9.3",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/typescript@5.9.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/vaul@1.1.2",
+      "name": "vaul",
+      "version": "1.1.2",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/vaul@1.1.2"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "pkg:web/vite@7.2.6",
+      "name": "vite",
+      "version": "7.2.6",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/vite@7.2.6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/vosk-browser@0.0.8",
+      "name": "vosk-browser",
+      "version": "0.0.8",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/vosk-browser@0.0.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/xlsx@0.18.5",
+      "name": "xlsx",
+      "version": "0.18.5",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/xlsx@0.18.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/zod@4.1.13",
+      "name": "zod",
+      "version": "4.1.13",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/zod@4.1.13"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:web/zustand@5.0.15",
+      "name": "zustand",
+      "version": "5.0.15",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "web"
+        }
+      ],
+      "purl": "pkg:npm/zustand@5.0.15"
+    }
+  ]
+}
