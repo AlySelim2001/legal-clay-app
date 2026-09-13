@@ -162,4 +162,50 @@ class CitationValidatorTest {
         assertTrue(repo.isEffective(citation(), LocalDate.of(2021, 4, 1)))
         assertFalse(repo.isEffective(citation(), LocalDate.of(2021, 3, 31)))
     }
+
+    // -------------------------------------------------------------
+    // Temporal version resolution (the registry stores amendments as
+    // coexisting rows; the validator picks the version in force).
+    // -------------------------------------------------------------
+
+    @Test
+    fun `disjoint temporal versions resolve to the version in force`() = runTest {
+        // Original text 2021-04-01 → 2024-12-31, replaced 2025-01-01.
+        val oldVersion = citation(
+            effectiveFrom = LocalDate.of(2021, 4, 1),
+            effectiveTo = LocalDate.of(2024, 12, 31),
+        )
+        val newVersion = citation(
+            effectiveFrom = LocalDate.of(2025, 1, 1),
+            effectiveTo = null,
+            sha = "a".repeat(64),
+        )
+        val result = validatorOf(oldVersion, newVersion).verify(parsedCitation(), eventDate)
+        assertTrue(result is VerificationResult.Verified)
+        // The replacement — not the repealed text — must be the citation returned.
+        assertEquals("a".repeat(64), (result as VerificationResult.Verified).citation.sourceSha256)
+    }
+
+    @Test
+    fun `overlapping windows on the event date are ambiguous`() = runTest {
+        val v1 = citation(effectiveFrom = LocalDate.of(2021, 4, 1), effectiveTo = null)
+        val v2 = citation(effectiveFrom = LocalDate.of(2023, 1, 1), effectiveTo = null)
+        val result = validatorOf(v1, v2).verify(parsedCitation(), eventDate)
+        assertEquals(RejectionReason.AMBIGUOUS_SOURCE_MATCH, (result as VerificationResult.Rejected).reason)
+    }
+
+    @Test
+    fun `gap between versions on the event date rejects as not effective`() = runTest {
+        val oldVersion = citation(
+            effectiveFrom = LocalDate.of(2021, 4, 1),
+            effectiveTo = LocalDate.of(2024, 12, 31),
+        )
+        val futureVersion = citation(
+            effectiveFrom = LocalDate.of(2026, 12, 31),
+            effectiveTo = null,
+        )
+        // eventDate 2026-09-01 falls in the gap between repeal and succession.
+        val result = validatorOf(oldVersion, futureVersion).verify(parsedCitation(), eventDate)
+        assertEquals(RejectionReason.NOT_EFFECTIVE_ON_EVENT_DATE, (result as VerificationResult.Rejected).reason)
+    }
 }

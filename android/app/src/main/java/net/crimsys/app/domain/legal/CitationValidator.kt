@@ -8,33 +8,37 @@ import javax.inject.Inject
  * Citation gate: verifies a parsed citation against the authoritative
  * registry before any statement citing the law leaves this app.
  *
- * Verification is FIRST-FAIL in the order of [RejectionReason] — a rejected
- * citation reports the earliest blocking problem, never a blend:
+ * The registry is TEMPORALLY VERSIONED — one article may have several
+ * verified rows (amendments, replacements), each with its own validity
+ * window. Verification therefore resolves WHICH version was in force on the
+ * event date, then checks that version's integrity:
  *
  * 1. format (`UNSUPPORTED_CITATION_FORMAT`) — law name and article required;
- * 2. registry match (`NO_SOURCE_MATCH` / `AMBIGUOUS_SOURCE_MATCH`) — the
- *    exact (lawName, article, paragraph) lookup must resolve to exactly one
- *    registered artifact;
- * 3. artifact integrity (`SOURCE_HASH_INVALID`) and provenance
- *    (`SOURCE_URL_INVALID`);
- * 4. temporal validity (`NOT_EFFECTIVE_ON_EVENT_DATE`) — delegated to
- *    [LegalRegistryRepository.isEffective], checked against the EVENT date,
- *    not today.
+ * 2. registry match (`NO_SOURCE_MATCH`) — no verified row for the exact
+ *    (law, article[, paragraph]) citation at all;
+ * 3. temporal filter (`NOT_EFFECTIVE_ON_EVENT_DATE`) — rows exist but none
+ *    covers the event date (checked against the EVENT date, never today);
+ * 4. ambiguity (`AMBIGUOUS_SOURCE_MATCH`) — MORE THAN ONE version covers the
+ *    event date (overlapping windows). Disjoint windows are history, not
+ *    ambiguity: they resolve in step 3's filter.
+ * 5. integrity of the single resolved version (`SOURCE_HASH_INVALID`,
+ *    `SOURCE_URL_INVALID`).
  *
- * Note on [RejectionReason.SOURCE_NOT_VERIFIED]: the registry contract
- * guarantees that only human-verified artifacts are ever registered (the
- * write gate in the registry implementation), so an unverified source
- * surfaces as `NO_SOURCE_MATCH` here rather than as a distinct rejection.
- * The enum value is kept for the review workflow, which reports it before a
- * source is admitted to the registry.
+ * A rejected citation reports the earliest blocking problem, never a blend.
+ * Integrity is checked only AFTER resolution because the subject of those
+ * checks (which artifact digest/URL) is undefined until one version wins.
+ *
+ * Note on [RejectionReason.SOURCE_NOT_VERIFIED]: the DAO filters
+ * `verified = 1`, so unreviewed rows can never surface here — an unverified
+ * artifact is simply not part of the citable set and shows up as
+ * `NO_SOURCE_MATCH`. The enum value remains for the review workflow, which
+ * reports it before a source is admitted to the registry.
  */
 interface CitationValidator {
     /**
      * Verifies [parsed] as of [eventDate] — the date of the procedural event
-     * the citation is used for, NOT today. The temporal window
-     * ([LegalCitation.effectiveFrom] / [effectiveTo]) is checked against the
-     * event date so a memo can safely cite the law in force when the events
-     * occurred.
+     * the citation is used for, NOT today, so a memo can safely cite the law
+     * in force when the events occurred.
      */
     suspend fun verify(parsed: ParsedLegalCitation, eventDate: LocalDate): VerificationResult
 }
@@ -55,28 +59,33 @@ class RegistryBackedCitationValidator @Inject constructor(
             return VerificationResult.Rejected(parsed, RejectionReason.UNSUPPORTED_CITATION_FORMAT)
         }
 
-        val matches = registry.findExact(
+        val versions = registry.findExact(
             lawName = lawName,
             article = article,
             paragraph = parsed.paragraph?.trim(),
             lawNumber = null, // the parser keeps the law number inside the law name
         )
-        if (matches.isEmpty()) {
+        if (versions.isEmpty()) {
             return VerificationResult.Rejected(parsed, RejectionReason.NO_SOURCE_MATCH)
         }
-        if (matches.size > 1) {
+
+        // Resolve the version(s) in force on the event date. Disjoint
+        // windows collapse to one here; overlapping windows stay > 1 and are
+        // reported as ambiguity — the registry itself is inconsistent.
+        val effective = versions.filter { registry.isEffective(it, eventDate) }
+        if (effective.isEmpty()) {
+            return VerificationResult.Rejected(parsed, RejectionReason.NOT_EFFECTIVE_ON_EVENT_DATE)
+        }
+        if (effective.size > 1) {
             return VerificationResult.Rejected(parsed, RejectionReason.AMBIGUOUS_SOURCE_MATCH)
         }
 
-        val citation = matches.first()
+        val citation = effective.first()
         if (!isValidSha256(citation.sourceSha256)) {
             return VerificationResult.Rejected(parsed, RejectionReason.SOURCE_HASH_INVALID)
         }
         if (!isValidHttpUrl(citation.officialSourceUrl)) {
             return VerificationResult.Rejected(parsed, RejectionReason.SOURCE_URL_INVALID)
-        }
-        if (!registry.isEffective(citation, eventDate)) {
-            return VerificationResult.Rejected(parsed, RejectionReason.NOT_EFFECTIVE_ON_EVENT_DATE)
         }
 
         return VerificationResult.Verified(citation)

@@ -11,13 +11,18 @@ import net.crimsys.app.domain.legal.LegalCitation
 import net.crimsys.app.domain.legal.LegalRegistryRepository
 
 /**
- * Room-backed legal registry implementing the lean lookup contract.
+ * Room-backed legal registry implementing the lean lookup contract over a
+ * TEMPORALLY VERSIONED store: one article may have many verified rows (amendments,
+ * replacements), each with its own validity window and source-artifact digest.
  *
- * Registry rule (Evidence-First): the stored set IS the citable set. Rows
- * are written only through the review/seed path with `verified = true`
- * ([LegalSourceDao.upsertAll] is the single write gate); an unverified
- * artifact simply is not registered, so it surfaces as no match — the
- * validator never has to guess about review state.
+ * Contracts:
+ *  - [findExact] returns ALL verified versions of the exact (law, article[,
+ *    paragraph]) citation, newest window first — the caller (validator)
+ *    resolves which version was in force on the event date.
+ *  - [isEffective] is the inclusive window check against the EVENT date.
+ *
+ * Only rows with `verified = 1` are ever returned: the DAO enforces it, so
+ * review state can never leak into verification.
  */
 @Singleton
 class LegalRegistryRepositoryImpl @Inject constructor(
@@ -31,18 +36,22 @@ class LegalRegistryRepositoryImpl @Inject constructor(
         lawNumber: String?,
     ): List<LegalCitation> =
         withContext(Dispatchers.IO) {
-            dao.findExact(
-                lawName = lawName.trim(),
-                article = article.trim(),
-                paragraph = paragraph?.trim(),
-                lawNumber = lawNumber?.trim(),
-            ).map { it.toCitation() }
+            // Normalization is applied on WRITE (trim at the registration
+            // path); the lookups trim defensively for parity.
+            val name = lawName.trim()
+            val art = article.trim()
+            val rows = when {
+                paragraph != null -> dao.findParagraphSources(name, art, paragraph.trim())
+                lawNumber != null -> dao.findByLawNumberAndArticle(lawNumber.trim(), name, art)
+                else -> dao.findArticleSources(name, art)
+            }
+            rows.map { it.toCitation() }
         }
 
     override suspend fun isEffective(citation: LegalCitation, eventDate: LocalDate): Boolean {
-        val from = citation.effectiveFrom
         val to = citation.effectiveTo
-        return !eventDate.isBefore(from) && (to == null || !eventDate.isAfter(to))
+        return !eventDate.isBefore(citation.effectiveFrom) &&
+            (to == null || !eventDate.isAfter(to))
     }
 
     private fun LegalSourceEntity.toCitation(): LegalCitation = LegalCitation(
@@ -50,8 +59,8 @@ class LegalRegistryRepositoryImpl @Inject constructor(
         lawName = lawName,
         article = article,
         paragraph = paragraph,
-        effectiveFrom = LocalDate.parse(effectiveFromIso),
-        effectiveTo = effectiveToIso?.let(LocalDate::parse),
+        effectiveFrom = LocalDate.ofEpochDay(effectiveFromEpochDay),
+        effectiveTo = effectiveToEpochDay?.let(LocalDate::ofEpochDay),
         sourceSha256 = sourceSha256,
         officialSourceUrl = officialSourceUrl,
         gazetteIssue = gazetteIssue,

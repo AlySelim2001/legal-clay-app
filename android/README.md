@@ -51,7 +51,7 @@ UI (Compose, StateFlow)
 | `data/evidence/EvidenceRepositoryImpl.kt` | Atomic evidence + chain appends; head/count move with the event; sync queueing |
 | `data/legal/LegalRegistryRepositoryImpl.kt` | Exact-match lookup (`findExact` + temporal `isEffective`) over the registered set — only verified artifacts are ever stored |
 | `data/local/{EvidenceEntity,EvidenceDao}.kt` | `evidence_items` + `evidence_chain_events` (v4 migration, additive) |
-| `data/local/{LegalSourceEntity,LegalSourceDao}.kt` | `legal_sources` — citable sources, unique `sourceKey` |
+| `data/local/{LegalSourceEntity,LegalSourceDao}.kt` | `legal_sources` — temporally versioned citable sources (amendments coexist; windows resolved on the event date) |
 | `data/local/{SyncCommandEntity,SyncCommandDao}.kt` | `sync_commands` — FIFO queue with DLQ (same lifecycle as `offline_actions`) |
 | `data/remote/FirebaseSyncCommandExecutor.kt` | Firestore transport behind `SyncCommandExecutor`; re-verifies the payload digest before every write |
 | `data/sync/SyncWorker.kt` | `@HiltWorker` drain: FIFO, DLQ, corrupt-row parking, WorkManager CONNECTED constraint |
