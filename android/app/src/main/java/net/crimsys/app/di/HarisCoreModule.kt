@@ -16,7 +16,9 @@ import net.crimsys.app.data.local.LegalSourceDao
 import net.crimsys.app.data.local.SyncCommandDao
 import net.crimsys.app.data.remote.FirebaseSyncCommandExecutor
 import net.crimsys.app.domain.evidence.EvidenceRepository
+import net.crimsys.app.domain.legal.ArabicLegalCitationParser
 import net.crimsys.app.domain.legal.CitationValidator
+import net.crimsys.app.domain.legal.LegalCitationParser
 import net.crimsys.app.domain.legal.LegalRegistryRepository
 import net.crimsys.app.domain.legal.RegistryBackedCitationValidator
 import net.crimsys.app.domain.sync.SyncCommandExecutor
@@ -47,6 +49,10 @@ abstract class HarisCoreBindings {
     @Binds
     @Singleton
     abstract fun bindCitationValidator(impl: RegistryBackedCitationValidator): CitationValidator
+
+    @Binds
+    @Singleton
+    abstract fun bindLegalCitationParser(impl: ArabicLegalCitationParser): LegalCitationParser
 
     @Binds
     @Singleton

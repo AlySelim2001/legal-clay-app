@@ -49,14 +49,14 @@ UI (Compose, StateFlow)
 | `core/ClockModule.kt` | Injectable `WallClock` / `MonotonicClock` (different trust levels, never confused) |
 | `core/evidence/` | `Sha256` streaming digests + `ChainEventHasher` (length-prefixed hash linking) |
 | `data/evidence/EvidenceRepositoryImpl.kt` | Atomic evidence + chain appends; head/count move with the event; sync queueing |
-| `data/legal/LegalRegistryRepositoryImpl.kt` | Authoritative-source registry (persist-only; seeding only when empty) |
+| `data/legal/LegalRegistryRepositoryImpl.kt` | Authoritative-source registry keyed on (law, article, paragraph); persist-only, seeding only when empty |
 | `data/local/{EvidenceEntity,EvidenceDao}.kt` | `evidence_items` + `evidence_chain_events` (v4 migration, additive) |
 | `data/local/{LegalSourceEntity,LegalSourceDao}.kt` | `legal_sources` — citable sources, unique `sourceKey` |
 | `data/local/{SyncCommandEntity,SyncCommandDao}.kt` | `sync_commands` — FIFO queue with DLQ (same lifecycle as `offline_actions`) |
 | `data/remote/FirebaseSyncCommandExecutor.kt` | Firestore transport behind `SyncCommandExecutor`; re-verifies the payload digest before every write |
 | `data/sync/SyncWorker.kt` | `@HiltWorker` drain: FIFO, DLQ, corrupt-row parking, WorkManager CONNECTED constraint |
 | `domain/evidence/` | `ChainEvent` (immutable, hash-linked) + `EvidenceRepository` contract |
-| `domain/legal/` | `LegalCitation`, `LegalRegistryRepository`, `CitationValidator` (registry-backed gate) |
+| `domain/legal/` | `LegalCitation` (evidence-grade: temporal window + source digest + gazette), `LegalCitationParser` (Arabic text-span parsing), `LegalRegistryRepository`, `CitationValidator` (first-fail verification gate) |
 | `domain/sync/` | `SyncCommand` (+ JSON codec, digest-carrying), `SyncResult`, `SyncCommandExecutor` |
 | `di/HarisCoreModule.kt` | Bindings + DAO/WorkManager providers for the slice |
 | `ui/` | `CrimSysApp` scaffold (RTL drawer + top bar), NavHost, clay components, theme (Cairo font, urgency tokens) |

@@ -5,32 +5,39 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * One authoritative Egyptian legal source in the citable registry.
+ * One registered legal artifact: an (law, article) row carrying the evidence
+ * fields [net.crimsys.app.domain.legal.LegalCitation] needs.
  *
- * Registry rule: rows are written only after publisher + version
- * verification (review workflow) — never scraped ad hoc. `sourceKey` is the
- * stable identity cited by [net.crimsys.app.domain.legal.LegalCitation].
+ * Registry rule: a row only carries `verified = true` after a person
+ * completed publisher/version verification — the citation validator rejects
+ * unverified rows. The natural key is (lawName, article, paragraph): the same
+ * article must exist exactly once per law, or verification would be
+ * ambiguous by construction.
  */
 @Entity(
     tableName = "legal_sources",
-    indices = [Index(value = ["sourceKey"], unique = true)],
+    indices = [Index(value = ["lawName", "article", "paragraph"], unique = true)],
 )
 data class LegalSourceEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    /** Stable citation key, e.g. `law-150-2020`. Immutable identity. */
-    val sourceKey: String,
-    /** Official title of the source, verbatim. */
-    val title: String,
-    /** Official publisher (الجريدة الرسمية، بوابة النيابة العامة…). */
-    val publisher: String,
-    /** Optional official URL for independent verification. */
-    val officialUrl: String? = null,
-    /** Authority's issue date, if known (display + temporal checks). */
-    val issuedAtEpochMs: Long? = null,
-    /** Entry-into-force date, if known (temporal citation checks). */
-    val effectiveAtEpochMs: Long? = null,
-    /** Official or latest known version label, verbatim. */
-    val version: String? = null,
+    /** Official law number, verbatim (e.g. "150 لسنة 2020"). */
+    val lawNumber: String,
+    /** Official law name, verbatim — the match key for citations. */
+    val lawName: String,
+    /** Article locator as written in the law, verbatim. */
+    val article: String,
+    /** Paragraph locator, when the row pins one (null = article-level row). */
+    val paragraph: String? = null,
+    /** Entry into force (ISO local date, e.g. "2021-04-01"). */
+    val effectiveFromIso: String,
+    /** Repeal/replacement date, when applicable (null = still in force). */
+    val effectiveToIso: String? = null,
+    /** SHA-256 of the registered source artifact (PDF/text). */
+    val sourceSha256: String,
+    /** Official publisher URL for independent verification. */
+    val officialSourceUrl: String,
+    /** Official Gazette issue, verbatim (e.g. "الجريدة الرسمية - عدد 27 مكرر"). */
+    val gazetteIssue: String? = null,
     /** True when a human completed publisher/version verification. */
     val verified: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),

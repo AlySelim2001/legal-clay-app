@@ -20,7 +20,7 @@ class SyncCommandCodecTest {
     @Test
     fun `round-trips through the envelope`() {
         val command =
-            SyncCommand.create(SyncCommand.Type.LEGAL_ATTEST_REQUEST, "{\"sourceKey\":\"law-150-2020\"}", 1_700L)
+            SyncCommand.create(SyncCommand.Type.LEGAL_ATTEST_REQUEST, "{\"lawName\":\"قانون 150\",\"article\":\"40\"}", 1_700L)
         val decoded = SyncCommand.Codec.fromJson(SyncCommand.Codec.toJson(command))
         assertEquals(command, decoded)
     }

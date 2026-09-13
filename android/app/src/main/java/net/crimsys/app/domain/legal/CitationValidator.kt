@@ -1,41 +1,35 @@
 package net.crimsys.app.domain.legal
 
+import java.net.URI
+import java.time.LocalDate
 import javax.inject.Inject
 
 /**
- * Why a citation failed validation. Ordered for display: structural problems
- * first, then registry problems, then temporal problems.
- */
-enum class CitationIssue {
-    EMPTY_SOURCE_KEY,
-    EMPTY_TITLE,
-    EMPTY_PUBLISHER,
-    EMPTY_REFERENCE,
-    /** No source with this key exists in the legal registry. */
-    UNKNOWN_SOURCE,
-    /** retrievedAtEpochMs is not a plausible epoch-milliseconds value. */
-    INVALID_RETRIEVAL_TIME,
-    /** Citation publisher differs from the registered source's publisher. */
-    PUBLISHER_MISMATCH,
-    /** The citation claims retrieval before the authority entered force. */
-    EFFECTIVE_AFTER_RETRIEVAL,
-}
-
-/** Outcome of validating one [LegalCitation]. */
-data class CitationVerdict(
-    val citation: LegalCitation,
-    val issues: List<CitationIssue>,
-) {
-    /** A citation is valid ONLY with zero issues — no warnings tier exists. */
-    val isValid: Boolean get() = issues.isEmpty()
-}
-
-/**
- * Citation gate: nothing citing the law leaves this app without proving
- * where the authority came from.
+ * Citation gate: verifies a parsed citation against the authoritative
+ * registry before any statement citing the law leaves this app.
+ *
+ * Verification is FIRST-FAIL in the order of [RejectionReason] — a rejected
+ * citation reports the earliest blocking problem, never a blend:
+ *
+ * 1. format (`UNSUPPORTED_CITATION_FORMAT`) — law name and article required;
+ * 2. registry match (`NO_SOURCE_MATCH` / `AMBIGUOUS_SOURCE_MATCH`) — the
+ *    match must resolve to exactly one registered artifact;
+ * 3. human review (`SOURCE_NOT_VERIFIED`) — a source is only citable after a
+ *    person completed publisher/version verification;
+ * 4. artifact integrity (`SOURCE_HASH_INVALID`) and provenance
+ *    (`SOURCE_URL_INVALID`);
+ * 5. temporal validity (`NOT_EFFECTIVE_ON_EVENT_DATE`) — checked against the
+ *    EVENT date, not today.
  */
 interface CitationValidator {
-    suspend fun validate(citation: LegalCitation): CitationVerdict
+    /**
+     * Verifies [parsed] as of [eventDate] — the date of the procedural event
+     * the citation is used for, NOT today. The temporal window
+     * ([LegalCitation.effectiveFrom] / [effectiveTo]) is checked against the
+     * event date so a memo can safely cite the law in force when the events
+     * occurred.
+     */
+    suspend fun verify(parsed: ParsedLegalCitation, eventDate: LocalDate): VerificationResult
 }
 
 /**
@@ -47,38 +41,53 @@ class RegistryBackedCitationValidator @Inject constructor(
     private val registry: LegalRegistryRepository,
 ) : CitationValidator {
 
-    override suspend fun validate(citation: LegalCitation): CitationVerdict {
-        val issues = buildList {
-            if (citation.sourceKey.isBlank()) add(CitationIssue.EMPTY_SOURCE_KEY)
-            if (citation.title.isBlank()) add(CitationIssue.EMPTY_TITLE)
-            if (citation.publisher.isBlank()) add(CitationIssue.EMPTY_PUBLISHER)
-            if (citation.reference.isBlank()) add(CitationIssue.EMPTY_REFERENCE)
-            if (citation.retrievedAtEpochMs <= 0) add(CitationIssue.INVALID_RETRIEVAL_TIME)
+    override suspend fun verify(parsed: ParsedLegalCitation, eventDate: LocalDate): VerificationResult {
+        val lawName = parsed.lawName.trim()
+        val article = parsed.article.trim()
+        if (lawName.isEmpty() || article.isEmpty()) {
+            return VerificationResult.Rejected(parsed, RejectionReason.UNSUPPORTED_CITATION_FORMAT)
         }
-        // Registry lookup is meaningless without a key, and temporal checks
-        // without a plausible retrieval time would be noise.
-        if (CitationIssue.EMPTY_SOURCE_KEY in issues ||
-            CitationIssue.INVALID_RETRIEVAL_TIME in issues
+
+        val candidates = registry.findCandidates(lawName, article)
+        if (candidates.isEmpty()) {
+            return VerificationResult.Rejected(parsed, RejectionReason.NO_SOURCE_MATCH)
+        }
+        if (candidates.size > 1) {
+            return VerificationResult.Rejected(parsed, RejectionReason.AMBIGUOUS_SOURCE_MATCH)
+        }
+
+        val entry = candidates.first()
+        if (!entry.verified) {
+            return VerificationResult.Rejected(parsed, RejectionReason.SOURCE_NOT_VERIFIED)
+        }
+
+        val citation = entry.citation
+        if (!isValidSha256(citation.sourceSha256)) {
+            return VerificationResult.Rejected(parsed, RejectionReason.SOURCE_HASH_INVALID)
+        }
+        if (!isValidHttpUrl(citation.officialSourceUrl)) {
+            return VerificationResult.Rejected(parsed, RejectionReason.SOURCE_URL_INVALID)
+        }
+
+        val effectiveTo = citation.effectiveTo
+        if (eventDate.isBefore(citation.effectiveFrom) ||
+            (effectiveTo != null && eventDate.isAfter(effectiveTo))
         ) {
-            return CitationVerdict(citation, issues)
+            return VerificationResult.Rejected(parsed, RejectionReason.NOT_EFFECTIVE_ON_EVENT_DATE)
         }
 
-        val source = registry.findSourceByKey(citation.sourceKey.trim())
-            ?: return CitationVerdict(citation, issues + CitationIssue.UNKNOWN_SOURCE)
-
-        return CitationVerdict(citation, issues + crossChecks(citation, source))
+        return VerificationResult.Verified(citation)
     }
 
-    private fun crossChecks(
-        citation: LegalCitation,
-        source: net.crimsys.app.data.local.LegalSourceEntity,
-    ): List<CitationIssue> = buildList {
-        if (!citation.publisher.trim().equals(source.publisher.trim(), ignoreCase = true)) {
-            add(CitationIssue.PUBLISHER_MISMATCH)
-        }
-        val effective = source.effectiveAtEpochMs
-        if (effective != null && citation.retrievedAtEpochMs < effective) {
-            add(CitationIssue.EFFECTIVE_AFTER_RETRIEVAL)
-        }
+    /** Lowercase or uppercase hex is accepted; anything else is invalid. */
+    private fun isValidSha256(hex: String): Boolean =
+        hex.length == 64 && hex.all { it in "0123456789abcdef" || it in "ABCDEF" }
+
+    private fun isValidHttpUrl(url: String): Boolean = try {
+        val scheme = URI(url.trim()).scheme?.lowercase()
+        scheme == "http" || scheme == "https"
+    } catch (t: Throwable) {
+        if (t is kotlinx.coroutines.CancellationException) throw t
+        false
     }
 }

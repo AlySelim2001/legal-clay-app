@@ -9,19 +9,27 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface LegalSourceDao {
 
-    @Query("SELECT * FROM legal_sources ORDER BY sourceKey ASC")
+    @Query("SELECT * FROM legal_sources ORDER BY lawName ASC, article ASC")
     fun observeAll(): Flow<List<LegalSourceEntity>>
 
-    /** Registry lookup backing citation validation. */
-    @Query("SELECT * FROM legal_sources WHERE sourceKey = :sourceKey LIMIT 1")
-    suspend fun findByKey(sourceKey: String): LegalSourceEntity?
+    /**
+     * Candidate lookup backing citation verification. Normalization is
+     * applied on WRITE (trim at the repository), so the query itself is a
+     * plain indexed equality on (lawName, article). Paragraph is not part of
+     * the lookup: an article-level row answers a paragraph citation.
+     */
+    @Query(
+        "SELECT * FROM legal_sources " +
+            "WHERE lawName = :lawName AND article = :article",
+    )
+    suspend fun findCandidates(lawName: String, article: String): List<LegalSourceEntity>
 
     /**
-     * Upsert keyed on `sourceKey` (the unique index) so re-registering a
-     * source updates it instead of duplicating it.
+     * Upsert keyed on the (lawName, article, paragraph) unique index so
+     * re-registering an artifact updates it instead of duplicating it.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertAll(sources: List<LegalSourceEntity>)
+    suspend fun upsertAll(sources: List<LegalSourceEntity>): List<Long>
 
     /** Row count for the seed-only-when-empty guard. */
     @Query("SELECT COUNT(*) FROM legal_sources")

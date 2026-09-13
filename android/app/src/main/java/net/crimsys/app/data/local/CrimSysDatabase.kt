@@ -101,24 +101,31 @@ abstract class CrimSysDatabase : RoomDatabase() {
         val MIGRATION_3_4: Migration =
             object : Migration(3, 4) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    // Legal-source registry (citation validation).
+                    // Legal-source registry (citation verification): one row
+                    // per (law, article[, paragraph]) artifact with its
+                    // temporal window, source-artifact digest, and provenance.
+                    // The unique natural key guarantees citation verification
+                    // can never be ambiguous by construction.
                     db.execSQL(
                         "CREATE TABLE IF NOT EXISTS `legal_sources` (" +
                             "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                            "`sourceKey` TEXT NOT NULL, " +
-                            "`title` TEXT NOT NULL, " +
-                            "`publisher` TEXT NOT NULL, " +
-                            "`officialUrl` TEXT, " +
-                            "`issuedAtEpochMs` INTEGER, " +
-                            "`effectiveAtEpochMs` INTEGER, " +
-                            "`version` TEXT, " +
+                            "`lawNumber` TEXT NOT NULL, " +
+                            "`lawName` TEXT NOT NULL, " +
+                            "`article` TEXT NOT NULL, " +
+                            "`paragraph` TEXT, " +
+                            "`effectiveFromIso` TEXT NOT NULL, " +
+                            "`effectiveToIso` TEXT, " +
+                            "`sourceSha256` TEXT NOT NULL, " +
+                            "`officialSourceUrl` TEXT NOT NULL, " +
+                            "`gazetteIssue` TEXT, " +
                             "`verified` INTEGER NOT NULL, " +
                             "`createdAt` INTEGER NOT NULL, " +
                             "`updatedAt` INTEGER NOT NULL)",
                     )
                     db.execSQL(
-                        "CREATE UNIQUE INDEX IF NOT EXISTS `index_legal_sources_sourceKey` " +
-                            "ON `legal_sources` (`sourceKey`)",
+                        "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                            "`index_legal_sources_lawName_article_paragraph` " +
+                            "ON `legal_sources` (`lawName`, `article`, `paragraph`)",
                     )
 
                     // Evidence items + hash-linked chain of custody.
