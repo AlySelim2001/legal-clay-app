@@ -1,4 +1,12 @@
-import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
@@ -27,30 +35,22 @@ export const getPlatformRole = internalQuery({
  * permission_denied events for admin reads are surfaced by throwing — the
  * client shows a role error, and mutations log the denial properly.
  */
-async function requireReviewerQuery(
-  ctx: { db: unknown; auth: unknown },
-): Promise<string> {
-  const userId = await getAuthUserId(ctx as never);
+async function requireReviewerQuery(ctx: QueryCtx): Promise<Id<"users">> {
+  const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("UNAUTHENTICATED");
-  const user = await (ctx.db as { get: (id: string) => Promise<{ role?: string } | null> }).get(
-    userId,
-  );
+  const user = await ctx.db.get(userId);
   const raw = (user?.role as string | undefined) ?? "user";
-  const role: PlatformRole =
-    raw === "member" ? "reviewer" : (raw as PlatformRole);
+  const role: PlatformRole = raw === "member" ? "reviewer" : (raw as PlatformRole);
   if (!REVIEWER_ROLES.includes(role)) throw new Error("FORBIDDEN");
   return userId;
 }
 
 /** Reviewer gate for mutations — logs the denial to the audit trail. */
 async function requireReviewerMutation(
-  ctx: {
-    db: { get(id: string): Promise<{ role?: string } | null> };
-    runMutation: (ref: typeof internal.knowledge.insertAudit, args_: unknown) => Promise<unknown>;
-  },
+  ctx: MutationCtx,
   actionName: string,
-): Promise<string> {
-  const userId = await getAuthUserId(ctx as never);
+): Promise<Id<"users">> {
+  const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("UNAUTHENTICATED");
   const user = await ctx.db.get(userId);
   const raw = (user?.role as string | undefined) ?? "user";
@@ -69,6 +69,35 @@ async function requireReviewerMutation(
 // ============================================================
 // Source registry — human review workflow (never AI-published)
 // ============================================================
+
+/**
+ * Claim the reviewer role for the signed-in Convex identity.
+ * Bootstrap rule: the very first claim becomes "admin" (seeds the review
+ * staff); every later claim gets "reviewer". Always audited — self-service
+ * elevation is never silent.
+ */
+export const claimReviewerRole = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("UNAUTHENTICATED");
+    const user = await ctx.db.get(userId);
+    const current = (user?.role as string | undefined) ?? "user";
+    if (REVIEWER_ROLES.includes(current as PlatformRole)) {
+      return { role: current };
+    }
+    const users = await ctx.db.query("users").collect();
+    const hasAdmin = users.some((u) => u.role === "admin");
+    const target: PlatformRole = hasAdmin ? "reviewer" : "admin";
+    await ctx.db.patch(userId, { role: target as never });
+    await ctx.runMutation(internal.knowledge.insertAudit, {
+      action: "role_claimed",
+      userId,
+      details: `from=${current} to=${target}`,
+    });
+    return { role: target as string };
+  },
+});
 
 export const adminListSources = query({
   args: { status: v.optional(v.string()) },

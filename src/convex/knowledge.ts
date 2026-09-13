@@ -1,6 +1,7 @@
 import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import type { Id } from "./_generated/dataModel";;
 
 /** Insert an audit entry. Content is never stored — ids/codes/enums only. */
 export const insertAudit = internalMutation({
@@ -73,7 +74,7 @@ export const seedKnowledge = mutation({
 
     // ---- Sources ----
     const sourceIds = new Map<string, typeof SEED_SOURCES[number]["key"] & string>();
-    const idByKey = new Map<string, string>();
+    const idByKey = new Map<string, Id<"legalSources">>();
     for (const s of SEED_SOURCES) {
       const id = await ctx.db.insert("legalSources", {
         title: s.title,
@@ -92,7 +93,7 @@ export const seedKnowledge = mutation({
         createdAt: now,
         updatedAt: now,
       });
-      idByKey.set(s.key, id);
+      idByKey.set(s.key, id as Id<"legalSources">);
     }
 
     // ---- Articles + chunks ----
@@ -101,7 +102,6 @@ export const seedKnowledge = mutation({
     for (const a of SEED_ARTICLES) {
       const sourceId = idByKey.get(a.sourceKey);
       if (!sourceId) continue;
-      const source = (await ctx.db.get(sourceId))!;
       const articleId = await ctx.db.insert("legalArticles", {
         sourceId,
         number: a.number,
@@ -130,11 +130,10 @@ export const seedKnowledge = mutation({
         createdAt: now,
       });
       chunkCount++;
-      void source;
     }
 
     // ---- Authorities + services ----
-    const authorityIdByKey = new Map<string, string>();
+    const authorityIdByKey = new Map<string, Id<"authorities">>();
     for (const au of SEED_AUTHORITIES) {
       const authorityId = await ctx.db.insert("authorities", {
         name: au.name,
@@ -174,7 +173,7 @@ export const seedKnowledge = mutation({
         documentsNeeded: p.documentsNeeded,
         authorityIds: p.authorityKeys
           .map((k) => authorityIdByKey.get(k))
-          .filter((x): x is string => Boolean(x)),
+          .filter((x): x is Id<"authorities"> => Boolean(x)),
         warnings: p.warnings,
         sourceId,
         status: "PUBLISHED",
@@ -188,7 +187,7 @@ export const seedKnowledge = mutation({
     for (const r of SEED_RIGHTS) {
       const sourceId = idByKey.get(r.sourceKey);
       if (!sourceId) continue;
-      const chunkIds: string[] = [];
+      const chunkIds: Id<"documentChunks">[] = [];
       for (const point of r.points) {
         const chunkId = await ctx.db.insert("documentChunks", {
           refType: "legalSources",

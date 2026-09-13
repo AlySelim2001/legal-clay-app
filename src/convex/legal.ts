@@ -2,6 +2,7 @@ import { action, internalMutation, internalQuery, mutation, query } from "./_gen
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import {
   runEvidencePipeline,
   RETRIEVAL_VERSION,
@@ -31,13 +32,12 @@ export const publishedIndex = internalQuery({
         tokens: c.tokens,
         embedding: c.embedding,
         provenance: c.provenance,
-        text: source.body ?? c.provenance,
         validity: c.validity,
         effectiveFrom: c.effectiveFrom,
         effectiveTo: c.effectiveTo,
         verificationStatus: c.verificationStatus,
         status: c.status,
-        sourceTitle: source.title ?? source.name ?? "",
+        sourceTitle: source.title ?? "",
         sourceType: source.sourceType ?? "unknown",
         officialUrl: source.officialUrl,
       });
@@ -85,7 +85,7 @@ export const askLegal = action({
       claims: result.claims.map((c) => ({
         text: c.text,
         status: c.status,
-        chunkIds: c.chunkIds,
+        chunkIds: c.chunkIds as Id<"documentChunks">[],
       })),
       evidenceStatus: result.evidenceStatus,
       warnings: result.warnings,
@@ -183,6 +183,9 @@ export const answerWithCitations = query({
   handler: async (ctx, args) => {
     const answer = await ctx.db.get(args.answerId);
     if (!answer) return null;
+    // Ownership check (T-012 IDOR): only the asker may inspect this answer.
+    const viewerId = await getAuthUserId(ctx);
+    if (answer.userId && answer.userId !== viewerId) return null;
     const cites = await ctx.db
       .query("citations")
       .withIndex("by_answer", (q) => q.eq("answerId", args.answerId))
@@ -220,7 +223,7 @@ export const searchLegal = action({
     });
     const index = await ctx.runQuery(internal.legal.publishedIndex, {});
     const { retrieveEvidence, MIN_BEST_SCORE } = await import("./lib/evidence");
-    const pack = retrieveEvidence(args.q.trim().slice(0, 300), index, {
+    const pack = retrieveEvidence(index, args.q.trim().slice(0, 300), {
       queryDate: Date.now(),
       topK: args.limit ?? 10,
     });

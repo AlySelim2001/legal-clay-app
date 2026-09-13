@@ -11,6 +11,7 @@ import {
   EMBEDDING_DIM,
   cosineSimilarity,
   detectPii,
+  embed,
   maskPii,
   normalizeArabic,
   splitSentences,

@@ -424,6 +424,30 @@ const schema = defineSchema(
 
     // add other tables here
 
+    // ===== Evidence-First Legal Knowledge Platform =====
+    legalSources,
+    legalArticles,
+    documentChunks,
+    citations,
+    answers,
+    knowledgeVersions,
+    authorities,
+    authorityServices,
+    procedureGuides,
+    rightsTopics,
+    cases,
+    caseEvents,
+    caseNotes,
+    caseTasks,
+    caseDocuments,
+    userDocuments,
+    notifications,
+    auditLogs,
+    rateLimits,
+    evaluationCases,
+    evaluationRuns,
+    systemSettings,
+
     // tableName: defineTable({
     //   ...
     //   // table fields

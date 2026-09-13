@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
+import { ConvexProvider } from "@/contexts/ConvexProvider";
 import { I18nProvider } from "@/contexts/I18nContext";
 import { QueryProvider } from "@/contexts/QueryProvider";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -36,6 +37,21 @@ const About = lazy(() => import("./pages/About.tsx"));
 const ColomboAgent = lazy(() => import("./pages/ColomboAgent.tsx"));
 const SocialSearch = lazy(() => import("./pages/SocialSearch.tsx"));
 const OppositionGuide = lazy(() => import("./pages/OppositionGuide.tsx"));
+
+// Evidence-First legal knowledge platform
+const LegalHome = lazy(() => import("./pages/legal/LegalHome.tsx"));
+const LegalAsk = lazy(() => import("./pages/legal/Ask.tsx"));
+const LegalSearch = lazy(() => import("./pages/legal/Search.tsx"));
+const LegalRights = lazy(() => import("./pages/legal/Rights.tsx"));
+const LegalNextSteps = lazy(() => import("./pages/legal/NextSteps.tsx"));
+const LegalAuthorities = lazy(() => import("./pages/legal/Authorities.tsx"));
+const LegalDocuments = lazy(() => import("./pages/legal/Documents.tsx"));
+const LegalDossier = lazy(() => import("./pages/legal/Dossier.tsx"));
+const LegalSources = lazy(() => import("./pages/legal/Sources.tsx"));
+const LegalHistory = lazy(() => import("./pages/legal/History.tsx"));
+const LegalNotifications = lazy(() => import("./pages/legal/Notifications.tsx"));
+const AdminKnowledge = lazy(() => import("./pages/legal/AdminKnowledge.tsx"));
+const AdminEvaluation = lazy(() => import("./pages/legal/AdminEvaluation.tsx"));
 
 // Enterprise pages
 const EnterpriseDashboard = lazy(() => import("./pages/EnterpriseDashboard.tsx"));
@@ -119,6 +135,7 @@ createRoot(document.getElementById("root")!).render(
       <ToolbarErrorBoundary>
         <VlyToolbar />
       </ToolbarErrorBoundary>        <SupabaseAuthProvider>
+        <ConvexProvider>
         <QueryProvider>
         <ThemeProvider>
         <I18nProvider>
@@ -176,6 +193,19 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="ai-agent/colombo" element={<ColomboAgent />} />
                 <Route path="social-search" element={<SocialSearch />} />
                 <Route path="guides/opposition" element={<OppositionGuide />} />
+
+                {/* Evidence-First legal knowledge platform */}
+                <Route path="legal" element={<RouteErrorBoundary routeName="منصة القانون"><LegalHome /></RouteErrorBoundary>} />
+                <Route path="legal/ask" element={<RouteErrorBoundary routeName="اسأل القانون"><LegalAsk /></RouteErrorBoundary>} />
+                <Route path="legal/search" element={<RouteErrorBoundary routeName="البحث القانوني"><LegalSearch /></RouteErrorBoundary>} />
+                <Route path="legal/rights" element={<RouteErrorBoundary routeName="اعرف حقك"><LegalRights /></RouteErrorBoundary>} />
+                <Route path="legal/next-steps" element={<RouteErrorBoundary routeName="ماذا أفعل الآن"><LegalNextSteps /></RouteErrorBoundary>} />
+                <Route path="legal/authorities" element={<RouteErrorBoundary routeName="الجهات الرسمية"><LegalAuthorities /></RouteErrorBoundary>} />
+                <Route path="legal/documents" element={<RouteErrorBoundary routeName="المستندات"><LegalDocuments /></RouteErrorBoundary>} />
+                <Route path="legal/dossier" element={<RouteErrorBoundary routeName="ملف القضية"><LegalDossier /></RouteErrorBoundary>} />
+                <Route path="legal/sources" element={<RouteErrorBoundary routeName="المصادر القانونية"><LegalSources /></RouteErrorBoundary>} />
+                <Route path="legal/history" element={<RouteErrorBoundary routeName="سجل البحث"><LegalHistory /></RouteErrorBoundary>} />
+                <Route path="legal/notifications" element={<RouteErrorBoundary routeName="الإشعارات"><LegalNotifications /></RouteErrorBoundary>} />
               </Route>
 
               {/* Admin routes */}
@@ -188,6 +218,8 @@ createRoot(document.getElementById("root")!).render(
                 }
               >
                 <Route path="team" element={<AdminTeam />} />
+                <Route path="knowledge" element={<RouteErrorBoundary routeName="إدارة المعرفة"><AdminKnowledge /></RouteErrorBoundary>} />
+                <Route path="evaluation" element={<RouteErrorBoundary routeName="تقييم الذكاء الاصطناعي"><AdminEvaluation /></RouteErrorBoundary>} />
               </Route>
 
               {/* Legacy redirect */}
@@ -211,6 +243,7 @@ createRoot(document.getElementById("root")!).render(
         </I18nProvider>
         </ThemeProvider>
         </QueryProvider>
+        </ConvexProvider>
       </SupabaseAuthProvider>
     </RootErrorBoundary>
   </StrictMode>,

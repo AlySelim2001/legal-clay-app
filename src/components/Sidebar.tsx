@@ -15,6 +15,18 @@ import {
   HardHat,
   Eye,
   BrainCircuit,
+  Landmark,
+  MessageCircleQuestion,
+  FileSearch,
+  Route,
+  Building2,
+  GraduationCap,
+  FolderOpen,
+  Scale,
+  History,
+  Bell,
+  BookMarked,
+  FlaskConical,
 } from "lucide-react";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { cn } from "@/lib/utils";
@@ -25,6 +37,20 @@ interface SidebarProps {
 }
 
 const navItems: Array<{to: string; icon: React.ElementType; label: string; labelEn: string; badge?: string}> = [
+  { to: "/app/legal", icon: Landmark, label: "منصة القانون", labelEn: "Legal Platform" },
+  { to: "/app/legal/ask", icon: MessageCircleQuestion, label: "اسأل القانون", labelEn: "Ask the Law" },
+  { to: "/app/legal/search", icon: FileSearch, label: "البحث القانوني", labelEn: "Legal Search" },
+  { to: "/app/legal/next-steps", icon: Route, label: "ماذا أفعل الآن؟", labelEn: "What Now?" },
+  { to: "/app/legal/authorities", icon: Building2, label: "الجهات الرسمية", labelEn: "Authorities" },
+  { to: "/app/legal/rights", icon: GraduationCap, label: "اعرف حقك", labelEn: "Know Your Rights" },
+  { to: "/app/legal/documents", icon: FileText, label: "مستنداتي", labelEn: "My Documents" },
+  { to: "/app/legal/dossier", icon: FolderOpen, label: "ملفي القضائي", labelEn: "My Dossier" },
+  { to: "/app/legal/sources", icon: Scale, label: "المصادر القانونية", labelEn: "Legal Sources" },
+  { to: "/app/legal/history", icon: History, label: "سجل البحث", labelEn: "Search History" },
+  { to: "/app/legal/notifications", icon: Bell, label: "الإشعارات", labelEn: "Notifications" },
+];
+
+const practiceItems: Array<{to: string; icon: React.ElementType; label: string; labelEn: string; badge?: string}> = [
   { to: "/app/dashboard", icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard" },
   { to: "/app/cases", icon: Briefcase, label: "القضايا", labelEn: "Cases" },
   { to: "/app/persons", icon: Users, label: "الأشخاص", labelEn: "Persons" },
@@ -32,15 +58,14 @@ const navItems: Array<{to: string; icon: React.ElementType; label: string; label
   { to: "/app/actions", icon: Clock, label: "الإجراءات والمهام", labelEn: "Actions & Tasks" },
   { to: "/app/defenses", icon: Shield, label: "الدفوع", labelEn: "Defenses" },
   { to: "/app/archive", icon: Archive, label: "المستندات", labelEn: "Documents" },
-  { to: "/app/import", icon: FileText, label: "استيراد Excel", labelEn: "Excel Import" },
-  { to: "/app/audit", icon: Eye, label: "سجل التدقيق", labelEn: "Audit Log" },
-  { to: "/app/legal-intelligence", icon: BrainCircuit, label: "الاستخبارات القانونية", labelEn: "Legal Intelligence" },
-  { to: "/app/about", icon: Info, label: "عن النظام", labelEn: "About" },
   { to: "/app/settings", icon: Settings, label: "الإعدادات", labelEn: "Settings" },
+  { to: "/app/about", icon: Info, label: "عن النظام", labelEn: "About" },
 ];
 
 const adminItems = [
   { to: "/admin/team", icon: HardHat, label: "إدارة الفريق", labelEn: "Team Management" },
+  { to: "/admin/knowledge", icon: BookMarked, label: "إدارة المعرفة", labelEn: "Knowledge Admin" },
+  { to: "/admin/evaluation", icon: FlaskConical, label: "تقييم الذكاء الاصطناعي", labelEn: "AI Evaluation" },
 ];
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
@@ -100,8 +125,25 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+        {!collapsed && (
+          <p className="px-3 pb-1 pt-2 text-[10px] font-black uppercase tracking-wide text-clay-text-secondary">
+            منصة القانون المصري
+          </p>
+        )}
         {navItems.map(renderNavItem)}
         <div className="my-2 border-t border-clay-border" />
+        {!collapsed && (
+          <p className="px-3 pb-1 pt-2 text-[10px] font-black uppercase tracking-wide text-clay-text-secondary">
+            إدارة الممارسة
+          </p>
+        )}
+        {practiceItems.map(renderNavItem)}
+        <div className="my-2 border-t border-clay-border" />
+        {!collapsed && (
+          <p className="px-3 pb-1 pt-2 text-[10px] font-black uppercase tracking-wide text-clay-text-secondary">
+            الإدارة
+          </p>
+        )}
         {adminItems.map(renderNavItem)}
       </nav>
 
