@@ -7,6 +7,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import java.time.Clock
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -19,7 +20,6 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import net.crimsys.app.core.AppError
 import net.crimsys.app.core.Result
-import net.crimsys.app.core.WallClock
 import net.crimsys.app.core.evidence.ChainEventHasher
 import net.crimsys.app.core.evidence.Sha256
 import net.crimsys.app.core.runCatchingResult
@@ -50,7 +50,7 @@ class EvidenceRepositoryImpl @Inject constructor(
     private val evidenceDao: EvidenceDao,
     private val syncCommandDao: SyncCommandDao,
     private val workManager: WorkManager,
-    private val clock: WallClock,
+    private val clock: Clock,
 ) : EvidenceRepository {
 
     private val json = Json { encodeDefaults = true }
@@ -86,7 +86,7 @@ class EvidenceRepositoryImpl @Inject constructor(
         }
         return runCatchingResult {
             val id = UUID.randomUUID().toString()
-            val now = clock.nowMillis()
+            val now = clock.millis()
             val eventHash =
                 ChainEventHasher.hash(ChainEventHasher.GENESIS_PREV, ChainEvent.Kind.CAPTURED, input.capturedAtEpochMs, null)
 
@@ -134,7 +134,7 @@ class EvidenceRepositoryImpl @Inject constructor(
             val evidence = evidenceDao.findEvidence(evidenceId)
                 ?: throw IllegalArgumentException("unknown evidence: $evidenceId")
 
-            val now = clock.nowMillis()
+            val now = clock.millis()
             val head = evidenceDao.findChainHead(evidenceId)
             val previousHash = head?.eventHash ?: ChainEventHasher.GENESIS_PREV
 
@@ -211,7 +211,7 @@ class EvidenceRepositoryImpl @Inject constructor(
      * persists the chain link only.
      */
     private suspend fun appendEventInternal(evidenceId: String, kind: String, payload: ByteArray?): ChainEvent {
-        val now = clock.nowMillis()
+        val now = clock.millis()
         val head = evidenceDao.findChainHead(evidenceId)
         val previousHash = head?.eventHash ?: ChainEventHasher.GENESIS_PREV
         val eventHash = ChainEventHasher.hash(previousHash, kind, now, payload)
@@ -264,7 +264,7 @@ class EvidenceRepositoryImpl @Inject constructor(
     }
 
     private suspend fun enqueueCommand(type: String, payloadJson: String) {
-        val command = SyncCommand.create(type, payloadJson, clock.nowMillis())
+        val command = SyncCommand.create(type, payloadJson, clock.millis())
         syncCommandDao.enqueue(SyncCommandEntity.fromCommand(command))
         requestDrain()
     }

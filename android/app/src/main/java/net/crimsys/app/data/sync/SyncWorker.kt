@@ -13,8 +13,8 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import java.time.Clock
 import java.util.concurrent.TimeUnit
-import net.crimsys.app.core.WallClock
 import net.crimsys.app.data.local.SyncCommandDao
 import net.crimsys.app.domain.sync.SyncCommandExecutor
 import net.crimsys.app.domain.sync.SyncResult
@@ -55,7 +55,7 @@ class SyncWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val syncCommandDao: SyncCommandDao,
     private val executor: SyncCommandExecutor,
-    private val clock: WallClock,
+    private val clock: Clock,
 ) : CoroutineWorker(app, params) {
 
     override suspend fun doWork(): Result {
@@ -115,7 +115,7 @@ class SyncWorker @AssistedInject constructor(
             // Transient rejection: keep order, stop the drain, retry next window.
             syncCommandDao.incrementRetry(entity.id)
             Log.w(TAG, "Command ${entity.uuid} rejected transiently (attempt ${entity.retryCount + 1}) — pausing drain")
-            return SyncResult.Retry("transport not ready at ${clock.nowMillis()}")
+            return SyncResult.Retry("transport not ready at ${clock.millis()}")
         }
 
         return SyncResult.Success(processedCommands = processed)
