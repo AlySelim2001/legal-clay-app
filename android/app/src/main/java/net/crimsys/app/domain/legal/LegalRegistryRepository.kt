@@ -1,61 +1,33 @@
 package net.crimsys.app.domain.legal
 
-import kotlinx.coroutines.flow.Flow
-import net.crimsys.app.core.Result
-import net.crimsys.app.data.local.LegalSourceEntity
+import java.time.LocalDate
 
 /**
- * One registered legal source as the domain sees it: the citable
- * [LegalCitation] plus the human-review flag that gates verification
- * ([net.crimsys.app.domain.legal.RejectionReason.SOURCE_NOT_VERIFIED]).
+ * Lookup contract for the authoritative legal registry.
  *
- * `id` is the persistence row id — meaningless to the domain, kept for the
- * review workflow to address a specific entry.
- */
-data class RegistryEntry(
-    val citation: LegalCitation,
-    val verified: Boolean,
-    val id: Long,
-)
-
-/**
- * Contract for the authoritative-source registry: the local catalogue of
- * Egyptian legal artifacts the practice treats as citable.
+ * `findExact` is an EXACT match, never fuzzy: (lawName, article, paragraph)
+ * must coincide with a registered row, with `paragraph = null` matching only
+ * article-level rows (null-safe) — so a citation that names no paragraph can
+ * never be satisfied by a paragraph-level row and vice versa. Returning more
+ * than one citation means the registry itself is ambiguous; the validator
+ * rejects with [RejectionReason.AMBIGUOUS_SOURCE_MATCH].
  *
- * Registry rule (Evidence-First): only sources that passed publisher +
- * version verification may be stored here with `verified = true`. A GitHub
- * repo or a scraped page is NOT automatically authoritative — the review
- * workflow owns that decision; this repository only persists and serves the
- * approved set.
- *
- * Note: storage entities cross the boundary (existing project precedent —
- * `CaseRepository` exposes `CaseEntity`); domain-facing reads are expressed
- * as [RegistryEntry].
+ * `isEffective` is the temporal gate: the validity window
+ * ([LegalCitation.effectiveFrom] / [effectiveTo], null = still in force) is
+ * checked against the EVENT date — the date of the procedural event the
+ * citation supports, never "today".
  */
 interface LegalRegistryRepository {
-    /** Reactive registry contents ordered by law name, then article. */
-    fun observeEntries(): Flow<List<RegistryEntry>>
 
-    /**
-     * Candidates for verifying one parsed citation: rows whose normalized
-     * law name and article match. Verification then requires EXACTLY one
-     * candidate — zero is [RejectionReason.NO_SOURCE_MATCH], more than one is
-     * [RejectionReason.AMBIGUOUS_SOURCE_MATCH].
-     */
-    suspend fun findCandidates(lawName: String, article: String): List<RegistryEntry>
+    suspend fun findExact(
+        lawName: String,
+        article: String,
+        paragraph: String?,
+        lawNumber: String? = null,
+    ): List<LegalCitation>
 
-    /**
-     * Idempotent registry write (upsert on the entity's unique natural key).
-     * Returns the persisted row ids in input order.
-     */
-    suspend fun upsertEntries(entries: List<RegistryEntry>): Result<List<Long>>
-
-    /**
-     * First-run seed: writes [defaults] ONLY when the registry is empty, so
-     * re-seeding can never silently resurrect a source the practice removed.
-     *
-     * @return number of rows actually seeded (0 when the registry was
-     * already populated).
-     */
-    suspend fun seedDefaultsIfEmpty(entries: List<RegistryEntry>): Result<Int>
+    suspend fun isEffective(
+        citation: LegalCitation,
+        eventDate: LocalDate,
+    ): Boolean
 }

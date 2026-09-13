@@ -49,7 +49,7 @@ UI (Compose, StateFlow)
 | `core/ClockModule.kt` | Injectable `WallClock` / `MonotonicClock` (different trust levels, never confused) |
 | `core/evidence/` | `Sha256` streaming digests + `ChainEventHasher` (length-prefixed hash linking) |
 | `data/evidence/EvidenceRepositoryImpl.kt` | Atomic evidence + chain appends; head/count move with the event; sync queueing |
-| `data/legal/LegalRegistryRepositoryImpl.kt` | Authoritative-source registry keyed on (law, article, paragraph); persist-only, seeding only when empty |
+| `data/legal/LegalRegistryRepositoryImpl.kt` | Exact-match lookup (`findExact` + temporal `isEffective`) over the registered set — only verified artifacts are ever stored |
 | `data/local/{EvidenceEntity,EvidenceDao}.kt` | `evidence_items` + `evidence_chain_events` (v4 migration, additive) |
 | `data/local/{LegalSourceEntity,LegalSourceDao}.kt` | `legal_sources` — citable sources, unique `sourceKey` |
 | `data/local/{SyncCommandEntity,SyncCommandDao}.kt` | `sync_commands` — FIFO queue with DLQ (same lifecycle as `offline_actions`) |

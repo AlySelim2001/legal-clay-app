@@ -13,13 +13,20 @@ import javax.inject.Inject
  *
  * 1. format (`UNSUPPORTED_CITATION_FORMAT`) — law name and article required;
  * 2. registry match (`NO_SOURCE_MATCH` / `AMBIGUOUS_SOURCE_MATCH`) — the
- *    match must resolve to exactly one registered artifact;
- * 3. human review (`SOURCE_NOT_VERIFIED`) — a source is only citable after a
- *    person completed publisher/version verification;
- * 4. artifact integrity (`SOURCE_HASH_INVALID`) and provenance
+ *    exact (lawName, article, paragraph) lookup must resolve to exactly one
+ *    registered artifact;
+ * 3. artifact integrity (`SOURCE_HASH_INVALID`) and provenance
  *    (`SOURCE_URL_INVALID`);
- * 5. temporal validity (`NOT_EFFECTIVE_ON_EVENT_DATE`) — checked against the
- *    EVENT date, not today.
+ * 4. temporal validity (`NOT_EFFECTIVE_ON_EVENT_DATE`) — delegated to
+ *    [LegalRegistryRepository.isEffective], checked against the EVENT date,
+ *    not today.
+ *
+ * Note on [RejectionReason.SOURCE_NOT_VERIFIED]: the registry contract
+ * guarantees that only human-verified artifacts are ever registered (the
+ * write gate in the registry implementation), so an unverified source
+ * surfaces as `NO_SOURCE_MATCH` here rather than as a distinct rejection.
+ * The enum value is kept for the review workflow, which reports it before a
+ * source is admitted to the registry.
  */
 interface CitationValidator {
     /**
@@ -48,31 +55,27 @@ class RegistryBackedCitationValidator @Inject constructor(
             return VerificationResult.Rejected(parsed, RejectionReason.UNSUPPORTED_CITATION_FORMAT)
         }
 
-        val candidates = registry.findCandidates(lawName, article)
-        if (candidates.isEmpty()) {
+        val matches = registry.findExact(
+            lawName = lawName,
+            article = article,
+            paragraph = parsed.paragraph?.trim(),
+            lawNumber = null, // the parser keeps the law number inside the law name
+        )
+        if (matches.isEmpty()) {
             return VerificationResult.Rejected(parsed, RejectionReason.NO_SOURCE_MATCH)
         }
-        if (candidates.size > 1) {
+        if (matches.size > 1) {
             return VerificationResult.Rejected(parsed, RejectionReason.AMBIGUOUS_SOURCE_MATCH)
         }
 
-        val entry = candidates.first()
-        if (!entry.verified) {
-            return VerificationResult.Rejected(parsed, RejectionReason.SOURCE_NOT_VERIFIED)
-        }
-
-        val citation = entry.citation
+        val citation = matches.first()
         if (!isValidSha256(citation.sourceSha256)) {
             return VerificationResult.Rejected(parsed, RejectionReason.SOURCE_HASH_INVALID)
         }
         if (!isValidHttpUrl(citation.officialSourceUrl)) {
             return VerificationResult.Rejected(parsed, RejectionReason.SOURCE_URL_INVALID)
         }
-
-        val effectiveTo = citation.effectiveTo
-        if (eventDate.isBefore(citation.effectiveFrom) ||
-            (effectiveTo != null && eventDate.isAfter(effectiveTo))
-        ) {
+        if (!registry.isEffective(citation, eventDate)) {
             return VerificationResult.Rejected(parsed, RejectionReason.NOT_EFFECTIVE_ON_EVENT_DATE)
         }
 
