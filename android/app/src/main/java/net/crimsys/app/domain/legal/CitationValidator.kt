@@ -5,6 +5,34 @@ import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Citation gate — the verification pipeline (AI/user text in, safe text out):
+ *
+ * ```
+ * AI/User text
+ *      ↓
+ * Citation parser                     parse()
+ *      ↓
+ * LegalSourceRegistry                 registry.findExact()
+ *      ↓
+ * Exact source?                       empty → NO_SOURCE_MATCH
+ *      ↓
+ * Effective date?                     none → NOT_EFFECTIVE_ON_EVENT_DATE
+ *                                     >1   → AMBIGUOUS_SOURCE_MATCH
+ *      ↓
+ * Verified SHA-256?                   → SOURCE_HASH_INVALID
+ *      ↓
+ * HTTPS official source?              → SOURCE_URL_INVALID
+ *      ↓
+ *       YES ──────────→ citation survives  (VerificationResult.Verified)
+ *       NO ───────────→ citation replaced  (SAFETY_REFUSAL, validateAndSanitize)
+ * ```
+ *
+ * [verify] returns the verdict for one citation; [validateAndSanitize] runs
+ * the same pipeline over every citation in a document and rewrites each
+ * rejected span with [SAFETY_REFUSAL]. The refusal is deliberate: unverified
+ * law text never ships — it is not the app's place to guess.
+ */
 @Singleton
 class CitationValidator @Inject constructor(
     private val registry: LegalRegistryRepository,
