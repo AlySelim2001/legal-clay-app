@@ -105,10 +105,48 @@ regardless of code quality:
 | **No new heavyweight deps** | Open-source, actively maintained, on-device, no paid APIs — justify in the PR |
 | **Legal constants are data, not literals** | Statutes/deadline rules live in typed domain models with sources, never sprinkled in composables |
 
+</div>---
+## Open-Source Intake (Mandatory)
+
+<div dir="rtl">
+
+**قاعدة المصادر المفتوحة:** لا يُدمج أي مكوّن خارجي (اعتمادية، مقتطف كود، بيانات، نموذج) دون باب دخول موثّق: الترخيص أولاً، ثم السجل، ثم القفل. البحث العلني على GitHub ليس ترخيصاً — الترخيص هو الترخيص.
+
 </div>
 
----
+Any new dependency, vendored snippet, dataset, or model follows the
+[oss-intake](docs/engineering/skills/oss-intake.md) skill:
 
+1. **Duplicate check (§21)** — search `src/`, `local-ai/`, `android/`,
+   `mobile_app/` first. In-house implementations win ties; most requests end
+   here with a documented rejection.
+2. **License gate** — SPDX + LICENSE file verified, compatible with our
+   distribution model. Unclear ⇒ `LICENSE_UNVERIFIED` ⇒ rejected.
+3. **Security review** — §17 checklist; §18 red flags auto-reject. Reference
+   implementations and code extracts evaluate first in an isolated sandbox:
+   `sandbox/oss/<name>/`.
+4. **Register** — `config/oss_registry.yaml` (machine-readable; fields:
+   license, tier, integration type A–L, update policy, review date). CI fails
+   otherwise:
+   ```bash
+   node scripts/oss-registry-lint.mjs   # "no mystery dependencies" gate
+   ```
+5. **SBOM + decision record** — regenerate and commit `sbom/cyclonedx.json`,
+   record the verdict in `docs/OSS_DECISIONS.md`:
+   ```bash
+   node scripts/generate-sbom.mjs
+   ```
+
+Governance docs: [docs/OSS_REGISTRY.md](docs/OSS_REGISTRY.md) ·
+[docs/OSS_LICENSES.md](docs/OSS_LICENSES.md) ·
+[docs/OSS_SECURITY.md](docs/OSS_SECURITY.md) ·
+[docs/OSS_DECISIONS.md](docs/OSS_DECISIONS.md). A weekly scheduled audit
+([.github/workflows/oss-audit.yml](.github/workflows/oss-audit.yml)) re-runs
+the gate, checks SBOM drift, and reports stale reviews.
+
+Or one-liner via npm scripts: `bun run oss:audit` (lint + SBOM).
+
+---
 ## Commit & PR Style
 
 - Conventional-ish, imperative mood:

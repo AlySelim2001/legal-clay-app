@@ -1,58 +1,60 @@
-<div dir="ltr">
+<!--
+PR checklist — reviewers verify items, they are not read aloud.
+Skill references: docs/engineering/skills/
+-->
 
-## 📋 Pull Request — CRIM-SYS 2026
+## What & why
 
-> **One logical change per PR.** Mixed refactors + features get bounced —
-> see [CONTRIBUTING.md](../CONTRIBUTING.md).
+<!-- One paragraph: the lawyer/citizen workflow problem being solved. -->
+<!-- OSS changes: link the decision record draft in docs/OSS_DECISIONS.md. -->
 
-### What does this PR change?
+## Affected surfaces
 
-<!-- Feature / fix / refactor / docs — and the *why*, not just the what -->
+- [ ] Web (src/) · [ ] Convex (src/convex/) · [ ] local-ai services
+- [ ] Android (android/) · [ ] Flutter (mobile_app/) · [ ] Docker/compose
+- [ ] Docs only
 
-Closes #
+## Applicable skill checklists
 
-### Scope
+<!-- Delete rows that do not apply. Reviewers: verify, don't trust. -->
 
-- [ ] 📱 Native Android (`android/app/src/main/java/...`)
-- [ ] 🌐 Web reference app (`src/`)
-- [ ] 📚 Documentation only
-- [ ] 🔧 Build / CI / tooling
+| Skill | Checked |
+|-------|---------|
+| [security-review](../docs/engineering/skills/security-review.md) — §17/§18 sweep done | |
+| [api-review](../docs/engineering/skills/api-review.md) — auth/ownership/rate-limit/audit on new handlers | |
+| [mobile-ui-review](../docs/engineering/skills/mobile-ui-review.md) — RTL + Claymorphism + 360px pass | |
+| [legal-rag-review](../docs/engineering/skills/legal-rag-review.md) — eval suite green, abstention intact | |
+| [legal-source-review](../docs/engineering/skills/legal-source-review.md) — official provenance for new knowledge | |
+| [citation-review](../docs/engineering/skills/citation-review.md) — every legal claim carries a source | |
+| [document-review](../docs/engineering/skills/document-review.md) — hash/provenance/advisory labels | |
+| [database-review](../docs/engineering/skills/database-review.md) — schema wired, seeds idempotent | |
+| [oss-intake](../docs/engineering/skills/oss-intake.md) — new dep registered + license verified | |
+| [test-review](../docs/engineering/skills/test-review.md) — failing-first tests pin the invariant | |
 
-### Architecture checklist (native changes)
+## Legal sensitivity ⚠️
 
-- [ ] Repository/use-case returns go through `net.crimsys.app.core.Result` — no raw throws across layers
-- [ ] ViewModel state uses `StateFlow`; one-shot events use `SharedFlow`; no `GlobalScope`, no `runBlocking`
-- [ ] Dependencies injected via Hilt (`@HiltViewModel` / `AppModule`) — no manual service lookups
-- [ ] Room stays the single source of truth; reads are reactive DAO `Flow`s
-- [ ] The change works with **airplane mode ON** (local write → queue enqueue → opportunistic push)
+Does this PR touch **deadline math, hearing dates, procedural ordering, or
+statute citations**?
 
-### UI checklist (any user-facing change)
+- [ ] No
+- [ ] Yes → cited source (law/article/ruling) in description,
+      known-good test data, `legal-sensitive` label, **two approvals**
+      (code + legal-domain), advisory wording preserved.
 
-- [ ] All strings via `stringResource(R.string.…)` in **both** `values/` and `values-ar/`
-- [ ] RTL-safe: logical (start/end) spacing only, verified on an Arabic locale device/emulator
-- [ ] Web pages keep `<html dir="rtl" lang="ar">` and use `ms-*`/`me-*`/`ps-*`/`pe-*` utilities
+## Verification (executed, with output)
 
-### Legal-sensitive gate ⚖️
+<!-- verification-before-completion: quote the command + exit code. -->
 
-Does this PR touch **deadline calculations, hearing dates, procedural ordering,
-or statute citations**?
-
-- [ ] **No** → skip this section
-- [ ] **Yes** → all of the following are included:
-  - [ ] Exact legal source cited (law number + article / Cassation ruling)
-  - [ ] Unit tests with known-good legal examples (e.g., appeal window from CPC 150/1950)
-  - [ ] `legal-sensitive` label applied; two approvals requested (code + legal-domain reviewer)
-  - [ ] Output remains *advisory* — surfaced with "verify with the responsible attorney"
-
-### Verification
-
-```bash
-cd android && ./gradlew assembleDebug :app:lintDebug   # native module
-bun tsc -b --noEmit && bun run lint                    # web reference app
+```
+$ bunx tsc -b --noEmit          # exit __
+$ bunx convex dev --once        # exit __ (if Convex touched)
+$ node scripts/oss-registry-lint.mjs   # exit __ (if deps/registry touched)
+$ node scripts/generate-sbom.mjs       # (if deps changed — SBOM refreshed)
 ```
 
-- [ ] Both commands above pass locally
-- [ ] Docs updated where behavior changed (README / `android/README.md` / strings / CHANGELOG)
-- [ ] No secrets committed (`keystore.properties`, `crimsys-release.jks`, `google-services.json`)
+## OSS provenance (TYPE E/G extracts only)
 
-</div>
+- Upstream repo + commit SHA:
+- License (SPDX) + evidence:
+- Files used + modifications:
+- Registered in config/oss_registry.yaml: [x] [ ]

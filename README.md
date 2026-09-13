@@ -298,6 +298,14 @@ cd android
 | [SECURITY.md](SECURITY.md) | الإبلاغ الخاص عن الثغرات الأمنية |
 | [.github/ISSUE_TEMPLATE/legal_compliance.yml](.github/ISSUE_TEMPLATE/legal_compliance.yml) | ⚠️ قالب حساس: أخطاء الحسابات القانونية والمواعيد |
 | [docs/dependency-decisions.md](docs/dependency-decisions.md) | سجل قرارات الاعتماديات |
+| [config/oss_registry.yaml](config/oss_registry.yaml) | 📦 السجل الآلي للمصادر المفتوحة — بوابة CI ("لا اعتماديات مجهولة") |
+| [docs/OSS_REGISTRY.md](docs/OSS_REGISTRY.md) | 📦 سجل المكوّنات المفتوحة: الترخيص، التصنيف A–L، سياسة التحديث |
+| [docs/OSS_LICENSES.md](docs/OSS_LICENSES.md) | ⚖️ تحقق التراخيص ومطابقة نموذج التوزيع |
+| [docs/OSS_SECURITY.md](docs/OSS_SECURITY.md) | 🔒 قوائم التدقيق الأمني (§17/§18) وتدفق تحديثات الثغرات |
+| [docs/OSS_DECISIONS.md](docs/OSS_DECISIONS.md) | 🧭 سجل قرارات القبول/الرفض مع شروط إعادة النظر |
+| [docs/engineering/skills/README.md](docs/engineering/skills/README.md) | 🛠️ مهارات المراجعة المحلية (12 مهارة TYPE G — بنية تحتية تطويرية) |
+| [sandbox/oss/README.md](sandbox/oss/README.md) | 🧪 بروتوكول الفحص المعزول للمكوّنات قبل الدمج |
+| [.github/workflows/oss-audit.yml](.github/workflows/oss-audit.yml) | ⏱️ تدقيق أسبوعي آلي: بوابة السجل + انحراف SBOM + npm audit |
 | [docs/LAUNCH_STRATEGY.md](docs/LAUNCH_STRATEGY.md) | استراتيجية الإطلاق والتوزيع |
 
 ---

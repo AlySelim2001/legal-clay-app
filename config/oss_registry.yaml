@@ -33,6 +33,51 @@ policy:
           offered as a hosted service to third parties. Tracked here so
           the restriction stays visible. Flagged in docs/OSS_LICENSES.md.
   license_unverified_action: REJECT_FOR_PRODUCTION
+  # Group-prefix license facts for maven artifacts (kept OUT of components/
+  # default_licenses because the lint trusts these prefixes by project policy;
+  # the SBOM still wants their licenses). Evidence per group:
+  #   androidx.*            — every AndroidX artifact ships under Apache-2.0
+  #                           (developer.android.com/jetpack licensing)
+  #   org.jetbrains.kotlin* — kotlin stdlib/coroutines/serialization: Apache-2.0
+  #   io.mockk, app.cash.turbine, com.google.dagger, com.google.devtools.ksp,
+  #   com.google.firebase   — Apache-2.0 upstream projects
+  #   junit                 — EPL-1.0 (junit4/junit5)
+  # NOT covered (non-OSI, tracked as components): Google ML Kit terms.
+  license_group_policy:
+    - group_prefix: "androidx."
+      license: Apache-2.0
+    - group_prefix: "org.jetbrains.kotlin"
+      license: Apache-2.0
+    - group_prefix: "io.mockk"
+      license: Apache-2.0
+    - group_prefix: "app.cash.turbine"
+      license: Apache-2.0
+    - group_prefix: "com.google.dagger"
+      license: Apache-2.0
+    - group_prefix: "com.google.devtools.ksp"
+      license: Apache-2.0
+    - group_prefix: "com.google.firebase"
+      license: Apache-2.0
+    - group_prefix: "junit"
+      license: EPL-1.0
+  # Per-package PyPI license facts for production pins. Kept here (not as
+  # py:* components) because the lint gates these via its pinned-package
+  # allowlist; licenses verified at registration — see docs/OSS_LICENSES.md
+  # §python. SBOM enrichment consumes this block.
+  license_pypi:
+    httpx: BSD-3-Clause
+    python-multipart: Apache-2.0
+    pillow: MIT-CMU
+    crewai-tools: MIT
+    langchain-ollama: MIT
+    llama-index-embeddings-huggingface: MIT
+    llama-index-vector-stores-qdrant: MIT
+    qdrant-client: MIT
+    sentence-transformers: Apache-2.0
+    torch: BSD-3-Clause
+    datasets: Apache-2.0
+    paddlepaddle: Apache-2.0
+    opencv-python-headless: Apache-2.0
   update_policies: [MANUAL, MONTHLY, QUARTERLY, SECURITY_ONLY, PINNED, AUTO_UPDATE_TEST_ONLY]
   default_update_policy: SECURITY_ONLY
   supply_chain:
@@ -426,6 +471,7 @@ components:
     review: 2026-09-13
 
   - name: compose-calendar (kizitonwose)
+    artifact_alias: compose
     surface: android
     gradle_group: com.kizitonwose
     version: via libs.versions.toml
@@ -507,7 +553,7 @@ components:
     update_policy: MANUAL
     review: 2026-09-13
 
-  - name: playwright (python)
+  - name: py:playwright
     surface: local-ai
     version: 1.47.0
     license: Apache-2.0
@@ -566,6 +612,7 @@ components:
     review: 2026-09-13
 
   - name: mlkit-text-recognition
+    artifact_alias: text-recognition-arabic
     surface: android
     version: 16.0.1
     license: Google ML Kit Terms (on-device, free)

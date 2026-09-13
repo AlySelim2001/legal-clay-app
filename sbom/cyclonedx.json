@@ -4,7 +4,7 @@
   "serialNumber": "urn:uuid:a8d01d62-83e3-7599-5279-eacda719c645",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-09-13T09:56:04.849Z",
+    "timestamp": "2026-09-13T12:32:08.825Z",
     "tools": [
       {
         "vendor": "CRIM-SYS",
@@ -23,7 +23,7 @@
       },
       {
         "name": "crimsys:license_enriched",
-        "value": "23/197"
+        "value": "192/197"
       }
     ]
   },
@@ -39,7 +39,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.activity/activity-compose@activityCompose"
+      "purl": "pkg:maven/androidx.activity/activity-compose@activityCompose",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -52,7 +59,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.appcompat/appcompat@appcompat"
+      "purl": "pkg:maven/androidx.appcompat/appcompat@appcompat",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -65,7 +79,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.biometric/biometric@biometric"
+      "purl": "pkg:maven/androidx.biometric/biometric@biometric",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -78,7 +99,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.compose/compose-bom@composeBom"
+      "purl": "pkg:maven/androidx.compose/compose-bom@composeBom",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -91,7 +119,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.core/core-ktx@coreKtx"
+      "purl": "pkg:maven/androidx.core/core-ktx@coreKtx",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -104,7 +139,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.core/core-splashscreen@splashscreen"
+      "purl": "pkg:maven/androidx.core/core-splashscreen@splashscreen",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -117,7 +159,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.datastore/datastore-preferences@datastore"
+      "purl": "pkg:maven/androidx.datastore/datastore-preferences@datastore",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -130,7 +179,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.hilt/hilt-navigation-compose@hiltNavigationCompose"
+      "purl": "pkg:maven/androidx.hilt/hilt-navigation-compose@hiltNavigationCompose",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -143,7 +199,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.lifecycle/lifecycle-runtime-compose@lifecycle"
+      "purl": "pkg:maven/androidx.lifecycle/lifecycle-runtime-compose@lifecycle",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -156,7 +219,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.lifecycle/lifecycle-runtime-ktx@lifecycle"
+      "purl": "pkg:maven/androidx.lifecycle/lifecycle-runtime-ktx@lifecycle",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -169,7 +239,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.lifecycle/lifecycle-viewmodel-compose@lifecycle"
+      "purl": "pkg:maven/androidx.lifecycle/lifecycle-viewmodel-compose@lifecycle",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -182,7 +259,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.navigation/navigation-compose@navigation"
+      "purl": "pkg:maven/androidx.navigation/navigation-compose@navigation",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -195,7 +279,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.room/room-compiler@room"
+      "purl": "pkg:maven/androidx.room/room-compiler@room",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -208,7 +299,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.room/room-ktx@room"
+      "purl": "pkg:maven/androidx.room/room-ktx@room",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -221,7 +319,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.room/room-runtime@room"
+      "purl": "pkg:maven/androidx.room/room-runtime@room",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -234,7 +339,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.room/room-testing@room"
+      "purl": "pkg:maven/androidx.room/room-testing@room",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -267,7 +379,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.sqlite/sqlite-ktx@androidxSqlite"
+      "purl": "pkg:maven/androidx.sqlite/sqlite-ktx@androidxSqlite",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -280,7 +399,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.test.espresso/espresso-core@espresso"
+      "purl": "pkg:maven/androidx.test.espresso/espresso-core@espresso",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -293,7 +419,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.test.ext/junit@junitExt"
+      "purl": "pkg:maven/androidx.test.ext/junit@junitExt",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -306,7 +439,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.test.uiautomator/uiautomator@uiautomator"
+      "purl": "pkg:maven/androidx.test.uiautomator/uiautomator@uiautomator",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -319,7 +459,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/androidx.work/work-runtime-ktx@workRuntime"
+      "purl": "pkg:maven/androidx.work/work-runtime-ktx@workRuntime",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -332,7 +479,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/app.cash.turbine/turbine@turbine"
+      "purl": "pkg:maven/app.cash.turbine/turbine@turbine",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -345,7 +499,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/com.google.dagger/hilt-android-compiler@hilt"
+      "purl": "pkg:maven/com.google.dagger/hilt-android-compiler@hilt",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -358,7 +519,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/com.google.dagger/hilt-android@hilt"
+      "purl": "pkg:maven/com.google.dagger/hilt-android@hilt",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -371,7 +539,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/com.google.firebase/firebase-bom@firebaseBom"
+      "purl": "pkg:maven/com.google.firebase/firebase-bom@firebaseBom",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -384,7 +559,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/com.google.mlkit/text-recognition-arabic@mlkitTextRecognition"
+      "purl": "pkg:maven/com.google.mlkit/text-recognition-arabic@mlkitTextRecognition",
+      "licenses": [
+        {
+          "license": {
+            "name": "Google ML Kit Terms (on-device, free)"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -397,7 +579,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/com.kizitonwose.calendar/compose@calendar"
+      "purl": "pkg:maven/com.kizitonwose.calendar/compose@calendar",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -410,7 +599,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/com.mohamedrejeb.richeditor/richeditor-compose@richeditor"
+      "purl": "pkg:maven/com.mohamedrejeb.richeditor/richeditor-compose@richeditor",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -423,7 +619,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/com.vanniktech/android-image-cropper@imageCropper"
+      "purl": "pkg:maven/com.vanniktech/android-image-cropper@imageCropper",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -436,7 +639,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/io.mockk/mockk@mockk"
+      "purl": "pkg:maven/io.mockk/mockk@mockk",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -449,7 +659,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/junit/junit@junit"
+      "purl": "pkg:maven/junit/junit@junit",
+      "licenses": [
+        {
+          "license": {
+            "id": "EPL-1.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -462,7 +679,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/net.zetetic/sqlcipher-android@sqlcipher"
+      "purl": "pkg:maven/net.zetetic/sqlcipher-android@sqlcipher",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -475,7 +699,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/org.jetbrains.kotlinx/kotlinx-coroutines-play-services@coroutinesPlayServices"
+      "purl": "pkg:maven/org.jetbrains.kotlinx/kotlinx-coroutines-play-services@coroutinesPlayServices",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -488,7 +719,14 @@
           "value": "android"
         }
       ],
-      "purl": "pkg:maven/org.jetbrains.kotlinx/kotlinx-serialization-json@serializationJson"
+      "purl": "pkg:maven/org.jetbrains.kotlinx/kotlinx-serialization-json@serializationJson",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -501,7 +739,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/camera@0.11.0"
+      "purl": "pkg:pub/camera@0.11.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -514,7 +759,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/crypto@3.0.3"
+      "purl": "pkg:pub/crypto@3.0.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -527,7 +779,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/cupertino_icons@1.0.8"
+      "purl": "pkg:pub/cupertino_icons@1.0.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -560,7 +819,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/equatable@2.0.5"
+      "purl": "pkg:pub/equatable@2.0.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -573,7 +839,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/flutter_lints@4.0.0"
+      "purl": "pkg:pub/flutter_lints@4.0.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -586,7 +859,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/flutter_localizations@unknown"
+      "purl": "pkg:pub/flutter_localizations@unknown",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -619,7 +899,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/flutter_test@unknown"
+      "purl": "pkg:pub/flutter_test@unknown",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -632,7 +919,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/flutter_tts@4.0.2"
+      "purl": "pkg:pub/flutter_tts@4.0.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -645,7 +939,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/flutter@unknown"
+      "purl": "pkg:pub/flutter@unknown",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -658,7 +959,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/intl@0.19.0"
+      "purl": "pkg:pub/intl@0.19.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -671,7 +979,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/path_provider@2.1.4"
+      "purl": "pkg:pub/path_provider@2.1.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -684,7 +999,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/path@1.9.0"
+      "purl": "pkg:pub/path@1.9.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -697,7 +1019,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/provider@6.1.2"
+      "purl": "pkg:pub/provider@6.1.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -710,7 +1039,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/speech_to_text@6.6.2"
+      "purl": "pkg:pub/speech_to_text@6.6.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -743,7 +1079,14 @@
           "value": "flutter"
         }
       ],
-      "purl": "pkg:pub/sqflite@2.3.3"
+      "purl": "pkg:pub/sqflite@2.3.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -776,7 +1119,14 @@
           "value": "local-ai/court-scraper"
         }
       ],
-      "purl": "pkg:pypi/playwright@1.47.0"
+      "purl": "pkg:pypi/playwright@1.47.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -809,7 +1159,14 @@
           "value": "local-ai/court-scraper"
         }
       ],
-      "purl": "pkg:pypi/uvicorn@0.30.6"
+      "purl": "pkg:pypi/uvicorn@0.30.6",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "container",
@@ -881,6 +1238,13 @@
           "name": "crimsys:surface",
           "value": "local-ai/docker"
         }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Sustainable Use License"
+          }
+        }
       ]
     },
     {
@@ -893,6 +1257,13 @@
           "name": "crimsys:surface",
           "value": "local-ai/docker"
         }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
       ]
     },
     {
@@ -904,6 +1275,13 @@
         {
           "name": "crimsys:surface",
           "value": "local-ai/docker"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
         }
       ]
     },
@@ -919,7 +1297,14 @@
           "value": "local-ai/frontend"
         }
       ],
-      "purl": "pkg:npm/%40tailwindcss%2Fvite@4.0.0"
+      "purl": "pkg:npm/%40tailwindcss%2Fvite@4.0.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -933,7 +1318,14 @@
           "value": "local-ai/frontend"
         }
       ],
-      "purl": "pkg:npm/%40types%2Freact-dom@18.3.1"
+      "purl": "pkg:npm/%40types%2Freact-dom@18.3.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -947,7 +1339,14 @@
           "value": "local-ai/frontend"
         }
       ],
-      "purl": "pkg:npm/%40types%2Freact@18.3.12"
+      "purl": "pkg:npm/%40types%2Freact@18.3.12",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -961,7 +1360,14 @@
           "value": "local-ai/frontend"
         }
       ],
-      "purl": "pkg:npm/%40vitejs%2Fplugin-react@4.3.4"
+      "purl": "pkg:npm/%40vitejs%2Fplugin-react@4.3.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -974,7 +1380,14 @@
           "value": "local-ai/frontend"
         }
       ],
-      "purl": "pkg:npm/react-dom@18.3.1"
+      "purl": "pkg:npm/react-dom@18.3.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -987,7 +1400,14 @@
           "value": "local-ai/frontend"
         }
       ],
-      "purl": "pkg:npm/react@18.3.1"
+      "purl": "pkg:npm/react@18.3.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -1000,7 +1420,14 @@
           "value": "local-ai/frontend"
         }
       ],
-      "purl": "pkg:npm/tailwindcss@4.0.0"
+      "purl": "pkg:npm/tailwindcss@4.0.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -1013,7 +1440,14 @@
           "value": "local-ai/frontend"
         }
       ],
-      "purl": "pkg:npm/typescript@5.6.3"
+      "purl": "pkg:npm/typescript@5.6.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -1026,7 +1460,14 @@
           "value": "local-ai/frontend"
         }
       ],
-      "purl": "pkg:npm/vite@5.4.11"
+      "purl": "pkg:npm/vite@5.4.11",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1039,7 +1480,14 @@
           "value": "local-ai/legal-backend"
         }
       ],
-      "purl": "pkg:pypi/crewai-tools@0.14.0"
+      "purl": "pkg:pypi/crewai-tools@0.14.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1072,7 +1520,14 @@
           "value": "local-ai/legal-backend"
         }
       ],
-      "purl": "pkg:pypi/datasets@3.0.1"
+      "purl": "pkg:pypi/datasets@3.0.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1105,7 +1560,14 @@
           "value": "local-ai/legal-backend"
         }
       ],
-      "purl": "pkg:pypi/httpx@0.27.2"
+      "purl": "pkg:pypi/httpx@0.27.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1118,7 +1580,14 @@
           "value": "local-ai/legal-backend"
         }
       ],
-      "purl": "pkg:pypi/langchain-ollama@0.2.2"
+      "purl": "pkg:pypi/langchain-ollama@0.2.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1151,7 +1620,14 @@
           "value": "local-ai/legal-backend"
         }
       ],
-      "purl": "pkg:pypi/llama-index-embeddings-huggingface@0.3.1"
+      "purl": "pkg:pypi/llama-index-embeddings-huggingface@0.3.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1164,7 +1640,14 @@
           "value": "local-ai/legal-backend"
         }
       ],
-      "purl": "pkg:pypi/llama-index-vector-stores-qdrant@0.3.2"
+      "purl": "pkg:pypi/llama-index-vector-stores-qdrant@0.3.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1177,7 +1660,14 @@
           "value": "local-ai/legal-backend"
         }
       ],
-      "purl": "pkg:pypi/qdrant-client@1.11.3"
+      "purl": "pkg:pypi/qdrant-client@1.11.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1210,7 +1700,14 @@
           "value": "local-ai/legal-backend"
         }
       ],
-      "purl": "pkg:pypi/sentence-transformers@3.1.1"
+      "purl": "pkg:pypi/sentence-transformers@3.1.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1223,7 +1720,14 @@
           "value": "local-ai/legal-backend"
         }
       ],
-      "purl": "pkg:pypi/torch@2.4.1"
+      "purl": "pkg:pypi/torch@2.4.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1236,7 +1740,14 @@
           "value": "local-ai/legal-backend"
         }
       ],
-      "purl": "pkg:pypi/uvicorn@0.30.6"
+      "purl": "pkg:pypi/uvicorn@0.30.6",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1269,7 +1780,14 @@
           "value": "local-ai/paddle-ocr-service"
         }
       ],
-      "purl": "pkg:pypi/numpy@2.0"
+      "purl": "pkg:pypi/numpy@2.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1282,7 +1800,14 @@
           "value": "local-ai/paddle-ocr-service"
         }
       ],
-      "purl": "pkg:pypi/opencv-python-headless@4.10.0.84"
+      "purl": "pkg:pypi/opencv-python-headless@4.10.0.84",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1315,7 +1840,14 @@
           "value": "local-ai/paddle-ocr-service"
         }
       ],
-      "purl": "pkg:pypi/paddlepaddle@2.6.2"
+      "purl": "pkg:pypi/paddlepaddle@2.6.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1328,7 +1860,14 @@
           "value": "local-ai/paddle-ocr-service"
         }
       ],
-      "purl": "pkg:pypi/pillow@10.4.0"
+      "purl": "pkg:pypi/pillow@10.4.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-CMU"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1341,7 +1880,14 @@
           "value": "local-ai/paddle-ocr-service"
         }
       ],
-      "purl": "pkg:pypi/python-multipart@0.0.9"
+      "purl": "pkg:pypi/python-multipart@0.0.9",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1354,7 +1900,14 @@
           "value": "local-ai/paddle-ocr-service"
         }
       ],
-      "purl": "pkg:pypi/uvicorn@0.30.6"
+      "purl": "pkg:pypi/uvicorn@0.30.6",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1368,7 +1921,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40capacitor%2Fandroid@8.5.0"
+      "purl": "pkg:npm/%40capacitor%2Fandroid@8.5.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1382,7 +1942,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40capacitor%2Fapp@8.1.1"
+      "purl": "pkg:npm/%40capacitor%2Fapp@8.1.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1396,7 +1963,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40capacitor%2Fcli@8.5.0"
+      "purl": "pkg:npm/%40capacitor%2Fcli@8.5.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1410,7 +1984,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40capacitor%2Fcore@8.5.0"
+      "purl": "pkg:npm/%40capacitor%2Fcore@8.5.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1424,7 +2005,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40capacitor%2Fdevice@8.0.3"
+      "purl": "pkg:npm/%40capacitor%2Fdevice@8.0.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1438,7 +2026,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40capacitor%2Ffilesystem@8.1.3"
+      "purl": "pkg:npm/%40capacitor%2Ffilesystem@8.1.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1452,7 +2047,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40capacitor%2Fhaptics@8.0.2"
+      "purl": "pkg:npm/%40capacitor%2Fhaptics@8.0.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1466,7 +2068,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40capacitor%2Fkeyboard@8.0.5"
+      "purl": "pkg:npm/%40capacitor%2Fkeyboard@8.0.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1480,7 +2089,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40capacitor%2Fpush-notifications@8.1.2"
+      "purl": "pkg:npm/%40capacitor%2Fpush-notifications@8.1.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1494,7 +2110,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40capacitor%2Fstatus-bar@8.0.3"
+      "purl": "pkg:npm/%40capacitor%2Fstatus-bar@8.0.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1529,7 +2152,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40eslint%2Fjs@9.39.1"
+      "purl": "pkg:npm/%40eslint%2Fjs@9.39.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1543,7 +2173,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40fullcalendar%2Fcore@6"
+      "purl": "pkg:npm/%40fullcalendar%2Fcore@6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1557,7 +2194,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40fullcalendar%2Fdaygrid@6"
+      "purl": "pkg:npm/%40fullcalendar%2Fdaygrid@6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1571,7 +2215,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40fullcalendar%2Finteraction@6"
+      "purl": "pkg:npm/%40fullcalendar%2Finteraction@6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1585,7 +2236,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40fullcalendar%2Freact@6"
+      "purl": "pkg:npm/%40fullcalendar%2Freact@6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1599,7 +2257,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40fullcalendar%2Ftimegrid@6"
+      "purl": "pkg:npm/%40fullcalendar%2Ftimegrid@6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1613,7 +2278,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40hookform%2Fresolvers@5.2.2"
+      "purl": "pkg:npm/%40hookform%2Fresolvers@5.2.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1627,7 +2299,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40jridgewell%2Ftrace-mapping@0.3.31"
+      "purl": "pkg:npm/%40jridgewell%2Ftrace-mapping@0.3.31",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1641,7 +2320,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40oslojs%2Fcrypto@1.0.1"
+      "purl": "pkg:npm/%40oslojs%2Fcrypto@1.0.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -1676,7 +2362,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-accordion@1.2.12"
+      "purl": "pkg:npm/%40radix-ui%2Freact-accordion@1.2.12",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1690,7 +2383,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-alert-dialog@1.1.15"
+      "purl": "pkg:npm/%40radix-ui%2Freact-alert-dialog@1.1.15",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1704,7 +2404,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-aspect-ratio@1.1.8"
+      "purl": "pkg:npm/%40radix-ui%2Freact-aspect-ratio@1.1.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1718,7 +2425,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-avatar@1.1.11"
+      "purl": "pkg:npm/%40radix-ui%2Freact-avatar@1.1.11",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1732,7 +2446,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-checkbox@1.3.3"
+      "purl": "pkg:npm/%40radix-ui%2Freact-checkbox@1.3.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1746,7 +2467,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-collapsible@1.1.12"
+      "purl": "pkg:npm/%40radix-ui%2Freact-collapsible@1.1.12",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1760,7 +2488,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-context-menu@2.2.16"
+      "purl": "pkg:npm/%40radix-ui%2Freact-context-menu@2.2.16",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1774,7 +2509,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-dialog@1.1.15"
+      "purl": "pkg:npm/%40radix-ui%2Freact-dialog@1.1.15",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1788,7 +2530,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-dropdown-menu@2.1.16"
+      "purl": "pkg:npm/%40radix-ui%2Freact-dropdown-menu@2.1.16",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1802,7 +2551,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-hover-card@1.1.15"
+      "purl": "pkg:npm/%40radix-ui%2Freact-hover-card@1.1.15",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1816,7 +2572,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-label@2.1.8"
+      "purl": "pkg:npm/%40radix-ui%2Freact-label@2.1.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1830,7 +2593,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-menubar@1.1.16"
+      "purl": "pkg:npm/%40radix-ui%2Freact-menubar@1.1.16",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1844,7 +2614,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-navigation-menu@1.2.14"
+      "purl": "pkg:npm/%40radix-ui%2Freact-navigation-menu@1.2.14",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1858,7 +2635,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-popover@1.1.15"
+      "purl": "pkg:npm/%40radix-ui%2Freact-popover@1.1.15",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1872,7 +2656,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-progress@1.1.8"
+      "purl": "pkg:npm/%40radix-ui%2Freact-progress@1.1.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1886,7 +2677,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-radio-group@1.3.8"
+      "purl": "pkg:npm/%40radix-ui%2Freact-radio-group@1.3.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1900,7 +2698,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-scroll-area@1.2.10"
+      "purl": "pkg:npm/%40radix-ui%2Freact-scroll-area@1.2.10",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1914,7 +2719,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-select@2.2.6"
+      "purl": "pkg:npm/%40radix-ui%2Freact-select@2.2.6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1928,7 +2740,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-separator@1.1.8"
+      "purl": "pkg:npm/%40radix-ui%2Freact-separator@1.1.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1942,7 +2761,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-slider@1.3.6"
+      "purl": "pkg:npm/%40radix-ui%2Freact-slider@1.3.6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1956,7 +2782,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-slot@1.2.4"
+      "purl": "pkg:npm/%40radix-ui%2Freact-slot@1.2.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1970,7 +2803,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-switch@1.2.6"
+      "purl": "pkg:npm/%40radix-ui%2Freact-switch@1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1984,7 +2824,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-tabs@1.1.13"
+      "purl": "pkg:npm/%40radix-ui%2Freact-tabs@1.1.13",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -1998,7 +2845,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-toggle-group@1.1.11"
+      "purl": "pkg:npm/%40radix-ui%2Freact-toggle-group@1.1.11",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2012,7 +2866,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-toggle@1.1.10"
+      "purl": "pkg:npm/%40radix-ui%2Freact-toggle@1.1.10",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2026,7 +2887,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40radix-ui%2Freact-tooltip@1.2.8"
+      "purl": "pkg:npm/%40radix-ui%2Freact-tooltip@1.2.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2061,7 +2929,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40tailwindcss%2Fvite@4.1.17"
+      "purl": "pkg:npm/%40tailwindcss%2Fvite@4.1.17",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2075,7 +2950,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40tanstack%2Fquery-sync-storage-persister@5.102.8"
+      "purl": "pkg:npm/%40tanstack%2Fquery-sync-storage-persister@5.102.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2089,7 +2971,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40tanstack%2Freact-query-persist-client@5.102.8"
+      "purl": "pkg:npm/%40tanstack%2Freact-query-persist-client@5.102.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2103,7 +2992,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40tanstack%2Freact-query@5.102.8"
+      "purl": "pkg:npm/%40tanstack%2Freact-query@5.102.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2117,7 +3013,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40types%2Fnode@24.10.1"
+      "purl": "pkg:npm/%40types%2Fnode@24.10.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2131,7 +3034,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40types%2Freact-dom@19.2.3"
+      "purl": "pkg:npm/%40types%2Freact-dom@19.2.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2145,7 +3055,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40types%2Freact@19.2.7"
+      "purl": "pkg:npm/%40types%2Freact@19.2.7",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2159,7 +3076,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40vitejs%2Fplugin-react@5.1.1"
+      "purl": "pkg:npm/%40vitejs%2Fplugin-react@5.1.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2194,7 +3118,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/%40zumer%2Fsnapdom@2.0.1"
+      "purl": "pkg:npm/%40zumer%2Fsnapdom@2.0.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2207,7 +3138,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/axios@1.13.2"
+      "purl": "pkg:npm/axios@1.13.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2220,7 +3158,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/class-variance-authority@0.7.1"
+      "purl": "pkg:npm/class-variance-authority@0.7.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2233,7 +3178,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/clsx@2.1.1"
+      "purl": "pkg:npm/clsx@2.1.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2246,7 +3198,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/cmdk@1.1.1"
+      "purl": "pkg:npm/cmdk@1.1.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2279,7 +3238,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/date-fns@4.1.0"
+      "purl": "pkg:npm/date-fns@4.1.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2292,7 +3258,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/embla-carousel-react@8.6.0"
+      "purl": "pkg:npm/embla-carousel-react@8.6.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2305,7 +3278,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/eslint-config-prettier@10.1.8"
+      "purl": "pkg:npm/eslint-config-prettier@10.1.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2318,7 +3298,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/eslint-plugin-react-hooks@7.0.1"
+      "purl": "pkg:npm/eslint-plugin-react-hooks@7.0.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2331,7 +3318,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/eslint-plugin-react-refresh@0.4.24"
+      "purl": "pkg:npm/eslint-plugin-react-refresh@0.4.24",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2344,7 +3338,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/eslint@9.39.1"
+      "purl": "pkg:npm/eslint@9.39.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2357,7 +3358,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/framer-motion@12.23.25"
+      "purl": "pkg:npm/framer-motion@12.23.25",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2370,7 +3378,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/globals@16.5.0"
+      "purl": "pkg:npm/globals@16.5.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2383,7 +3398,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/hono@4.10.7"
+      "purl": "pkg:npm/hono@4.10.7",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2396,7 +3418,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/idb@8.0.3"
+      "purl": "pkg:npm/idb@8.0.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2409,7 +3438,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/input-otp@1.4.2"
+      "purl": "pkg:npm/input-otp@1.4.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2442,7 +3478,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/lucide-react@0.555.0"
+      "purl": "pkg:npm/lucide-react@0.555.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2455,7 +3498,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/next-themes@0.4.6"
+      "purl": "pkg:npm/next-themes@0.4.6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2508,7 +3558,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/prettier@3.7.3"
+      "purl": "pkg:npm/prettier@3.7.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2521,7 +3578,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/react-day-picker@9.13.0"
+      "purl": "pkg:npm/react-day-picker@9.13.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2534,7 +3598,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/react-dom@19.2.0"
+      "purl": "pkg:npm/react-dom@19.2.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2547,7 +3618,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/react-hook-form@7.67.0"
+      "purl": "pkg:npm/react-hook-form@7.67.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2560,7 +3638,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/react-intersection-observer@10.0.0"
+      "purl": "pkg:npm/react-intersection-observer@10.0.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2573,7 +3658,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/react-resizable-panels@3.0.6"
+      "purl": "pkg:npm/react-resizable-panels@3.0.6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2586,7 +3678,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/react-router@7.10.0"
+      "purl": "pkg:npm/react-router@7.10.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2599,7 +3698,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/react@19.2.0"
+      "purl": "pkg:npm/react@19.2.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2612,7 +3718,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/recharts@2.15.4"
+      "purl": "pkg:npm/recharts@2.15.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2625,7 +3738,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/sonner@2.0.7"
+      "purl": "pkg:npm/sonner@2.0.7",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2638,7 +3758,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/tailwind-merge@3.4.0"
+      "purl": "pkg:npm/tailwind-merge@3.4.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2651,7 +3778,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/tailwindcss@4.1.17"
+      "purl": "pkg:npm/tailwindcss@4.1.17",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2684,7 +3818,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/tw-animate-css@1.4.0"
+      "purl": "pkg:npm/tw-animate-css@1.4.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2697,7 +3838,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/typescript-eslint@8.48.1"
+      "purl": "pkg:npm/typescript-eslint@8.48.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2710,7 +3858,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/typescript@5.9.3"
+      "purl": "pkg:npm/typescript@5.9.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2723,7 +3878,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/vaul@1.1.2"
+      "purl": "pkg:npm/vaul@1.1.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "framework",
@@ -2736,7 +3898,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/vite@7.2.6"
+      "purl": "pkg:npm/vite@7.2.6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2789,7 +3958,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/zod@4.1.13"
+      "purl": "pkg:npm/zod@4.1.13",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     },
     {
       "type": "library",
@@ -2802,7 +3978,14 @@
           "value": "web"
         }
       ],
-      "purl": "pkg:npm/zustand@5.0.15"
+      "purl": "pkg:npm/zustand@5.0.15",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     }
   ]
 }

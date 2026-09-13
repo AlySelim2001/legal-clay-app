@@ -16,7 +16,10 @@
     "cap:run": "vite build && npx cap sync android && npx cap run android",
     "cap:build:apk": "vite build && npx cap sync android && cd android && ./gradlew assembleDebug",
     "cap:build:release": "vite build && npx cap sync android && cd android && ./gradlew assembleRelease",
-    "android": "npx cap add android && vite build && npx cap sync android"
+    "android": "npx cap add android && vite build && npx cap sync android",
+    "oss:lint": "node scripts/oss-registry-lint.mjs",
+    "oss:sbom": "node scripts/generate-sbom.mjs",
+    "oss:audit": "node scripts/oss-registry-lint.mjs && node scripts/generate-sbom.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

@@ -188,6 +188,39 @@ Detailed: [`OSS_SECURITY.md`](OSS_SECURITY.md).
 - Security advisories override cycles: flag `SECURITY_UPDATE_REQUIRED`,
   evaluate → patch → test → deploy → document.
 - Scheduled audit: `.github/workflows/oss-audit.yml` (weekly registry lint +
-  SBOM + `npm audit` summary; artifacts uploaded).
+  SBOM regeneration + SBOM drift check + review-staleness report + advisory
+  `npm audit`).
 - `candidates:` list in the YAML tracks open evaluations; `rejected:` prevents
   re-proposal churn (full reasoning in DECISIONS).
+
+## 11. Enforcement machinery
+
+Everything above is backed by executable checks — the policy is not prose-only:
+
+| Check | Command | Gate behavior |
+|-------|---------|--------------|
+| Registry lint ("no mystery dependencies") | `bun run oss:lint` → `node scripts/oss-registry-lint.mjs` | exit 1 on: unregistered direct deps (npm, local-ai frontend, Python pins, pub, Gradle), floating git/`latest` refs, banned packages, `LICENSE_UNVERIFIED` in production surfaces |
+| SBOM (CycloneDX 1.5) | `bun run oss:sbom` → `node scripts/generate-sbom.mjs` | regenerates `sbom/cyclonedx.json`; zero-dep; CI fails on drift vs the committed SBOM when manifests change |
+| Combined audit | `bun run oss:audit` | lint + SBOM in one step |
+| CI schedule | `.github/workflows/oss-audit.yml` | weekly + on manifest/registry PRs; staleness report flags components unreviewed > 180 days |
+
+**SBOM license enrichment policy** (current ratio: **192/197 components**).
+Licenses are attached from, in order: registry `components` records →
+`default_licenses` (incl. scoped wildcards like `@capacitor/*`) →
+`license_pypi` facts → `artifact_alias` mappings (registry key ≠ maven
+artifact name) → `license_group_policy` group-prefix facts (androidx.*/
+kotlin/etc., each with its evidence note in the YAML). Non-SPDX strings
+(e.g. "Google ML Kit Terms (on-device, free)") are emitted as named licenses,
+never as SPDX ids. The five unenriched components are this repo's own
+first-party images (`crimsys/*`) — deliberately not third-party OSS.
+
+**Project skills** (`docs/engineering/skills/`): 12 review skills (TYPE G,
+never shipped) turn the lifecycle above into per-PR checklists —
+`oss-intake`, `legal-source-review`, `legal-rag-review`, `citation-review`,
+`security-review`, `document-review`, `database-review`, `api-review`,
+`mobile-ui-review`, `test-review`, `release-review`,
+`verification-before-completion`. Indexed in
+[skills/README.md](engineering/skills/README.md); wired into review via
+[.github/pull_request_template.md](../.github/pull_request_template.md).
+TYPE D/E/G candidates evaluate in isolation first: `sandbox/oss/<name>/`
+(see [sandbox protocol](../sandbox/oss/README.md)).

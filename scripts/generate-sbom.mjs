@@ -163,23 +163,93 @@ try {
       licByName.set(curName, lic[1].trim());
     }
   }
-  // default_licenses block — simple `name: LICENSE` pairs
+  // default_licenses block — simple `name: LICENSE` pairs. Section-exit is
+  // detected on the RAW line (entries are indented; top-level keys are not).
   let inDL = false;
   for (const line of reg.split(/\r?\n/)) {
     const t = line.trim();
     if (/^default_licenses:\s*$/.test(t)) { inDL = true; continue; }
-    if (/^\S/.test(t) && inDL) inDL = false;
+    if (/^\S/.test(line) && inDL && !line.startsWith(" ")) inDL = false;
     if (!inDL || t === "" || t.startsWith("#")) continue;
     const m = t.match(/^"?([^":\s]+)"?\s*:\s*(MIT|Apache-2\.0|BSD-[23]-Clause|ISC|CC0-1\.0)\s*$/);
     if (m && !licByName.has(m[1])) licByName.set(m[1], m[2]);
   }
+  // Same-project artifact-name aliases (registry key ≠ maven artifact name).
+  // Only alias artifacts within the same upstream project/license. Seeded
+  // with hard facts, extended from registry `artifact_alias:` declarations.
+  const ARTIFACT_ALIAS = new Map([
+    ["hilt-android", "hilt"],
+    ["hilt-compiler", "hilt"],
+  ]);
+  // license_group_policy — group-prefix license facts for maven artifacts,
+  // parsed linearly from the registry `policy.license_group_policy` list.
+  const groupPolicy = [];
+  let gpPrefix = null;
+  let inGP = false;
+  for (const line of reg.split(/\r?\n/)) {
+    const t = line.trim();
+    if (/^license_group_policy:\s*$/.test(t)) { inGP = true; gpPrefix = null; continue; }
+    if (/^\S/.test(line) && inGP && !line.startsWith(" ")) inGP = false;
+    if (!inGP || t === "" || t.startsWith("#")) continue;
+    const g = t.match(/^(-\s*)?group_prefix:\s*"?([^"\n]+?)"?\s*$/);
+    if (g) { gpPrefix = g[2].trim(); continue; }
+    const l = t.match(/^license:\s*([^#\n]+?)\s*$/);
+    if (l && gpPrefix) { groupPolicy.push({ prefix: gpPrefix, license: l[1].trim() }); gpPrefix = null; }
+  }
+  // license_pypi — `name: LICENSE` pairs, namespaced as py:<name> so the
+  // pypi lookup below finds them without colliding with npm names.
+  let inPY = false;
+  for (const line of reg.split(/\r?\n/)) {
+    const t = line.trim();
+    if (/^license_pypi:\s*$/.test(t)) { inPY = true; continue; }
+    if (/^\S/.test(line) && inPY && !line.startsWith(" ")) inPY = false;
+    if (!inPY || t === "" || t.startsWith("#")) continue;
+    const m = t.match(/^"?([^":\s]+)"?\s*:\s*([^#\n]+?)\s*$/);
+    if (m && !licByName.has(`py:${m[1].toLowerCase()}`)) {
+      licByName.set(`py:${m[1].toLowerCase()}`, m[2].trim());
+    }
+  }
+  // artifact_alias declared on component records (alias → registry name).
+  let aliasName = null;
+  let inComps = false;
+  for (const line of reg.split(/\r?\n/)) {
+    const t = line.trim();
+    if (/^components:\s*$/.test(t)) { inComps = true; aliasName = null; continue; }
+    if (/^\S/.test(line) && inComps && !line.startsWith(" ")) inComps = false;
+    if (!inComps || t === "" || t.startsWith("#")) continue;
+    if (/^- /.test(t)) { aliasName = (t.slice(2).match(/^name:\s*"?([^"\n]+?)"?\s*$/) ?? [])[1] ?? null; continue; }
+    const n = t.match(/^name:\s*"?([^"\n]+?)"?\s*$/);
+    if (n) { aliasName = n[1].trim(); continue; }
+    const a = t.match(/^artifact_alias:\s*"?([^"\n]+?)"?\s*$/);
+    if (a && aliasName) ARTIFACT_ALIAS.set(a[1].trim(), aliasName);
+  }
   for (const c of components) {
-    const short = c.name.includes("/") && !c.name.startsWith("@") && !c.name.includes(":")
-      ? c.name : c.name.split("/").pop().replace(/^py:/, "");
-    const lic = licByName.get(c.name) ?? licByName.get(short);
+    const short = c.name.split("/").pop().replace(/^py:/, "");
+    const mavenArtifact = c.name.includes(":") ? c.name.split(":").pop() : undefined;
+    const mavenGroup = c.name.includes(":") ? c.name.split(":")[0] : undefined;
+    // Scoped packages may be registered as a wildcard family ("@capacitor/*").
+    const scopedWildcard = c.name.startsWith("@") && c.name.includes("/")
+      ? `${c.name.split("/")[0]}/*` : undefined;
+    const pypi = typeof c.purl === "string" && c.purl.startsWith("pkg:pypi/");
+    const lic =
+      licByName.get(c.name) ??
+      (scopedWildcard ? licByName.get(scopedWildcard) : undefined) ??
+      licByName.get(short) ??
+      (pypi ? licByName.get(`py:${c.name.toLowerCase()}`) : undefined) ??
+      (mavenArtifact
+        ? licByName.get(mavenArtifact) ??
+          licByName.get(ARTIFACT_ALIAS.get(mavenArtifact) ?? "")
+        : undefined) ??
+      (mavenGroup
+        ? groupPolicy.find((p) => mavenGroup.startsWith(p.prefix))?.license
+        : undefined);
     if (lic) {
       if (lic !== "LICENSE_UNVERIFIED") {
-        c.licenses = [{ license: lic.startsWith("Sustainable") ? { name: lic } : { id: lic } }];
+        // SPDX-looking ids go in `id`; anything else (e.g. "Google ML Kit
+        // Terms (on-device, free)", "Sustainable Use License") is a named,
+        // non-SPDX license and goes in `name`.
+        const isSpdx = /^[A-Za-z0-9][A-Za-z0-9.+-]*$/.test(lic);
+        c.licenses = [{ license: isSpdx ? { id: lic } : { name: lic } }];
       } else {
         c.licenses = [{ license: { name: "UNVERIFIED" } }];
       }
