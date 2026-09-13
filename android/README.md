@@ -56,7 +56,7 @@ UI (Compose, StateFlow)
 | `data/remote/FirebaseSyncCommandExecutor.kt` | Firestore transport behind `SyncCommandExecutor`; re-verifies the payload digest before every write |
 | `data/sync/SyncWorker.kt` | `@HiltWorker` drain: FIFO, DLQ, corrupt-row parking, WorkManager CONNECTED constraint |
 | `domain/evidence/` | `ChainEvent` (immutable, hash-linked) + `EvidenceRepository` contract |
-| `domain/legal/` | `LegalCitation` (evidence-grade: temporal window + source digest + gazette), `LegalCitationParser` (Arabic text-span parsing), `LegalRegistryRepository`, `CitationValidator` (first-fail verification gate) |
+| `domain/legal/` | `LegalCitation` (evidence-grade: temporal window + source digest + gazette), `CitationValidator` (self-parsing Arabic citations, clock-injected event dates, sanitize-with-refusal) + `LegalRegistryRepository` |
 | `domain/sync/` | `SyncCommand` (+ JSON codec, digest-carrying), `SyncResult`, `SyncCommandExecutor` |
 | `di/HarisCoreModule.kt` | Bindings + DAO/WorkManager providers for the slice |
 | `ui/` | `CrimSysApp` scaffold (RTL drawer + top bar), NavHost, clay components, theme (Cairo font, urgency tokens) |

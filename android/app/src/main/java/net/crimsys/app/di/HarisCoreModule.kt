@@ -16,11 +16,8 @@ import net.crimsys.app.data.local.LegalSourceDao
 import net.crimsys.app.data.local.SyncCommandDao
 import net.crimsys.app.data.remote.FirebaseSyncCommandExecutor
 import net.crimsys.app.domain.evidence.EvidenceRepository
-import net.crimsys.app.domain.legal.ArabicLegalCitationParser
 import net.crimsys.app.domain.legal.CitationValidator
-import net.crimsys.app.domain.legal.LegalCitationParser
 import net.crimsys.app.domain.legal.LegalRegistryRepository
-import net.crimsys.app.domain.legal.RegistryBackedCitationValidator
 import net.crimsys.app.domain.sync.SyncCommandExecutor
 
 /**
@@ -30,9 +27,12 @@ import net.crimsys.app.domain.sync.SyncCommandExecutor
  * Bound interfaces (§22 adapter rule — transports and stores stay swappable):
  *  - [EvidenceRepository] → Room-first implementation with hash-linked appends
  *  - [LegalRegistryRepository] → Room registry (persist-only, no scraping)
- *  - [CitationValidator] → registry-backed validator (pure domain logic)
  *  - [SyncCommandExecutor] → Firestore transport; swap for the Zero-Trust
  *    legal backend without touching domain, storage, or UI
+ *
+ * Not bound here: [net.crimsys.app.domain.legal.CitationValidator] is a
+ * concrete `@Singleton` `@Inject` class (it owns its Arabic parsing), and
+ * `java.time.Clock` is provided below so tests can substitute a fixed clock.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -48,15 +48,21 @@ abstract class HarisCoreBindings {
 
     @Binds
     @Singleton
-    abstract fun bindCitationValidator(impl: RegistryBackedCitationValidator): CitationValidator
-
-    @Binds
-    @Singleton
-    abstract fun bindLegalCitationParser(impl: ArabicLegalCitationParser): LegalCitationParser
-
-    @Binds
-    @Singleton
     abstract fun bindSyncCommandExecutor(impl: FirebaseSyncCommandExecutor): SyncCommandExecutor
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object HarisClockModule {
+
+    /**
+     * Injectable wall clock for event-date defaults. Production resolves the
+     * device zone; tests replace it with `Clock.fixed(...)` so `verify()`
+     * without an explicit eventDate is deterministic.
+     */
+    @Provides
+    @Singleton
+    fun provideClock(): java.time.Clock = java.time.Clock.systemDefaultZone()
 }
 
 @Module

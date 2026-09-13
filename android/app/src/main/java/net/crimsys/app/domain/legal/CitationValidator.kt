@@ -1,105 +1,295 @@
 package net.crimsys.app.domain.legal
 
-import java.net.URI
+import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
+import javax.inject.Singleton
 
-/**
- * Citation gate: verifies a parsed citation against the authoritative
- * registry before any statement citing the law leaves this app.
- *
- * The registry is TEMPORALLY VERSIONED — one article may have several
- * verified rows (amendments, replacements), each with its own validity
- * window. Verification therefore resolves WHICH version was in force on the
- * event date, then checks that version's integrity:
- *
- * 1. format (`UNSUPPORTED_CITATION_FORMAT`) — law name and article required;
- * 2. registry match (`NO_SOURCE_MATCH`) — no verified row for the exact
- *    (law, article[, paragraph]) citation at all;
- * 3. temporal filter (`NOT_EFFECTIVE_ON_EVENT_DATE`) — rows exist but none
- *    covers the event date (checked against the EVENT date, never today);
- * 4. ambiguity (`AMBIGUOUS_SOURCE_MATCH`) — MORE THAN ONE version covers the
- *    event date (overlapping windows). Disjoint windows are history, not
- *    ambiguity: they resolve in step 3's filter.
- * 5. integrity of the single resolved version (`SOURCE_HASH_INVALID`,
- *    `SOURCE_URL_INVALID`).
- *
- * A rejected citation reports the earliest blocking problem, never a blend.
- * Integrity is checked only AFTER resolution because the subject of those
- * checks (which artifact digest/URL) is undefined until one version wins.
- *
- * Note on [RejectionReason.SOURCE_NOT_VERIFIED]: the DAO filters
- * `verified = 1`, so unreviewed rows can never surface here — an unverified
- * artifact is simply not part of the citable set and shows up as
- * `NO_SOURCE_MATCH`. The enum value remains for the review workflow, which
- * reports it before a source is admitted to the registry.
- */
-interface CitationValidator {
-    /**
-     * Verifies [parsed] as of [eventDate] — the date of the procedural event
-     * the citation is used for, NOT today, so a memo can safely cite the law
-     * in force when the events occurred.
-     */
-    suspend fun verify(parsed: ParsedLegalCitation, eventDate: LocalDate): VerificationResult
-}
-
-/**
- * Registry-backed implementation. Pure domain: depends only on the
- * [LegalRegistryRepository] interface; bound in
- * `net.crimsys.app.di.HarisCoreModule`.
- */
-class RegistryBackedCitationValidator @Inject constructor(
+@Singleton
+class CitationValidator @Inject constructor(
     private val registry: LegalRegistryRepository,
-) : CitationValidator {
+    private val clock: Clock,
+) {
 
-    override suspend fun verify(parsed: ParsedLegalCitation, eventDate: LocalDate): VerificationResult {
-        val lawName = parsed.lawName.trim()
-        val article = parsed.article.trim()
-        if (lawName.isEmpty() || article.isEmpty()) {
-            return VerificationResult.Rejected(parsed, RejectionReason.UNSUPPORTED_CITATION_FORMAT)
-        }
+    companion object {
 
-        val versions = registry.findExact(
-            lawName = lawName,
-            article = article,
-            paragraph = parsed.paragraph?.trim(),
-            lawNumber = null, // the parser keeps the law number inside the law name
+        const val SAFETY_REFUSAL =
+            "لم يتم التحقق من النص المحدث للمادة من المصدر التشريعي المعتمد."
+
+        private val ARTICLE_PATTERN = Regex(
+            """المادة\s+([0-9٠-٩]+)(?:\s+من\s+(قانون\s+[^\n،؛.]+|قانون\s+العقوبات|قانون\s+الإثبات|قانون\s+الإجراءات\s+الجنائية))?""",
+            RegexOption.IGNORE_CASE,
         )
-        if (versions.isEmpty()) {
-            return VerificationResult.Rejected(parsed, RejectionReason.NO_SOURCE_MATCH)
-        }
 
-        // Resolve the version(s) in force on the event date. Disjoint
-        // windows collapse to one here; overlapping windows stay > 1 and are
-        // reported as ambiguity — the registry itself is inconsistent.
-        val effective = versions.filter { registry.isEffective(it, eventDate) }
-        if (effective.isEmpty()) {
-            return VerificationResult.Rejected(parsed, RejectionReason.NOT_EFFECTIVE_ON_EVENT_DATE)
-        }
-        if (effective.size > 1) {
-            return VerificationResult.Rejected(parsed, RejectionReason.AMBIGUOUS_SOURCE_MATCH)
-        }
+        private val PARAGRAPH_FIRST_PATTERN = Regex(
+            """الفقرة\s+([0-9٠-٩]+)\s+من\s+المادة\s+([0-9٠-٩]+)(?:\s+من\s+(قانون\s+[^\n،؛.]+|قانون\s+العقوبات|قانون\s+الإثبات|قانون\s+الإجراءات\s+الجنائية))?""",
+            RegexOption.IGNORE_CASE,
+        )
 
-        val citation = effective.first()
-        if (!isValidSha256(citation.sourceSha256)) {
-            return VerificationResult.Rejected(parsed, RejectionReason.SOURCE_HASH_INVALID)
-        }
-        if (!isValidHttpUrl(citation.officialSourceUrl)) {
-            return VerificationResult.Rejected(parsed, RejectionReason.SOURCE_URL_INVALID)
-        }
+        private val LAW_NUMBER_PATTERN = Regex(
+            """(?:القانون|قانون)\s*(?:رقم\s*)?([0-9٠-٩]+)\s*(?:لسنة|سنة)\s*([0-9٠-٩]{4})""",
+            RegexOption.IGNORE_CASE,
+        )
 
-        return VerificationResult.Verified(citation)
+        private val SHA256_PATTERN =
+            Regex("^[A-Fa-f0-9]{64}$")
     }
 
-    /** Lowercase or uppercase hex is accepted; anything else is invalid. */
-    private fun isValidSha256(hex: String): Boolean =
-        hex.length == 64 && hex.all { it in "0123456789abcdef" || it in "ABCDEF" }
+    suspend fun verify(
+        rawCitation: String,
+        eventDate: LocalDate = LocalDate.now(clock),
+    ): VerificationResult {
 
-    private fun isValidHttpUrl(url: String): Boolean = try {
-        val scheme = URI(url.trim()).scheme?.lowercase()
-        scheme == "http" || scheme == "https"
-    } catch (t: Throwable) {
-        if (t is kotlinx.coroutines.CancellationException) throw t
-        false
+        val parsed = parse(rawCitation).firstOrNull()
+            ?: return VerificationResult.Rejected(
+                citation = ParsedLegalCitation(
+                    rawText = rawCitation,
+                    lawName = "",
+                    article = "",
+                    paragraph = null,
+                    startIndex = 0,
+                    endIndex = rawCitation.length,
+                ),
+                reason = RejectionReason.UNSUPPORTED_CITATION_FORMAT,
+            )
+
+        return verifyParsed(
+            parsed = parsed,
+            eventDate = eventDate,
+        )
     }
+
+    suspend fun validateAndSanitize(
+        rawText: String,
+        eventDate: LocalDate = LocalDate.now(clock),
+    ): String {
+
+        if (rawText.isBlank()) return rawText
+
+        val citations = parse(rawText)
+
+        if (citations.isEmpty()) return rawText
+
+        val replacements =
+            mutableListOf<Pair<IntRange, String>>()
+
+        for (citation in citations) {
+
+            when (
+                verifyParsed(
+                    parsed = citation,
+                    eventDate = eventDate,
+                )
+            ) {
+                is VerificationResult.Verified -> Unit
+
+                is VerificationResult.Rejected -> {
+                    replacements +=
+                        (citation.startIndex until citation.endIndex) to
+                            SAFETY_REFUSAL
+                }
+            }
+        }
+
+        var sanitized = rawText
+
+        replacements
+            .sortedByDescending { it.first.first }
+            .forEach { (range, replacement) ->
+                sanitized = sanitized.replaceRange(
+                    range,
+                    replacement,
+                )
+            }
+
+        return sanitized
+    }
+
+    fun parse(
+        rawText: String,
+    ): List<ParsedLegalCitation> {
+
+        val paragraphMatches =
+            PARAGRAPH_FIRST_PATTERN
+                .findAll(rawText)
+                .map { match ->
+
+                    ParsedLegalCitation(
+                        rawText = match.value,
+                        lawName = normalizeLawName(
+                            match.groupValues
+                                .getOrNull(3)
+                                .orEmpty(),
+                        ),
+                        article = normalizeDigits(
+                            match.groupValues[2],
+                        ),
+                        paragraph = normalizeDigits(
+                            match.groupValues[1],
+                        ),
+                        startIndex = match.range.first,
+                        endIndex = match.range.last + 1,
+                    )
+                }
+                .toList()
+
+        val occupied =
+            paragraphMatches.map {
+                it.startIndex until it.endIndex
+            }
+
+        val articleMatches =
+            ARTICLE_PATTERN
+                .findAll(rawText)
+                .filter { match ->
+                    occupied.none {
+                        it.contains(match.range.first)
+                    }
+                }
+                .map { match ->
+
+                    ParsedLegalCitation(
+                        rawText = match.value,
+                        lawName = normalizeLawName(
+                            match.groupValues
+                                .getOrNull(2)
+                                .orEmpty(),
+                        ),
+                        article = normalizeDigits(
+                            match.groupValues[1],
+                        ),
+                        paragraph = null,
+                        startIndex = match.range.first,
+                        endIndex = match.range.last + 1,
+                    )
+                }
+                .toList()
+
+        return (
+            paragraphMatches + articleMatches
+            ).sortedBy { it.startIndex }
+    }
+
+    private suspend fun verifyParsed(
+        parsed: ParsedLegalCitation,
+        eventDate: LocalDate,
+    ): VerificationResult {
+
+        if (
+            parsed.lawName.isBlank() ||
+            parsed.article.isBlank()
+        ) {
+            return VerificationResult.Rejected(
+                parsed,
+                RejectionReason.UNSUPPORTED_CITATION_FORMAT,
+            )
+        }
+
+        val sources =
+            registry.findExact(
+                lawName = parsed.lawName,
+                article = parsed.article,
+                paragraph = parsed.paragraph,
+                lawNumber = extractLawNumber(
+                    parsed.rawText,
+                ),
+            )
+
+        if (sources.isEmpty()) {
+            return VerificationResult.Rejected(
+                parsed,
+                RejectionReason.NO_SOURCE_MATCH,
+            )
+        }
+
+        val effective =
+            sources.filter {
+                registry.isEffective(
+                    citation = it,
+                    eventDate = eventDate,
+                )
+            }
+
+        if (effective.size != 1) {
+            return VerificationResult.Rejected(
+                parsed,
+                if (effective.isEmpty()) {
+                    RejectionReason.NOT_EFFECTIVE_ON_EVENT_DATE
+                } else {
+                    RejectionReason.AMBIGUOUS_SOURCE_MATCH
+                },
+            )
+        }
+
+        return validateSource(
+            parsed = parsed,
+            source = effective.single(),
+        )
+    }
+
+    private fun validateSource(
+        parsed: ParsedLegalCitation,
+        source: LegalCitation,
+    ): VerificationResult {
+
+        if (
+            !source.sourceSha256.matches(
+                SHA256_PATTERN,
+            )
+        ) {
+            return VerificationResult.Rejected(
+                parsed,
+                RejectionReason.SOURCE_HASH_INVALID,
+            )
+        }
+
+        if (
+            !source.officialSourceUrl.startsWith(
+                "https://",
+                ignoreCase = true,
+            )
+        ) {
+            return VerificationResult.Rejected(
+                parsed,
+                RejectionReason.SOURCE_URL_INVALID,
+            )
+        }
+
+        return VerificationResult.Verified(source)
+    }
+
+    private fun extractLawNumber(
+        raw: String,
+    ): String? =
+        LAW_NUMBER_PATTERN
+            .find(raw)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.let(::normalizeDigits)
+
+    private fun normalizeLawName(
+        raw: String,
+    ): String =
+        raw.trim()
+            .replace(Regex("""\s+"""), " ")
+            .trim()
+
+    private fun normalizeDigits(
+        value: String,
+    ): String =
+        value.map { ch ->
+            when (ch) {
+                '٠' -> '0'
+                '١' -> '1'
+                '٢' -> '2'
+                '٣' -> '3'
+                '٤' -> '4'
+                '٥' -> '5'
+                '٦' -> '6'
+                '٧' -> '7'
+                '٨' -> '8'
+                '٩' -> '9'
+                else -> ch
+            }
+        }.joinToString("")
 }
