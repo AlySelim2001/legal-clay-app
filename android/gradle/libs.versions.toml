@@ -4,6 +4,7 @@ kotlin = "2.1.0"
 ksp = "2.1.0-1.0.29"
 hilt = "2.55"
 hiltNavigationCompose = "1.2.0"
+hiltWork = "1.2.0"
 coreKtx = "1.15.0"
 lifecycle = "2.8.7"
 activityCompose = "1.9.3"
@@ -17,6 +18,7 @@ securityCrypto = "1.1.0-alpha06"
 firebaseBom = "33.7.0"
 googleServices = "4.4.2"
 coroutinesPlayServices = "1.10.1"
+coroutinesTest = "1.10.1"
 mlkitTextRecognition = "16.0.1"
 imageCropper = "4.6.0"
 calendar = "2.6.0"
@@ -74,11 +76,15 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutinesPlayServices" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 
 # Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+# androidx.hilt workers: @HiltWorker + HiltWorkerFactory (Haris SyncWorker)
+androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
+androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" }
 
 # OCR & image cropping
 mlkit-text-recognition-arabic = { group = "com.google.mlkit", name = "text-recognition-arabic", version.ref = "mlkitTextRecognition" }

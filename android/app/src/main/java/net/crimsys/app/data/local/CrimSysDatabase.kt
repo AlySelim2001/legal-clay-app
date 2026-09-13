@@ -15,14 +15,25 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * not wipe evidence.
  */
 @Database(
-    entities = [CaseEntity::class, HearingEntity::class, OfflineActionEntity::class],
-    version = 3,
+    entities = [
+        CaseEntity::class,
+        HearingEntity::class,
+        OfflineActionEntity::class,
+        LegalSourceEntity::class,
+        EvidenceEntity::class,
+        EvidenceChainEventEntity::class,
+        SyncCommandEntity::class,
+    ],
+    version = 4,
     exportSchema = true,
 )
 abstract class CrimSysDatabase : RoomDatabase() {
     abstract fun caseDao(): CaseDao
     abstract fun hearingDao(): HearingDao
     abstract fun offlineActionDao(): OfflineActionDao
+    abstract fun legalSourceDao(): LegalSourceDao
+    abstract fun evidenceDao(): EvidenceDao
+    abstract fun syncCommandDao(): SyncCommandDao
 
     companion object {
         /**
@@ -70,6 +81,95 @@ abstract class CrimSysDatabase : RoomDatabase() {
                     db.execSQL(
                         "CREATE INDEX IF NOT EXISTS index_offline_actions_status_id " +
                             "ON offline_actions (status, id)",
+                    )
+                }
+            }
+
+        /**
+         * HarisCore slice (v3 → v4), additive only — zero data loss:
+         * four brand-new tables + their indices. No existing table is
+         * touched; the migration is pure CREATE TABLE / CREATE INDEX, so a
+         * v3 install upgrades in place with its cases, hearings, and queue
+         * intact.
+         *
+         * Column shapes follow the entities exactly: NOT NULL for every
+         * non-nullable Kotlin field (a mismatch fails Room's schema
+         * validation on open — by design, see the no-destructive-migration
+         * rule), nullable Kotlin types as nullable columns, Boolean as
+         * INTEGER, ByteArray as BLOB.
+         */
+        val MIGRATION_3_4: Migration =
+            object : Migration(3, 4) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Legal-source registry (citation validation).
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `legal_sources` (" +
+                            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                            "`sourceKey` TEXT NOT NULL, " +
+                            "`title` TEXT NOT NULL, " +
+                            "`publisher` TEXT NOT NULL, " +
+                            "`officialUrl` TEXT, " +
+                            "`issuedAtEpochMs` INTEGER, " +
+                            "`effectiveAtEpochMs` INTEGER, " +
+                            "`version` TEXT, " +
+                            "`verified` INTEGER NOT NULL, " +
+                            "`createdAt` INTEGER NOT NULL, " +
+                            "`updatedAt` INTEGER NOT NULL)",
+                    )
+                    db.execSQL(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS `index_legal_sources_sourceKey` " +
+                            "ON `legal_sources` (`sourceKey`)",
+                    )
+
+                    // Evidence items + hash-linked chain of custody.
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `evidence_items` (" +
+                            "`id` TEXT NOT NULL PRIMARY KEY, " +
+                            "`label` TEXT NOT NULL, " +
+                            "`sha256Hex` TEXT NOT NULL, " +
+                            "`chainHeadHash` TEXT NOT NULL, " +
+                            "`eventCount` INTEGER NOT NULL, " +
+                            "`contentUri` TEXT, " +
+                            "`isSynced` INTEGER NOT NULL, " +
+                            "`capturedAtEpochMs` INTEGER NOT NULL, " +
+                            "`createdAt` INTEGER NOT NULL, " +
+                            "`updatedAt` INTEGER NOT NULL)",
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_evidence_items_sha256Hex` " +
+                            "ON `evidence_items` (`sha256Hex`)",
+                    )
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `evidence_chain_events` (" +
+                            "`id` TEXT NOT NULL PRIMARY KEY, " +
+                            "`evidenceId` TEXT NOT NULL, " +
+                            "`offline` INTEGER NOT NULL, " +
+                            "`kind` TEXT NOT NULL, " +
+                            "`payload` BLOB, " +
+                            "`occurredAtEpochMs` INTEGER NOT NULL, " +
+                            "`eventHash` TEXT NOT NULL, " +
+                            "`previousEventHash` TEXT NOT NULL)",
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_evidence_chain_events_evidenceId` " +
+                            "ON `evidence_chain_events` (`evidenceId`)",
+                    )
+
+                    // Haris sync-command queue (same lifecycle as offline_actions).
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `sync_commands` (" +
+                            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                            "`uuid` TEXT NOT NULL, " +
+                            "`type` TEXT NOT NULL, " +
+                            "`payloadJson` TEXT NOT NULL, " +
+                            "`retryCount` INTEGER NOT NULL, " +
+                            "`maxRetries` INTEGER NOT NULL, " +
+                            "`status` TEXT NOT NULL, " +
+                            "`createdAtEpochMs` INTEGER NOT NULL)",
+                    )
+                    db.execSQL(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_commands_uuid` " +
+                            "ON `sync_commands` (`uuid`)",
                     )
                 }
             }

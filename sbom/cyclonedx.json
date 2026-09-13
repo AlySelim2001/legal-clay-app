@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:a8d01d62-83e3-7599-5279-eacda719c645",
+  "serialNumber": "urn:uuid:7f05e3d6-f8ea-d3e8-675b-8a7d967546dc",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-09-13T12:32:08.825Z",
+    "timestamp": "2026-09-13T17:47:41.978Z",
     "tools": [
       {
         "vendor": "CRIM-SYS",
@@ -23,7 +23,7 @@
       },
       {
         "name": "crimsys:license_enriched",
-        "value": "192/197"
+        "value": "195/200"
       }
     ]
   },
@@ -170,6 +170,26 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:android/androidx.hilt:hilt-compiler@hiltWork",
+      "name": "androidx.hilt:hilt-compiler",
+      "version": "hiltWork",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.hilt/hilt-compiler@hiltWork",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:android/androidx.hilt:hilt-navigation-compose@hiltNavigationCompose",
       "name": "androidx.hilt:hilt-navigation-compose",
       "version": "hiltNavigationCompose",
@@ -180,6 +200,26 @@
         }
       ],
       "purl": "pkg:maven/androidx.hilt/hilt-navigation-compose@hiltNavigationCompose",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/androidx.hilt:hilt-work@hiltWork",
+      "name": "androidx.hilt:hilt-work",
+      "version": "hiltWork",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/androidx.hilt/hilt-work@hiltWork",
       "licenses": [
         {
           "license": {
@@ -700,6 +740,26 @@
         }
       ],
       "purl": "pkg:maven/org.jetbrains.kotlinx/kotlinx-coroutines-play-services@coroutinesPlayServices",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:android/org.jetbrains.kotlinx:kotlinx-coroutines-test@coroutinesTest",
+      "name": "org.jetbrains.kotlinx:kotlinx-coroutines-test",
+      "version": "coroutinesTest",
+      "properties": [
+        {
+          "name": "crimsys:surface",
+          "value": "android"
+        }
+      ],
+      "purl": "pkg:maven/org.jetbrains.kotlinx/kotlinx-coroutines-test@coroutinesTest",
       "licenses": [
         {
           "license": {
