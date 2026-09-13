@@ -11,54 +11,59 @@ class ChainEventHasherTest {
     private val prev = ChainEventHasher.GENESIS_PREV
 
     @Test
-    fun `genesis link is 64 hex zeros`() {
+    fun `genesis constant is 64 zero hex chars`() {
         assertEquals(64, ChainEventHasher.GENESIS_PREV.length)
         assertTrue(ChainEventHasher.GENESIS_PREV.all { it == '0' })
     }
 
     @Test
     fun `hashing is deterministic`() {
-        val h1 = ChainEventHasher.hash(prev, "captured", 1_700_000_000_000, byteArrayOf(1, 2, 3))
-        val h2 = ChainEventHasher.hash(prev, "captured", 1_700_000_000_000, byteArrayOf(1, 2, 3))
+        val h1 = ChainEventHasher.hash(prev, "CAPTURED", 1_700_000_000_000)
+        val h2 = ChainEventHasher.hash(prev, "CAPTURED", 1_700_000_000_000)
         assertEquals(h1, h2)
     }
 
     @Test
-    fun `any changed segment changes the hash`() {
-        val base = ChainEventHasher.hash(prev, "captured", 1_700_000_000_000, byteArrayOf(1))
-        assertNotEquals(base, ChainEventHasher.hash(prev, "sealed", 1_700_000_000_000, byteArrayOf(1)))
-        assertNotEquals(base, ChainEventHasher.hash(prev, "captured", 1_700_000_000_001, byteArrayOf(1)))
-        assertNotEquals(base, ChainEventHasher.hash(prev, "captured", 1_700_000_000_000, byteArrayOf(2)))
-        assertNotEquals(base, ChainEventHasher.hash(prev, "captured", 1_700_000_000_000, null))
-        assertNotEquals(base, ChainEventHasher.hash(prev, "captured", 1_700_000_000_000, byteArrayOf(1)))
-        // prev link participates — reordering two events is detectable:
-        assertNotEquals(base, ChainEventHasher.hash(prev.dropLast(1) + "1", "captured", 1_700_000_000_000, byteArrayOf(1)))
+    fun `every hash segment matters - action timestamp and previous hash`() {
+        val base = ChainEventHasher.hash(prev, "CAPTURED", 1_700_000_000_000)
+        assertNotEquals(base, ChainEventHasher.hash(prev, "EXPORTED", 1_700_000_000_000))
+        assertNotEquals(base, ChainEventHasher.hash(prev, "CAPTURED", 1_700_000_000_001))
+        assertNotEquals(base, ChainEventHasher.hash(prev.dropLast(1) + "1", "CAPTURED", 1_700_000_000_000))
     }
 
     @Test
-    fun `length prefixes disambiguate segment boundaries`() {
-        // Naive concatenation would make ("AB","C") and ("A","BC") identical:
-        // "ABC" == "ABC". Length-prefixed hashing must separate them.
-        val abC = ChainEventHasher.hash(prev, "AB", 42, byteArrayOf('C'.code.toByte()))
-        val aBC = ChainEventHasher.hash(prev, "A", 42, byteArrayOf('B'.code.toByte(), 'C'.code.toByte()))
+    fun `null previousHash is a distinct genesis link`() {
+        val genesis = ChainEventHasher.hash(null, "CAPTURED", 1_700_000_000_000)
+        val explicitZeros = ChainEventHasher.hash(ChainEventHasher.GENESIS_PREV, "CAPTURED", 1_700_000_000_000)
+        // null and the canonical 64-zero string denote the same genesis link.
+        assertEquals(genesis, explicitZeros)
+        // ...but it is still a proper link: a non-null prev hash changes the digest.
+        assertNotEquals(genesis, ChainEventHasher.hash(prev.dropLast(1) + "1", "CAPTURED", 1_700_000_000_000))
+    }
+
+    @Test
+    fun `segment boundaries are unambiguous`() {
+        val abC = ChainEventHasher.hash(prev, "ABC", 42)
+        val aBC = ChainEventHasher.hash(prev, "AB", 42)
         assertNotEquals(abC, aBC)
     }
 
     @Test
-    fun `rejects malformed prev hash`() {
+    fun `rejects malformed previous hash`() {
         assertThrows(IllegalArgumentException::class.java) {
-            ChainEventHasher.hash("tooshort", "captured", 42, null)
+            ChainEventHasher.hash("tooshort", "CAPTURED", 42)
         }
     }
 
     @Test
-    fun `chained links verify end to end`() {
-        var link = prev
-        val events = listOf("captured", "hash_verified", "exported").mapIndexed { i, kind ->
-            val h = ChainEventHasher.hash(link, kind, 1_700_000_000_000L + i, null)
-            link = h
-            h
+    fun `linked chain produces distinct digests per position`() {
+        var link: String? = null
+        val digests = mutableListOf<String>()
+        for (i in 0 until 10) {
+            val digest = ChainEventHasher.hash(link, "CAPTURED", 1_700_000_000_000L + i)
+            digests.add(digest)
+            link = digest
         }
-        assertEquals(3, events.toSet().size)
+        assertEquals(10, digests.toSet().size)
     }
 }

@@ -153,9 +153,7 @@ abstract class CrimSysDatabase : RoomDatabase() {
                         "CREATE TABLE IF NOT EXISTS `evidence_chain_events` (" +
                             "`id` TEXT NOT NULL PRIMARY KEY, " +
                             "`evidenceId` TEXT NOT NULL, " +
-                            "`offline` INTEGER NOT NULL, " +
-                            "`kind` TEXT NOT NULL, " +
-                            "`payload` BLOB, " +
+                            "`action` TEXT NOT NULL, " +
                             "`occurredAtEpochMs` INTEGER NOT NULL, " +
                             "`eventHash` TEXT NOT NULL, " +
                             "`previousEventHash` TEXT NOT NULL)",

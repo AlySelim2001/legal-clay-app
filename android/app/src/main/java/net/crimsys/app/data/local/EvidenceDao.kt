@@ -1,14 +1,24 @@
 package net.crimsys.app.data.local
 
 import androidx.room.Dao
+import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
-/** Storage row for one chain-of-custody event. */
+/**
+ * Storage row for one chain-of-custody event.
+ *
+ * The domain [net.crimsys.app.domain.evidence.ChainEvent] carries a nullable
+ * `previousHash` (null = genesis); persistence keeps the canonical 64-zero
+ * representation in [previousEventHash] so the hash-linked columns stay
+ * NOT NULL — Room schema validation and the verification walk both prefer a
+ * constant sentinel over tri-state storage.
+ */
 @Entity(
     tableName = "evidence_chain_events",
     indices = [Index(value = ["evidenceId"])],
@@ -16,38 +26,12 @@ import kotlinx.coroutines.flow.Flow
 data class EvidenceChainEventEntity(
     @PrimaryKey val id: String,
     val evidenceId: String,
-    /** Whether the device was offline at creation. */
-    val offline: Boolean,
-    /** Semantic kind — [net.crimsys.app.domain.evidence.ChainEvent.Kind] ids or free-form. */
-    val kind: String,
-    /** Payload bytes, or null when the event carries none. */
-    val payload: ByteArray?,
+    /** Semantic action — [net.crimsys.app.domain.evidence.ChainAction] name (closed vocabulary). */
+    val action: String,
     val occurredAtEpochMs: Long,
     val eventHash: String,
     val previousEventHash: String,
-) {
-    override fun equals(other: Any?): Boolean =
-        this === other ||
-            other is EvidenceChainEventEntity &&
-            id == other.id && evidenceId == other.evidenceId && offline == other.offline &&
-            kind == other.kind &&
-            (payload?.contentEquals(other.payload) ?: (other.payload == null)) &&
-            occurredAtEpochMs == other.occurredAtEpochMs &&
-            eventHash == other.eventHash &&
-            previousEventHash == other.previousEventHash
-
-    override fun hashCode(): Int {
-        var result = id.hashCode()
-        result = 31 * result + evidenceId.hashCode()
-        result = 31 * result + offline.hashCode()
-        result = 31 * result + kind.hashCode()
-        result = 31 * result + (payload?.contentHashCode() ?: 0)
-        result = 31 * result + occurredAtEpochMs.hashCode()
-        result = 31 * result + eventHash.hashCode()
-        result = 31 * result + previousEventHash.hashCode()
-        return result
-    }
-}
+)
 
 /**
  * Evidence store. The critical operations are the two @Transaction methods:

@@ -1,6 +1,5 @@
 package net.crimsys.app.data.evidence
 
-import android.util.Base64
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -29,6 +28,7 @@ import net.crimsys.app.data.local.EvidenceEntity
 import net.crimsys.app.data.local.SyncCommandDao
 import net.crimsys.app.data.local.SyncCommandEntity
 import net.crimsys.app.data.sync.SyncWorker
+import net.crimsys.app.domain.evidence.ChainAction
 import net.crimsys.app.domain.evidence.ChainEvent
 import net.crimsys.app.domain.evidence.EvidenceRepository
 import net.crimsys.app.domain.sync.SyncCommand
@@ -40,7 +40,7 @@ import net.crimsys.app.domain.sync.SyncCommand
  *
  * Integrity invariants enforced here (the caller cannot bypass them):
  *  - hash links are computed from the CURRENT chain head, never supplied by
- *    the caller;
+ *    the caller — [ChainAction] is the caller's only input;
  *  - the head pointer and the event counter move in the same transaction as
  *    the appended event ([EvidenceDao.appendChainEvent]);
  *  - a chain can never be created without its CAPTURED event, and vice versa.
@@ -87,8 +87,9 @@ class EvidenceRepositoryImpl @Inject constructor(
         return runCatchingResult {
             val id = UUID.randomUUID().toString()
             val now = clock.millis()
-            val eventHash =
-                ChainEventHasher.hash(ChainEventHasher.GENESIS_PREV, ChainEvent.Kind.CAPTURED, input.capturedAtEpochMs, null)
+            // Genesis link: previousHash = null in the domain model, stored
+            // canonically as 64 zeros in the persistence layer.
+            val eventHash = ChainEventHasher.hash(null, ChainAction.CAPTURED.name, input.capturedAtEpochMs)
 
             val evidence = EvidenceEntity(
                 id = id,
@@ -104,9 +105,7 @@ class EvidenceRepositoryImpl @Inject constructor(
             val event = EvidenceChainEventEntity(
                 id = UUID.randomUUID().toString(),
                 evidenceId = id,
-                offline = input.offline,
-                kind = ChainEvent.Kind.CAPTURED,
-                payload = null,
+                action = ChainAction.CAPTURED.name,
                 occurredAtEpochMs = input.capturedAtEpochMs,
                 eventHash = eventHash,
                 previousEventHash = ChainEventHasher.GENESIS_PREV,
@@ -120,15 +119,10 @@ class EvidenceRepositoryImpl @Inject constructor(
 
     override suspend fun appendEvent(
         evidenceId: String,
-        kind: String,
-        payload: ByteArray?,
-        offline: Boolean,
+        action: ChainAction,
     ): Result<ChainEvent> {
         if (evidenceId.isBlank()) {
             return Result.Error(AppError.Validation("معرّف الدليل مطلوب"))
-        }
-        if (kind.isBlank()) {
-            return Result.Error(AppError.Validation("نوع حدث السلسلة مطلوب"))
         }
         return runCatchingResult {
             val evidence = evidenceDao.findEvidence(evidenceId)
@@ -136,7 +130,6 @@ class EvidenceRepositoryImpl @Inject constructor(
 
             val now = clock.millis()
             val head = evidenceDao.findChainHead(evidenceId)
-            val previousHash = head?.eventHash ?: ChainEventHasher.GENESIS_PREV
 
             // Contract: never accept a timestamp older than the chain head —
             // a backwards-set device clock would make the chain's narrative
@@ -145,16 +138,15 @@ class EvidenceRepositoryImpl @Inject constructor(
                 throw IllegalStateException("chain timestamp regression for $evidenceId")
             }
 
-            val eventHash = ChainEventHasher.hash(previousHash, kind, now, payload)
+            val previousHash = head?.eventHash
+            val eventHash = ChainEventHasher.hash(previousHash, action.name, now)
             val entity = EvidenceChainEventEntity(
                 id = UUID.randomUUID().toString(),
                 evidenceId = evidenceId,
-                offline = offline,
-                kind = kind,
-                payload = payload,
+                action = action.name,
                 occurredAtEpochMs = now,
                 eventHash = eventHash,
-                previousEventHash = previousHash,
+                previousEventHash = previousHash ?: ChainEventHasher.GENESIS_PREV,
             )
 
             evidenceDao.appendChainEvent(entity, evidenceId)
@@ -172,12 +164,13 @@ class EvidenceRepositoryImpl @Inject constructor(
                 ?: throw IllegalArgumentException("unknown evidence: $evidenceId")
 
             val chain = evidenceDao.chainInOrder(evidenceId)
-            var previousHash = ChainEventHasher.GENESIS_PREV
+            var previousHash: String? = null
             var brokenAt: String? = null
 
             for (event in chain) {
-                val expected = ChainEventHasher.hash(previousHash, event.kind, event.occurredAtEpochMs, event.payload)
-                if (event.previousEventHash != previousHash || !Sha256.matches(event.eventHash, expected)) {
+                val expected = ChainEventHasher.hash(previousHash, event.action, event.occurredAtEpochMs)
+                val expectedPrev = previousHash ?: ChainEventHasher.GENESIS_PREV
+                if (event.previousEventHash != expectedPrev || !Sha256.matches(event.eventHash, expected)) {
                     brokenAt = event.id
                     break
                 }
@@ -190,43 +183,13 @@ class EvidenceRepositoryImpl @Inject constructor(
                 brokenAt = chain.last().id
             }
 
-            val valid = brokenAt == null
-            if (valid) {
-                // Verification becomes part of the auditable record.
-                appendEventInternal(evidenceId, ChainEvent.Kind.HASH_VERIFIED, payload = null)
-            }
             EvidenceRepository.ChainVerification(
                 evidenceId = evidenceId,
-                valid = valid,
+                valid = brokenAt == null,
                 inspectedEvents = chain.size,
                 brokenAtEventId = brokenAt,
             )
         }
-    }
-
-    /**
-     * Append used by [verifyChain] itself. [appendEvent] cannot be reused
-     * directly — it would queue a second sync command for an event that is
-     * an artifact of verification, doubling remote rows. This variant
-     * persists the chain link only.
-     */
-    private suspend fun appendEventInternal(evidenceId: String, kind: String, payload: ByteArray?): ChainEvent {
-        val now = clock.millis()
-        val head = evidenceDao.findChainHead(evidenceId)
-        val previousHash = head?.eventHash ?: ChainEventHasher.GENESIS_PREV
-        val eventHash = ChainEventHasher.hash(previousHash, kind, now, payload)
-        val entity = EvidenceChainEventEntity(
-            id = UUID.randomUUID().toString(),
-            evidenceId = evidenceId,
-            offline = false,
-            kind = kind,
-            payload = payload,
-            occurredAtEpochMs = now,
-            eventHash = eventHash,
-            previousEventHash = previousHash,
-        )
-        evidenceDao.appendChainEvent(entity, evidenceId)
-        return entity.toDomain()
     }
 
     // ------------------------------------------------------- sync queueing
@@ -235,12 +198,11 @@ class EvidenceRepositoryImpl @Inject constructor(
         val payload = buildJsonObject {
             put("evidenceId", evidence.id)
             put("eventId", event.id)
-            put("kind", event.kind)
+            put("action", event.action)
             put("label", evidence.label)
             put("sha256", evidence.sha256Hex)
             put("capturedAt", evidence.capturedAtEpochMs)
             put("occurredAt", event.occurredAtEpochMs)
-            put("offline", event.offline)
             put("eventHash", event.eventHash)
             put("previousEventHash", event.previousEventHash)
         }
@@ -251,14 +213,10 @@ class EvidenceRepositoryImpl @Inject constructor(
         val payload = buildJsonObject {
             put("evidenceId", evidence.id)
             put("eventId", event.id)
-            put("kind", event.kind)
+            put("action", event.action)
             put("occurredAt", event.occurredAtEpochMs)
-            put("offline", event.offline)
             put("eventHash", event.eventHash)
             put("previousEventHash", event.previousEventHash)
-            if (event.payload != null) {
-                put("payloadB64", Base64.encodeToString(event.payload, Base64.NO_WRAP))
-            }
         }
         enqueueCommand(SyncCommand.Type.EVIDENCE_APPEND_EVENT, json.encodeToString(JsonObject.serializer(), payload))
     }
@@ -283,16 +241,13 @@ class EvidenceRepositoryImpl @Inject constructor(
         workManager.enqueueUniqueWork(DRAIN_WORK_NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
     }
 
+    /** Domain link: `previousHash` is null exactly at genesis (64 zeros). */
     private fun EvidenceChainEventEntity.toDomain(): ChainEvent =
         ChainEvent(
-            id = id,
-            evidenceId = evidenceId,
-            offline = offline,
-            kind = kind,
-            payload = payload,
-            occurredAtEpochMs = occurredAtEpochMs,
-            eventHash = eventHash,
-            previousEventHash = previousEventHash,
+            action = ChainAction.valueOf(action),
+            timestampEpochMillis = occurredAtEpochMs,
+            previousHash = if (previousEventHash == ChainEventHasher.GENESIS_PREV) null else previousEventHash,
+            currentHash = eventHash,
         )
 
     private companion object {
