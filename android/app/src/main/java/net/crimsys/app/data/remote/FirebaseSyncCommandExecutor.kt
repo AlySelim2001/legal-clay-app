@@ -2,6 +2,7 @@ package net.crimsys.app.data.remote
 
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import java.io.ByteArrayInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -48,7 +49,9 @@ class FirebaseSyncCommandExecutor @Inject constructor(
     override suspend fun execute(command: SyncCommand): Boolean {
         // 1) Integrity gate — never ship a payload that no longer hashes to
         //    the digest recorded at enqueue time.
-        if (!Sha256.matches(command.payloadSha256, Sha256.ofString(command.payloadJson))) {
+        val payloadDigest =
+            Sha256.digest(ByteArrayInputStream(command.payloadJson.toByteArray(Charsets.UTF_8)))
+        if (!command.payloadSha256.equals(payloadDigest, ignoreCase = true)) {
             // Permanent, per-command failure → caller dead-letters the row.
             throw IllegalArgumentException("payload digest mismatch for command ${command.uuid}")
         }

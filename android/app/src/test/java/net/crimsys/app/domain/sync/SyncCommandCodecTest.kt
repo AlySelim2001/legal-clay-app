@@ -2,7 +2,6 @@ package net.crimsys.app.domain.sync
 
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import net.crimsys.app.core.evidence.Sha256
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -13,7 +12,7 @@ class SyncCommandCodecTest {
     @Test
     fun `create computes the payload digest`() {
         val command = SyncCommand.create("EVIDENCE_APPEND_EVENT", "{\"evidenceId\":\"x\"}", 1_700L)
-        assertEquals(Sha256.ofString("{\"evidenceId\":\"x\"}"), command.payloadSha256)
+        assertEquals(SyncCommand.sha256Hex("{\"evidenceId\":\"x\"}"), command.payloadSha256)
         assertTrue(command.uuid.isNotBlank())
     }
 
@@ -41,7 +40,7 @@ class SyncCommandCodecTest {
             put("createdAt", 1_700L)
         }.toString()
         val decoded = SyncCommand.Codec.fromJson(envelope)
-        assertEquals(Sha256.ofString("{\"q\":1}"), decoded?.payloadSha256)
+        assertEquals(SyncCommand.sha256Hex("{\"q\":1}"), decoded?.payloadSha256)
 
         val noUuid = buildJsonObject {
             put("type", "PENDING_LEGAL_QUERY")

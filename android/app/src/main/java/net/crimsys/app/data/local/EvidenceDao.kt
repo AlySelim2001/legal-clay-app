@@ -18,6 +18,10 @@ import kotlinx.coroutines.flow.Flow
  * representation in [previousEventHash] so the hash-linked columns stay
  * NOT NULL — Room schema validation and the verification walk both prefer a
  * constant sentinel over tri-state storage.
+ *
+ * [GENESIS_PREV] lives here (the persistence layer) — it is the canonical
+ * storage form of a null link, not a hashing concept; the hasher's canonical
+ * string simply writes an empty segment for genesis.
  */
 @Entity(
     tableName = "evidence_chain_events",
@@ -29,9 +33,16 @@ data class EvidenceChainEventEntity(
     /** Semantic action — [net.crimsys.app.domain.evidence.ChainAction] name (closed vocabulary). */
     val action: String,
     val occurredAtEpochMs: Long,
+    /** SHA-256 hex of the evidence CONTENT this event attests (constant per chain). */
+    val contentHash: String,
     val eventHash: String,
     val previousEventHash: String,
-)
+) {
+    companion object {
+        /** Canonical persistence form of a genesis (null) previous link. */
+        const val GENESIS_PREV: String = "0".repeat(64)
+    }
+}
 
 /**
  * Evidence store. The critical operations are the two @Transaction methods:

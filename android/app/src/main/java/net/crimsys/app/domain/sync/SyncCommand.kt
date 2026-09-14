@@ -1,10 +1,10 @@
 package net.crimsys.app.domain.sync
 
+import java.security.MessageDigest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import net.crimsys.app.core.evidence.Sha256
 
 /**
  * One syncable mutation, decoupled from any specific transport.
@@ -69,7 +69,7 @@ data class SyncCommand(
                 type = (obj[KEY_TYPE] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return null,
                 payloadJson = payload,
                 payloadSha256 = (obj[KEY_PAYLOAD_SHA256] as? kotlinx.serialization.json.JsonPrimitive)?.content
-                    ?: Sha256.ofString(payload),
+                    ?: sha256Hex(payload),
                 createdAtEpochMs = (obj[KEY_CREATED_AT] as? kotlinx.serialization.json.JsonPrimitive)?.content
                     ?.toLongOrNull() ?: 0L,
             )
@@ -86,8 +86,19 @@ data class SyncCommand(
                 uuid = java.util.UUID.randomUUID().toString(),
                 type = type,
                 payloadJson = payloadJson,
-                payloadSha256 = Sha256.ofString(payloadJson),
+                payloadSha256 = sha256Hex(payloadJson),
                 createdAtEpochMs = createdAtEpochMs,
             )
+
+        /**
+         * Domain-local SHA-256 hex (UTF-8). Kept here — not an import of
+         * `core.evidence.Sha256`, whose surface is streaming-only — so the
+         * domain layer never depends on core crypto helpers.
+         */
+        internal fun sha256Hex(value: String): String =
+            MessageDigest
+                .getInstance("SHA-256")
+                .digest(value.toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }
     }
 }

@@ -155,6 +155,7 @@ abstract class CrimSysDatabase : RoomDatabase() {
                             "`evidenceId` TEXT NOT NULL, " +
                             "`action` TEXT NOT NULL, " +
                             "`occurredAtEpochMs` INTEGER NOT NULL, " +
+                            "`contentHash` TEXT NOT NULL, " +
                             "`eventHash` TEXT NOT NULL, " +
                             "`previousEventHash` TEXT NOT NULL)",
                     )

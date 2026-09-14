@@ -47,7 +47,7 @@ UI (Compose, StateFlow)
 | **HarisCore slice (v4)** | Evidence chain of custody, legal registry, command sync |
 | `core/Resource.kt` | `Resource<T>` UI-state wrapper (`Loading/Success/Error`) on top of `Result<T>` |
 | `core/ClockModule.kt` | Injected `java.time.Clock` (systemUTC) — every timestamp/event-date derives from one test-fixable clock |
-| `core/evidence/` | `Sha256` streaming digests + `ChainEventHasher` (length-prefixed hash linking, nullable genesis) |
+| `core/evidence/` | `Sha256` streaming `digest(InputStream)` + `ChainEventHasher.create` (canonical `action\|timestamp\|prev\|contentHash` pipe string → complete `ChainEvent`) |
 | `data/evidence/EvidenceRepositoryImpl.kt` | Atomic evidence + chain appends; head/count move with the event; sync queueing |
 | `data/legal/LegalRegistryRepositoryImpl.kt` | Exact-match lookup (`findExact` + temporal `isEffective`) over the registered set — only verified artifacts are ever stored |
 | `data/local/{EvidenceEntity,EvidenceDao}.kt` | `evidence_items` + `evidence_chain_events` (v4 migration, additive) |

@@ -6,6 +6,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import java.io.ByteArrayInputStream
 import java.time.Clock
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -39,8 +40,11 @@ import net.crimsys.app.domain.sync.SyncCommand
  * by [SyncWorker] (offline-first — a push failure never loses an event).
  *
  * Integrity invariants enforced here (the caller cannot bypass them):
- *  - hash links are computed from the CURRENT chain head, never supplied by
- *    the caller — [ChainAction] is the caller's only input;
+ *  - the content digest is computed HERE via [Sha256.digest] over the bytes
+ *    supplied at capture — the caller never supplies a hash;
+ *  - every [ChainEvent] is built by [ChainEventHasher.create] from the chain
+ *    head — the canonical digest binds (action | timestamp | prev | content),
+ *    so an event is self-verifying against its item's `sha256Hex`;
  *  - the head pointer and the event counter move in the same transaction as
  *    the appended event ([EvidenceDao.appendChainEvent]);
  *  - a chain can never be created without its CAPTURED event, and vice versa.
@@ -77,42 +81,54 @@ class EvidenceRepositoryImpl @Inject constructor(
     // --------------------------------------------------------------- writes
 
     override suspend fun captureEvidence(input: EvidenceRepository.CaptureEvidenceInput): Result<String> {
-        val sha = input.sha256Hex.trim().lowercase()
-        if (sha.length != 64 || sha.any { it !in "0123456789abcdef" }) {
-            return Result.Error(AppError.Validation("بصمة الدليل (SHA-256) غير صالحة"))
+        if (input.content.isEmpty()) {
+            return Result.Error(AppError.Validation("محتوى الدليل مطلوب لحساب البصمة"))
         }
         if (input.label.isBlank()) {
             return Result.Error(AppError.Validation("وصف الدليل مطلوب"))
         }
         return runCatchingResult {
             val id = UUID.randomUUID().toString()
-            val now = clock.millis()
+
+            // The content digest is computed by the store, never the caller —
+            // streaming over the bytes in constant memory (large recordings OK).
+            val contentHash = Sha256.digest(ByteArrayInputStream(input.content))
+            if (!isValidHash(contentHash)) {
+                throw IllegalStateException("content digest rejected: malformed SHA-256")
+            }
+
             // Genesis link: previousHash = null in the domain model, stored
             // canonically as 64 zeros in the persistence layer.
-            val eventHash = ChainEventHasher.hash(null, ChainAction.CAPTURED.name, input.capturedAtEpochMs)
+            val event = ChainEventHasher.create(
+                action = ChainAction.CAPTURED,
+                timestampEpochMillis = input.capturedAtEpochMs,
+                previousHash = null,
+                contentHash = contentHash,
+            )
 
             val evidence = EvidenceEntity(
                 id = id,
                 label = input.label.trim(),
-                sha256Hex = sha,
-                chainHeadHash = eventHash,
+                sha256Hex = contentHash,
+                chainHeadHash = event.currentHash,
                 eventCount = 1,
                 capturedAtEpochMs = input.capturedAtEpochMs,
                 isSynced = false,
-                createdAt = now,
-                updatedAt = now,
+                createdAt = clock.millis(),
+                updatedAt = clock.millis(),
             )
-            val event = EvidenceChainEventEntity(
+            val eventEntity = EvidenceChainEventEntity(
                 id = UUID.randomUUID().toString(),
                 evidenceId = id,
-                action = ChainAction.CAPTURED.name,
-                occurredAtEpochMs = input.capturedAtEpochMs,
-                eventHash = eventHash,
-                previousEventHash = ChainEventHasher.GENESIS_PREV,
+                action = event.action.name,
+                occurredAtEpochMs = event.timestampEpochMillis,
+                contentHash = contentHash,
+                eventHash = event.currentHash,
+                previousEventHash = EvidenceChainEventEntity.GENESIS_PREV,
             )
 
-            evidenceDao.insertEvidenceWithEvent(evidence, event)
-            queueCapture(evidence, event)
+            evidenceDao.insertEvidenceWithEvent(evidence, eventEntity)
+            queueCapture(evidence, eventEntity)
             id
         }
     }
@@ -138,15 +154,22 @@ class EvidenceRepositoryImpl @Inject constructor(
                 throw IllegalStateException("chain timestamp regression for $evidenceId")
             }
 
-            val previousHash = head?.eventHash
-            val eventHash = ChainEventHasher.hash(previousHash, action.name, now)
+            // Every link re-binds the SAME content hash — an event is only
+            // valid as part of the chain of one specific evidence item.
+            val event = ChainEventHasher.create(
+                action = action,
+                timestampEpochMillis = now,
+                previousHash = head?.eventHash,
+                contentHash = evidence.sha256Hex,
+            )
             val entity = EvidenceChainEventEntity(
                 id = UUID.randomUUID().toString(),
                 evidenceId = evidenceId,
-                action = action.name,
-                occurredAtEpochMs = now,
-                eventHash = eventHash,
-                previousEventHash = previousHash ?: ChainEventHasher.GENESIS_PREV,
+                action = event.action.name,
+                occurredAtEpochMs = event.timestampEpochMillis,
+                contentHash = evidence.sha256Hex,
+                eventHash = event.currentHash,
+                previousEventHash = head?.eventHash ?: EvidenceChainEventEntity.GENESIS_PREV,
             )
 
             evidenceDao.appendChainEvent(entity, evidenceId)
@@ -168,9 +191,18 @@ class EvidenceRepositoryImpl @Inject constructor(
             var brokenAt: String? = null
 
             for (event in chain) {
-                val expected = ChainEventHasher.hash(previousHash, event.action, event.occurredAtEpochMs)
-                val expectedPrev = previousHash ?: ChainEventHasher.GENESIS_PREV
-                if (event.previousEventHash != expectedPrev || !Sha256.matches(event.eventHash, expected)) {
+                val rebuilt = ChainEventHasher.create(
+                    action = ChainAction.valueOf(event.action),
+                    timestampEpochMillis = event.occurredAtEpochMs,
+                    previousHash = previousHash,
+                    contentHash = event.contentHash,
+                )
+                val expectedPrev = previousHash ?: EvidenceChainEventEntity.GENESIS_PREV
+                val prevOk = event.previousEventHash == expectedPrev
+                val linkOk = event.eventHash == rebuilt.currentHash
+                // Content binding: the attested bytes must be the item's bytes.
+                val contentOk = event.contentHash == evidence.sha256Hex
+                if (!prevOk || !linkOk || !contentOk) {
                     brokenAt = event.id
                     break
                 }
@@ -203,6 +235,7 @@ class EvidenceRepositoryImpl @Inject constructor(
             put("sha256", evidence.sha256Hex)
             put("capturedAt", evidence.capturedAtEpochMs)
             put("occurredAt", event.occurredAtEpochMs)
+            put("contentHash", event.contentHash)
             put("eventHash", event.eventHash)
             put("previousEventHash", event.previousEventHash)
         }
@@ -215,6 +248,7 @@ class EvidenceRepositoryImpl @Inject constructor(
             put("eventId", event.id)
             put("action", event.action)
             put("occurredAt", event.occurredAtEpochMs)
+            put("contentHash", event.contentHash)
             put("eventHash", event.eventHash)
             put("previousEventHash", event.previousEventHash)
         }
@@ -241,12 +275,15 @@ class EvidenceRepositoryImpl @Inject constructor(
         workManager.enqueueUniqueWork(DRAIN_WORK_NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
     }
 
+    private fun isValidHash(hex: String): Boolean =
+        hex.length == 64 && hex.all { it in "0123456789abcdef" }
+
     /** Domain link: `previousHash` is null exactly at genesis (64 zeros). */
     private fun EvidenceChainEventEntity.toDomain(): ChainEvent =
         ChainEvent(
             action = ChainAction.valueOf(action),
             timestampEpochMillis = occurredAtEpochMs,
-            previousHash = if (previousEventHash == ChainEventHasher.GENESIS_PREV) null else previousEventHash,
+            previousHash = if (previousEventHash == EvidenceChainEventEntity.GENESIS_PREV) null else previousEventHash,
             currentHash = eventHash,
         )
 

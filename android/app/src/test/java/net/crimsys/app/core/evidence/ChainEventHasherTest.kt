@@ -1,58 +1,72 @@
 package net.crimsys.app.core.evidence
 
+import net.crimsys.app.domain.evidence.ChainAction
+import net.crimsys.app.domain.evidence.ChainEvent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertThrows
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChainEventHasherTest {
 
-    private val prev = ChainEventHasher.GENESIS_PREV
+    private val content = "a".repeat(64)
 
     @Test
-    fun `genesis constant is 64 zero hex chars`() {
-        assertEquals(64, ChainEventHasher.GENESIS_PREV.length)
-        assertTrue(ChainEventHasher.GENESIS_PREV.all { it == '0' })
+    fun `known answer - genesis event has empty previous segment`() {
+        // Canonical: "CAPTURED|1700000000000||" + "a" * 64
+        val event = ChainEventHasher.create(ChainAction.CAPTURED, 1_700_000_000_000, null, content)
+        assertEquals(
+            "491b7c687730356d62638410d133bc6054de1c1250dd5c0e332adab082d63a06",
+            event.currentHash,
+        )
     }
 
     @Test
-    fun `hashing is deterministic`() {
-        val h1 = ChainEventHasher.hash(prev, "CAPTURED", 1_700_000_000_000)
-        val h2 = ChainEventHasher.hash(prev, "CAPTURED", 1_700_000_000_000)
-        assertEquals(h1, h2)
+    fun `known answer - linked event binds the previous hash`() {
+        // Canonical: "OCR_PROCESSED|1700000000001|" + prev + "|" + content
+        val prev = "61".repeat(32)
+        val event = ChainEventHasher.create(ChainAction.OCR_PROCESSED, 1_700_000_000_001, prev, content)
+        assertEquals(
+            "b8c5486c6d61002837f3847f03c58fb2446458ce17ac530d3b1d9420da6bd784",
+            event.currentHash,
+        )
     }
 
     @Test
-    fun `every hash segment matters - action timestamp and previous hash`() {
-        val base = ChainEventHasher.hash(prev, "CAPTURED", 1_700_000_000_000)
-        assertNotEquals(base, ChainEventHasher.hash(prev, "EXPORTED", 1_700_000_000_000))
-        assertNotEquals(base, ChainEventHasher.hash(prev, "CAPTURED", 1_700_000_000_001))
-        assertNotEquals(base, ChainEventHasher.hash(prev.dropLast(1) + "1", "CAPTURED", 1_700_000_000_000))
+    fun `null and empty previousHash denote the same genesis link`() {
+        val fromNull = ChainEventHasher.create(ChainAction.CAPTURED, 42L, null, content)
+        val fromEmpty = ChainEventHasher.create(ChainAction.CAPTURED, 42L, "", content)
+        assertEquals(fromNull.currentHash, fromEmpty.currentHash)
     }
 
     @Test
-    fun `null previousHash is a distinct genesis link`() {
-        val genesis = ChainEventHasher.hash(null, "CAPTURED", 1_700_000_000_000)
-        val explicitZeros = ChainEventHasher.hash(ChainEventHasher.GENESIS_PREV, "CAPTURED", 1_700_000_000_000)
-        // null and the canonical 64-zero string denote the same genesis link.
-        assertEquals(genesis, explicitZeros)
-        // ...but it is still a proper link: a non-null prev hash changes the digest.
-        assertNotEquals(genesis, ChainEventHasher.hash(prev.dropLast(1) + "1", "CAPTURED", 1_700_000_000_000))
+    fun `create returns the event fields intact`() {
+        val event: ChainEvent =
+            ChainEventHasher.create(ChainAction.EXPORTED, 1_700_000_000_000, null, content)
+        assertEquals(ChainAction.EXPORTED, event.action)
+        assertEquals(1_700_000_000_000, event.timestampEpochMillis)
+        assertNull(event.previousHash)
+        assertEquals(64, event.currentHash.length)
+        assertTrue(event.currentHash.all { it in "0123456789abcdef" })
     }
 
     @Test
-    fun `segment boundaries are unambiguous`() {
-        val abC = ChainEventHasher.hash(prev, "ABC", 42)
-        val aBC = ChainEventHasher.hash(prev, "AB", 42)
-        assertNotEquals(abC, aBC)
+    fun `every canonical segment matters - action timestamp previous content`() {
+        val base = ChainEventHasher.create(ChainAction.CAPTURED, 1_700_000_000_000, null, content)
+        assertNotEquals(base.currentHash, ChainEventHasher.create(ChainAction.EXPORTED, 1_700_000_000_000, null, content).currentHash)
+        assertNotEquals(base.currentHash, ChainEventHasher.create(ChainAction.CAPTURED, 1_700_000_000_001, null, content).currentHash)
+        assertNotEquals(base.currentHash, ChainEventHasher.create(ChainAction.CAPTURED, 1_700_000_000_000, "b".repeat(64), content).currentHash)
+        assertNotEquals(base.currentHash, ChainEventHasher.create(ChainAction.CAPTURED, 1_700_000_000_000, null, "c".repeat(64)).currentHash)
     }
 
     @Test
-    fun `rejects malformed previous hash`() {
-        assertThrows(IllegalArgumentException::class.java) {
-            ChainEventHasher.hash("tooshort", "CAPTURED", 42)
-        }
+    fun `timestamps are string-encoded - not zero-padded`() {
+        // The canonical string is the decimal rendering; 42 and 420 are
+        // different segments ("42|" vs "420|"), so no prefix ambiguity.
+        val a = ChainEventHasher.create(ChainAction.CAPTURED, 42L, null, content)
+        val b = ChainEventHasher.create(ChainAction.CAPTURED, 420L, null, content)
+        assertNotEquals(a.currentHash, b.currentHash)
     }
 
     @Test
@@ -60,9 +74,9 @@ class ChainEventHasherTest {
         var link: String? = null
         val digests = mutableListOf<String>()
         for (i in 0 until 10) {
-            val digest = ChainEventHasher.hash(link, "CAPTURED", 1_700_000_000_000L + i)
-            digests.add(digest)
-            link = digest
+            val event = ChainEventHasher.create(ChainAction.CAPTURED, 1_700_000_000_000L + i, link, content)
+            digests.add(event.currentHash)
+            link = event.currentHash
         }
         assertEquals(10, digests.toSet().size)
     }

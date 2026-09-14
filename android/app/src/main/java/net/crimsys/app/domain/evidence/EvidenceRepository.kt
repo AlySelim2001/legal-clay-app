@@ -11,9 +11,12 @@ import net.crimsys.app.core.Result
  * Queue when connectivity allows. Reads never touch the network.
  *
  * Chain events are closed-vocabulary [ChainAction] links. Each [ChainEvent]
- * binds (action, timestamp, previous link) into `currentHash` via
- * [net.crimsys.app.core.evidence.ChainEventHasher]. The first event of any
- * chain carries `previousHash = null` (genesis) — a chain can never silently
+ * is built by [net.crimsys.app.core.evidence.ChainEventHasher.create] over
+ * the canonical string `action|timestamp|previousHash|contentHash` — so every
+ * link is bound to the SHA-256 digest of the evidence CONTENT it attests.
+ * The content digest itself is computed by the store (streaming [Sha256]),
+ * never supplied by the caller. The first event of any chain carries
+ * `previousHash = null` (genesis) — a chain can never silently
  * "start from nowhere".
  */
 interface EvidenceRepository {
@@ -25,7 +28,9 @@ interface EvidenceRepository {
 
     /**
      * Registers a new evidence item and appends its first chain event
-     * ([ChainAction.CAPTURED]) binding the freshly supplied [CaptureEvidenceInput.sha256Hex].
+     * ([ChainAction.CAPTURED]). The content digest is computed HERE from
+     * [CaptureEvidenceInput.content] via streaming [Sha256] — callers hand
+     * over bytes, never hashes.
      *
      * Legal invariant: the item and its first chain event are persisted
      * ATOMICALLY. An evidence record without its capture event, or a capture
@@ -59,10 +64,10 @@ interface EvidenceRepository {
      */
     suspend fun verifyChain(evidenceId: String): Result<ChainVerification>
 
-    /** Input for [captureEvidence]. */
+    /** Input for [captureEvidence] — raw evidence bytes, never a hash. */
     data class CaptureEvidenceInput(
         val label: String,
-        val sha256Hex: String,
+        val content: ByteArray,
         val capturedAtEpochMs: Long,
     )
 
