@@ -25,6 +25,50 @@ import net.crimsys.app.data.local.EvidenceEntity
 import net.crimsys.app.domain.evidence.ChainAction
 import net.crimsys.app.domain.evidence.EvidenceRepository
 
+/**
+ * Capture pipeline — the diagram is the contract, enforced here stage by stage:
+ *
+ * ```
+ * Incoming File
+ *      │
+ *      ├── SHA-256
+ *      │
+ *      ├── Atomic temporary copy
+ *      │
+ *      ├── fsync()
+ *      │
+ *      ├── read-only filesystem flag
+ *      │
+ *      └── immutable/
+ *             │
+ *             └── EvidenceEntity
+ *                     │
+ *                     └── ChainEvent
+ * ```
+ *
+ * | Diagram stage | Code | On failure |
+ * |---|---|---|
+ * | Incoming File | [captureAndSecureEvidence] — `file.isFile && file.canRead()` guard | `Resource.Error`, no side effects yet |
+ * | SHA-256 | `MessageDigest("SHA-256")`, updated in the read loop | caught → `Resource.Error`, temp deleted |
+ * | Atomic temporary copy | write to `.<uuid>.<ext>.tmp` — fused with the hash pass | caught → `Resource.Error`, temp deleted |
+ * | fsync() | `output.fd.sync()` after `bufferedOutput.flush()` | caught → `Resource.Error`, temp deleted |
+ * | read-only filesystem flag | `tempFile.setReadOnly()` | `SecurityException` → cleanup → `Resource.Error` |
+ * | immutable/ | `tempFile.renameTo(finalFile)` → `evidence/immutable/<uuid>.<ext>` | `IOException` → cleanup → `Resource.Error` |
+ * | EvidenceEntity | full row built from the digest + path → `evidenceDao.insert` | caught → `Resource.Error`, files deleted |
+ * | ChainEvent | genesis `ChainEventHasher.create(CAPTURED, ts, null, hash)` embedded as element 0 of `chainOfCustodyJson` | — |
+ *
+ * One implementation note the linear diagram hides: SHA-256 and the temporary
+ * copy are FUSED into a single buffered pass, not two sequential stages. That
+ * is strictly stronger — the hashed content and the stored content can never
+ * drift apart (no TOCTOU window between a hash pass and a copy pass), and the
+ * source file is read exactly once.
+ *
+ * Storage shape: the immutable path is UUID-addressed, and the UNIQUE index on
+ * `originalFileHash` means identical bytes can never be registered twice — a
+ * duplicate capture fails loudly at Room instead of silently deduplicating.
+ * Persistence is Room-only (single source of truth); any failure after the
+ * rename cleans up both candidate files before reporting `Resource.Error`.
+ */
 @Singleton
 class EvidenceRepositoryImpl @Inject constructor(
     @ApplicationContext
