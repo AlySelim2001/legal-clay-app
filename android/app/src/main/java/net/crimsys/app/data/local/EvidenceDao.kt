@@ -2,63 +2,87 @@ package net.crimsys.app.data.local
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Evidence store — one content-addressed row per captured item.
- *
- * The chain of custody lives ON the row ([EvidenceEntity.chainOfCustodyJson])
- * rather than in a separate table: appends re-serialize the whole chain into
- * the single `chainOfCustodyJson` column, so the head ALWAYS moves with the
- * event — no cross-table transaction to half-commit, no head/counter columns
- * to drift.
- *
- * Dedup is enforced by the UNIQUE index on `originalFileHash`: [insert]
- * aborts loudly on a duplicate hash instead of silently destroying the
- * existing row (OnConflictStrategy.REPLACE would DELETE the conflicting
- * evidence row first — never acceptable for custody data). Callers use
- * [findByOriginalHash] to turn that collision into idempotent registration.
+ * Evidence store. Dedup is structural: the UNIQUE index on
+ * `originalFileHash` plus [Insert][OnConflictStrategy.ABORT] means a second
+ * row for the same content fails loudly — callers turn the probe
+ * ([findByOriginalHash]) into idempotent registration, and REPLACE's silent
+ * delete-then-insert (unacceptable for custody data) is impossible here.
  */
 @Dao
 interface EvidenceDao {
 
-    /** Evidence of one case, newest first. */
-    @Query("SELECT * FROM evidence WHERE caseId = :caseId ORDER BY captureTimestamp DESC")
-    fun observeForCase(caseId: String): Flow<List<EvidenceEntity>>
+    @Insert(
+        onConflict = OnConflictStrategy.ABORT,
+    )
+    suspend fun insert(
+        evidence: EvidenceEntity,
+    )
 
-    /** Whole evidence registry, newest first. */
-    @Query("SELECT * FROM evidence ORDER BY captureTimestamp DESC")
-    fun observeAll(): Flow<List<EvidenceEntity>>
+    @Query(
+        "SELECT * FROM evidence WHERE id = :id LIMIT 1",
+    )
+    suspend fun findById(
+        id: String,
+    ): EvidenceEntity?
 
-    @Query("SELECT * FROM evidence WHERE id = :id LIMIT 1")
-    suspend fun findById(id: String): EvidenceEntity?
+    @Query(
+        """
+        SELECT * FROM evidence
+        WHERE caseId = :caseId
+        ORDER BY captureTimestamp ASC
+        """,
+    )
+    fun observeForCase(
+        caseId: String,
+    ): Flow<List<EvidenceEntity>>
 
-    /** Reactive single row — drives the chain observation screen. */
-    @Query("SELECT * FROM evidence WHERE id = :id LIMIT 1")
-    fun observeById(id: String): Flow<EvidenceEntity?>
+    @Query(
+        """
+        SELECT * FROM evidence
+        WHERE originalFileHash = :sha256
+        LIMIT 1
+        """,
+    )
+    suspend fun findByOriginalHash(
+        sha256: String,
+    ): EvidenceEntity?
+
+    // -------------------------------------------------- repository-backed
+    // The three members below exist only because the EvidenceRepository
+    // contract requires them; each is annotated with its contract method.
+
+    /** Backs [net.crimsys.app.domain.evidence.EvidenceRepository.observeChain]. */
+    @Query(
+        "SELECT * FROM evidence WHERE id = :id LIMIT 1",
+    )
+    fun observeById(
+        id: String,
+    ): Flow<EvidenceEntity?>
 
     /**
-     * Content dedup probe — the UNIQUE index on `originalFileHash` means at
-     * most one row can ever match.
+     * Backs [net.crimsys.app.domain.evidence.EvidenceRepository.appendEvent] —
+     * the whole embedded chain re-serializes in one UPDATE, so the head always
+     * moves with the event (no cross-table transaction to half-commit).
      */
-    @Query("SELECT * FROM evidence WHERE originalFileHash = :hash LIMIT 1")
-    suspend fun findByOriginalHash(hash: String): EvidenceEntity?
+    @Query(
+        "UPDATE evidence SET chainOfCustodyJson = :chainOfCustodyJson WHERE id = :id",
+    )
+    suspend fun updateChainOfCustody(
+        id: String,
+        chainOfCustodyJson: String,
+    )
 
-    /**
-     * Plain INSERT (no REPLACE): a primary-key collision means the row is
-     * already registered (the caller re-checked above), and a hash collision
-     * trips the UNIQUE index as a loud constraint failure — mapped upstream
-     * to a duplicate-registration outcome, never a silent overwrite.
-     */
-    @Insert
-    suspend fun insert(evidence: EvidenceEntity)
-
-    /** Atomic custody append: the new chain JSON replaces the old in one UPDATE. */
-    @Query("UPDATE evidence SET chainOfCustodyJson = :json WHERE id = :id")
-    suspend fun updateChainOfCustody(id: String, json: String)
-
-    /** OCR/pipeline hook — null clears a previously recorded processed hash. */
-    @Query("UPDATE evidence SET processedFileHash = :processedFileHash WHERE id = :id")
-    suspend fun setProcessedFileHash(id: String, processedFileHash: String?)
+    /** Backs [net.crimsys.app.domain.evidence.EvidenceRepository.setProcessedHash]. */
+    @Query(
+        "UPDATE evidence SET processedFileHash = :processedFileHash WHERE id = :id",
+    )
+    suspend fun setProcessedFileHash(
+        id: String,
+        processedFileHash: String?,
+    )
 }

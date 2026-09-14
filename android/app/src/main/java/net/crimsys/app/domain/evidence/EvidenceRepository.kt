@@ -20,7 +20,7 @@ import net.crimsys.app.core.Result
  */
 interface EvidenceRepository {
 
-    /** Reactive evidence list for one case, newest first. */
+    /** Reactive evidence list for one case, in capture order (oldest first). */
     fun observeForCase(caseId: String): Flow<List<EvidenceSummary>>
 
     /** Reactive, append-ordered custody chain of one evidence item. */
