@@ -28,7 +28,7 @@ data class SyncCommand(
 ) {
     /** Canonical command types. */
     object Type {
-        const val EVIDENCE_APPEND_EVENT = "EVIDENCE_APPEND_EVENT"
+        const val EVIDENCE_REGISTER = "EVIDENCE_REGISTER"
         const val LEGAL_ATTEST_REQUEST = "LEGAL_ATTEST_REQUEST"
         const val PENDING_LEGAL_QUERY = "PENDING_LEGAL_QUERY"
     }

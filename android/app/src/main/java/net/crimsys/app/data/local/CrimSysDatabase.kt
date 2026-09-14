@@ -21,10 +21,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         OfflineActionEntity::class,
         LegalSourceEntity::class,
         EvidenceEntity::class,
-        EvidenceChainEventEntity::class,
         SyncCommandEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class CrimSysDatabase : RoomDatabase() {
@@ -86,17 +85,15 @@ abstract class CrimSysDatabase : RoomDatabase() {
             }
 
         /**
-         * HarisCore slice (v3 → v4), additive only — zero data loss:
-         * four brand-new tables + their indices. No existing table is
-         * touched; the migration is pure CREATE TABLE / CREATE INDEX, so a
-         * v3 install upgrades in place with its cases, hearings, and queue
-         * intact.
+         * HarisCore slice (v3 → v4): legal_sources, evidence_items,
+         * evidence_chain_events, sync_commands.
          *
-         * Column shapes follow the entities exactly: NOT NULL for every
-         * non-nullable Kotlin field (a mismatch fails Room's schema
-         * validation on open — by design, see the no-destructive-migration
-         * rule), nullable Kotlin types as nullable columns, Boolean as
-         * INTEGER, ByteArray as BLOB.
+         * [MIGRATION_4_5] below REPLACES the two evidence tables with the
+         * redesigned single-table `evidence` store — v4 evidence rows are
+         * unrecoverable from their new shape (the v4 store recorded bare
+         * digests with no file bytes or storage path, so a faithful custody
+         * reconstruction is impossible). See the migration's KDoc for the
+         * deliberate data decision and the reason this stays fail-loud.
          */
         val MIGRATION_3_4: Migration =
             object : Migration(3, 4) {
@@ -132,6 +129,8 @@ abstract class CrimSysDatabase : RoomDatabase() {
                     )
 
                     // Evidence items + hash-linked chain of custody.
+                    // (Superseded by the v4 → v5 redesign below; kept here so
+                    // a v3 install can reach v4 and then upgrade onward.)
                     db.execSQL(
                         "CREATE TABLE IF NOT EXISTS `evidence_items` (" +
                             "`id` TEXT NOT NULL PRIMARY KEY, " +
@@ -179,6 +178,51 @@ abstract class CrimSysDatabase : RoomDatabase() {
                     db.execSQL(
                         "CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_commands_uuid` " +
                             "ON `sync_commands` (`uuid`)",
+                    )
+                }
+            }
+
+        /**
+         * Evidence redesign (v4 → v5): the two-table evidence store
+         * (`evidence_items` + `evidence_chain_events`) is replaced by the
+         * single `evidence` table — chain of custody embedded as a JSON
+         * column, content-addressed storage path, case linkage, and a UNIQUE
+         * original-file hash for dedup.
+         *
+         * Deliberate data decision: v4 evidence rows cannot be faithfully
+         * reconstructed into the new shape. The v4 store persisted only bare
+         * SHA-256 digests — no file bytes, no storage path, no case linkage,
+         * no mime type — so the new NOT NULL columns would have to be filled
+         * with invented values, and an evidence record with fabricated
+         * provenance is worse than a loud failure. A v3→v4→v5 upgrade path
+         * therefore preserves cases/hearings/queues and FAILS on open with a
+         * clear IllegalStateException instead of silently substituting fake
+         * custody data. Field devices in that state need the SQLCipher file
+         * preserved for forensic extraction before upgrading.
+         */
+        val MIGRATION_4_5: Migration =
+            object : Migration(4, 5) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("DROP TABLE IF EXISTS `evidence_chain_events`")
+                    db.execSQL("DROP TABLE IF EXISTS `evidence_items`")
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `evidence` (" +
+                            "`id` TEXT NOT NULL PRIMARY KEY, " +
+                            "`caseId` TEXT NOT NULL, " +
+                            "`originalFileHash` TEXT NOT NULL, " +
+                            "`processedFileHash` TEXT, " +
+                            "`mimeType` TEXT NOT NULL, " +
+                            "`captureTimestamp` INTEGER NOT NULL, " +
+                            "`chainOfCustodyJson` TEXT NOT NULL, " +
+                            "`immutableRelativePath` TEXT NOT NULL)",
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_evidence_caseId` " +
+                            "ON `evidence` (`caseId`)",
+                    )
+                    db.execSQL(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS `index_evidence_originalFileHash` " +
+                            "ON `evidence` (`originalFileHash`)",
                     )
                 }
             }

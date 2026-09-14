@@ -1,116 +1,64 @@
 package net.crimsys.app.data.local
 
 import androidx.room.Dao
-import androidx.room.Entity
-import androidx.room.Index
 import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.PrimaryKey
 import androidx.room.Query
-import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Storage row for one chain-of-custody event.
+ * Evidence store — one content-addressed row per captured item.
  *
- * The domain [net.crimsys.app.domain.evidence.ChainEvent] carries a nullable
- * `previousHash` (null = genesis); persistence keeps the canonical 64-zero
- * representation in [previousEventHash] so the hash-linked columns stay
- * NOT NULL — Room schema validation and the verification walk both prefer a
- * constant sentinel over tri-state storage.
+ * The chain of custody lives ON the row ([EvidenceEntity.chainOfCustodyJson])
+ * rather than in a separate table: appends re-serialize the whole chain into
+ * the single `chainOfCustodyJson` column, so the head ALWAYS moves with the
+ * event — no cross-table transaction to half-commit, no head/counter columns
+ * to drift.
  *
- * [GENESIS_PREV] lives here (the persistence layer) — it is the canonical
- * storage form of a null link, not a hashing concept; the hasher's canonical
- * string simply writes an empty segment for genesis.
- */
-@Entity(
-    tableName = "evidence_chain_events",
-    indices = [Index(value = ["evidenceId"])],
-)
-data class EvidenceChainEventEntity(
-    @PrimaryKey val id: String,
-    val evidenceId: String,
-    /** Semantic action — [net.crimsys.app.domain.evidence.ChainAction] name (closed vocabulary). */
-    val action: String,
-    val occurredAtEpochMs: Long,
-    /** SHA-256 hex of the evidence CONTENT this event attests (constant per chain). */
-    val contentHash: String,
-    val eventHash: String,
-    val previousEventHash: String,
-) {
-    companion object {
-        /** Canonical persistence form of a genesis (null) previous link. */
-        const val GENESIS_PREV: String = "0".repeat(64)
-    }
-}
-
-/**
- * Evidence store. The critical operations are the two @Transaction methods:
- * the chain can never exist in a half-appended state — an evidence row and
- * its capture event are written together, and a new head + event land in one
- * commit.
+ * Dedup is enforced by the UNIQUE index on `originalFileHash`: [insert]
+ * aborts loudly on a duplicate hash instead of silently destroying the
+ * existing row (OnConflictStrategy.REPLACE would DELETE the conflicting
+ * evidence row first — never acceptable for custody data). Callers use
+ * [findByOriginalHash] to turn that collision into idempotent registration.
  */
 @Dao
 interface EvidenceDao {
 
-    // ------------------------------------------------------------- evidence
+    /** Evidence of one case, newest first. */
+    @Query("SELECT * FROM evidence WHERE caseId = :caseId ORDER BY captureTimestamp DESC")
+    fun observeForCase(caseId: String): Flow<List<EvidenceEntity>>
 
-    @Query("SELECT * FROM evidence_items ORDER BY capturedAtEpochMs DESC")
-    fun observeEvidence(): Flow<List<EvidenceEntity>>
+    /** Whole evidence registry, newest first. */
+    @Query("SELECT * FROM evidence ORDER BY captureTimestamp DESC")
+    fun observeAll(): Flow<List<EvidenceEntity>>
 
-    @Query("SELECT * FROM evidence_items WHERE id = :evidenceId LIMIT 1")
-    suspend fun findEvidence(evidenceId: String): EvidenceEntity?
+    @Query("SELECT * FROM evidence WHERE id = :id LIMIT 1")
+    suspend fun findById(id: String): EvidenceEntity?
 
-    /**
-     * Registers the item AND its first chain event atomically. Uses REPLACE
-     * on the item (id is caller-minted UUID) and plain INSERT on the event
-     * (fresh primary key; a duplicate event hash means a caller bug and
-     * should fail loudly).
-     */
-    @Transaction
-    suspend fun insertEvidenceWithEvent(evidence: EvidenceEntity, event: EvidenceChainEventEntity) {
-        insertEvidence(evidence)
-        insertChainEvent(event)
-    }
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertEvidence(evidence: EvidenceEntity)
-
-    // ---------------------------------------------------------------- chain
-
-    /** Append-ordered chain (insertion order == hash-link order). */
-    @Query("SELECT * FROM evidence_chain_events WHERE evidenceId = :evidenceId ORDER BY rowid ASC")
-    fun observeChain(evidenceId: String): Flow<List<EvidenceChainEventEntity>>
-
-    @Query("SELECT * FROM evidence_chain_events WHERE evidenceId = :evidenceId ORDER BY rowid DESC LIMIT 1")
-    suspend fun findChainHead(evidenceId: String): EvidenceChainEventEntity?
-
-    @Query("SELECT * FROM evidence_chain_events WHERE evidenceId = :evidenceId ORDER BY rowid ASC")
-    suspend fun chainInOrder(evidenceId: String): List<EvidenceChainEventEntity>
+    /** Reactive single row — drives the chain observation screen. */
+    @Query("SELECT * FROM evidence WHERE id = :id LIMIT 1")
+    fun observeById(id: String): Flow<EvidenceEntity?>
 
     /**
-     * Atomic head swap: the new event, the item's `chainHeadHash`, and the
-     * event counter all commit together. If the process died between the
-     * event insert and the head update without this wrapper, the head
-     * pointer would trail the actual chain — the verification walk would
-     * then "fail" on healthy evidence.
+     * Content dedup probe — the UNIQUE index on `originalFileHash` means at
+     * most one row can ever match.
      */
-    @Transaction
-    suspend fun appendChainEvent(event: EvidenceChainEventEntity, evidenceId: String) {
-        insertChainEvent(event)
-        updateChainHead(evidenceId, event.eventHash, System.currentTimeMillis())
-    }
+    @Query("SELECT * FROM evidence WHERE originalFileHash = :hash LIMIT 1")
+    suspend fun findByOriginalHash(hash: String): EvidenceEntity?
 
+    /**
+     * Plain INSERT (no REPLACE): a primary-key collision means the row is
+     * already registered (the caller re-checked above), and a hash collision
+     * trips the UNIQUE index as a loud constraint failure — mapped upstream
+     * to a duplicate-registration outcome, never a silent overwrite.
+     */
     @Insert
-    suspend fun insertChainEvent(event: EvidenceChainEventEntity)
+    suspend fun insert(evidence: EvidenceEntity)
 
-    @Query(
-        "UPDATE evidence_items SET chainHeadHash = :headHash, " +
-            "eventCount = eventCount + 1, updatedAt = :updatedAt WHERE id = :evidenceId",
-    )
-    suspend fun updateChainHead(evidenceId: String, headHash: String, updatedAt: Long)
+    /** Atomic custody append: the new chain JSON replaces the old in one UPDATE. */
+    @Query("UPDATE evidence SET chainOfCustodyJson = :json WHERE id = :id")
+    suspend fun updateChainOfCustody(id: String, json: String)
 
-    /** Marks the evidence row pushed; called after a successful sync. */
-    @Query("UPDATE evidence_items SET isSynced = :synced, updatedAt = :updatedAt WHERE id = :evidenceId")
-    suspend fun setEvidenceSynced(evidenceId: String, synced: Boolean, updatedAt: Long)
+    /** OCR/pipeline hook — null clears a previously recorded processed hash. */
+    @Query("UPDATE evidence SET processedFileHash = :processedFileHash WHERE id = :id")
+    suspend fun setProcessedFileHash(id: String, processedFileHash: String?)
 }
