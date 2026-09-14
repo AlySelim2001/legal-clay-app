@@ -48,14 +48,14 @@ UI (Compose, StateFlow)
 | `core/Resource.kt` | `Resource<T>` UI-state wrapper (`Loading/Success/Error`) on top of `Result<T>` |
 | `core/ClockModule.kt` | Injected `java.time.Clock` (systemUTC) — every timestamp/event-date derives from one test-fixable clock |
 | `core/evidence/` | `Sha256` streaming `digest(InputStream)` + `ChainEventHasher.create` (canonical `action\|timestamp\|prev\|contentHash` pipe string → complete `ChainEvent`) |
-| `data/evidence/EvidenceRepositoryImpl.kt` | `captureAndSecureEvidence(file, caseId)` cold flow: streamed digest → content-addressed copy (`evidence/<sha256>.<ext>`) → genesis chain event → Room insert → snapshot sync queueing; idempotent on bytes |
+| `data/evidence/EvidenceRepositoryImpl.kt` | `captureAndSecureEvidence(file, caseId)` cold flow: single-pass hash+copy → fsync → read-only → atomic rename into `evidence/immutable/<uuid>.<ext>` → genesis chain event → Room insert; per-failure file cleanup, no caller-supplied hashes |
 | `data/legal/LegalRegistryRepositoryImpl.kt` | Exact-match lookup (`findExact` + temporal `isEffective`) over the registered set — only verified artifacts are ever stored |
 | `data/local/{EvidenceEntity,EvidenceDao}.kt` | Single `evidence` table — chain of custody embedded as JSON, UNIQUE original-file hash dedup, case linkage (v5 migration replaces the v4 evidence tables) |
 | `data/local/{LegalSourceEntity,LegalSourceDao}.kt` | `legal_sources` — temporally versioned citable sources (amendments coexist; windows resolved on the event date) |
 | `data/local/{SyncCommandEntity,SyncCommandDao}.kt` | `sync_commands` — FIFO queue with DLQ (same lifecycle as `offline_actions`) |
 | `data/remote/FirebaseSyncCommandExecutor.kt` | Firestore transport behind `SyncCommandExecutor`; re-verifies the payload digest before every write |
 | `data/sync/SyncWorker.kt` | `@HiltWorker` drain: FIFO, DLQ, corrupt-row parking, WorkManager CONNECTED constraint |
-| `domain/evidence/` | `ChainEvent` (`@Serializable`, closed `ChainAction` vocabulary), `ChainOfCustody` (versioned envelope codec — total decode), `EvidenceRepository` (single `captureAndSecureEvidence` pipeline on `Resource<T>`) |
+| `domain/evidence/` | `ChainEvent` (`@Serializable`, closed `ChainAction` vocabulary), `EvidenceRepository` (single `captureAndSecureEvidence` pipeline on `Resource<T>`) |
 | `domain/legal/` | `LegalCitation` (evidence-grade: temporal window + source digest + gazette), `CitationValidator` (self-parsing Arabic citations, clock-injected event dates, sanitize-with-refusal) + `LegalRegistryRepository` |
 | `domain/sync/` | `SyncCommand` (+ JSON codec, digest-carrying), `SyncResult`, `SyncCommandExecutor` |
 | `di/HarisCoreModule.kt` | Bindings + DAO/WorkManager providers for the slice |
