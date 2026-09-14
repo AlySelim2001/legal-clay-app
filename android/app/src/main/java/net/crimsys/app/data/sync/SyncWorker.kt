@@ -10,11 +10,13 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.time.Clock
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration
 import net.crimsys.app.data.local.SyncCommandDao
 import net.crimsys.app.domain.sync.SyncCommandExecutor
 import net.crimsys.app.domain.sync.SyncResult
@@ -30,24 +32,32 @@ import net.crimsys.app.domain.sync.SyncResult
  * survive process death (WorkManager persists them), and a boot-time KEEP
  * request in CrimSysApplication covers a restart with a non-empty queue.
  *
- * Drain policy — same philosophy as the legacy OfflineActionQueue:
+ * Drain policy — one FIFO pass, per-command [SyncResult] outcomes:
  *  1. FIFO by row id (insertion order is the authority for ordering).
- *  2. A command whose retry budget is exhausted is dead-lettered and the
- *     drain CONTINUES (no head-of-line blocking); the row is kept, never
+ *  2. [SyncResult.Accepted] — the remote write landed; the row is deleted
+ *     and the drain continues.
+ *  3. [SyncResult.Retryable] — a transient rejection (offline, no session,
+ *     backend error) increments the retry counter and STOPS the drain — a
+ *     later command must never overtake a failed earlier one. A server
+ *     [SyncResult.Retryable.retryAfter] hint schedules a delayed re-drain
+ *     (capped; the next enqueued command or connectivity window re-triggers
+ *     regardless).
+ *  4. [SyncResult.Conflict] — a newer remote row exists; a blind overwrite
+ *     would destroy data, so the row is parked immediately for human
+ *     inspection and the drain continues.
+ *  5. [SyncResult.PermanentFailure] — the command can never succeed
+ *     (corrupt envelope, digest mismatch), so it must never consume another
+ *     connectivity window: parked immediately, drain continues.
+ *  6. A command whose retry budget is exhausted is dead-lettered and the
+ *     drain continues (no head-of-line blocking); the row is kept, never
  *     deleted.
- *  3. A transient rejection (offline, no auth session, backend error)
- *     increments the retry counter and STOPS the drain — a later command
- *     must never overtake a failed earlier one.
- *  4. A permanently broken command (corrupt envelope, digest mismatch — the
- *     executor throws IllegalArgumentException) is parked immediately: it
- *     can never succeed, so it must never consume another connectivity
- *     window.
  *
  * The worker always returns [Result.success] — the queue state IS the sync
  * state, and WorkManager's own retry machinery would only stack a second
  * retry policy on top of the queue's. Re-drains are triggered by the next
  * enqueued command, the next connectivity change (a fresh CONNECTED request),
- * or the user requeueing dead-lettered rows.
+ * a [SyncResult.Retryable.retryAfter] hint, or the user requeueing
+ * dead-lettered rows.
  */
 @HiltWorker
 class SyncWorker @AssistedInject constructor(
@@ -60,22 +70,22 @@ class SyncWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return when (val outcome = drainOnce()) {
-            is SyncResult.Success -> Result.success()
-            is SyncResult.Retry -> Result.success()
-            is SyncResult.Failed -> {
-                // Dead-letter decisions are already persisted; nothing here
-                // should fail the worker itself.
-                Log.w(TAG, "Drain finished with failure: ${outcome.error}")
+            is DrainOutcome.Drained -> Result.success()
+            is DrainOutcome.Paused -> {
+                // Transient pause decisions are already persisted; nothing
+                // here should fail the worker itself.
+                Log.w(TAG, "Drain paused: ${outcome.reason}")
                 Result.success()
             }
         }
     }
 
     /**
-     * One FIFO pass over the live queue. Returns a [SyncResult] describing
-     * the pass — the domain contract, not the WorkManager contract.
+     * One FIFO pass over the live queue. Returns a [DrainOutcome] describing
+     * the pass — the worker's own summary; per-command outcomes are the
+     * [SyncResult] taxonomy reported by [executor].
      */
-    private suspend fun drainOnce(): SyncResult {
+    private suspend fun drainOnce(): DrainOutcome {
         var processed = 0
 
         for (entity in syncCommandDao.pendingInOrder()) {
@@ -96,34 +106,66 @@ class SyncWorker @AssistedInject constructor(
                 continue
             }
 
-            val accepted = try {
-                executor.execute(command)
-            } catch (expected: IllegalArgumentException) {
-                // Integrity gate rejection (digest mismatch) or malformed
-                // command — permanent for this row.
-                syncCommandDao.parkCorrupt(entity.id)
-                Log.w(TAG, "Command ${entity.uuid} parked: rejected as permanent")
-                continue
-            }
+            when (val outcome = executor.execute(command)) {
+                is SyncResult.Accepted -> {
+                    syncCommandDao.deleteById(entity.id)
+                    processed++
+                }
 
-            if (accepted) {
-                syncCommandDao.deleteById(entity.id)
-                processed++
-                continue
-            }
+                is SyncResult.Retryable -> {
+                    // Transient rejection: keep order, stop the drain, retry
+                    // next window — honoring a server retry hint when one was
+                    // supplied.
+                    syncCommandDao.incrementRetry(entity.id)
+                    Log.w(TAG, "Command ${entity.uuid} rejected transiently (attempt ${entity.retryCount + 1}) — pausing drain")
+                    outcome.retryAfter?.let { retryAfter ->
+                        schedule(
+                            workManager = WorkManager.getInstance(applicationContext),
+                            policy = ExistingWorkPolicy.APPEND_OR_REPLACE,
+                            retryAfter = retryAfter,
+                        )
+                    }
+                    return DrainOutcome.Paused(
+                        reason = outcome.reason,
+                        retryAfter = outcome.retryAfter,
+                    )
+                }
 
-            // Transient rejection: keep order, stop the drain, retry next window.
-            syncCommandDao.incrementRetry(entity.id)
-            Log.w(TAG, "Command ${entity.uuid} rejected transiently (attempt ${entity.retryCount + 1}) — pausing drain")
-            return SyncResult.Retry("transport not ready at ${clock.millis()}")
+                is SyncResult.Conflict -> {
+                    // A newer remote row exists — refuse the overwrite and
+                    // park the row for human inspection; the drain continues.
+                    syncCommandDao.parkCorrupt(entity.id)
+                    Log.w(
+                        TAG,
+                        "Command ${entity.uuid} parked: remote conflict (remote version ${outcome.remoteVersion})",
+                    )
+                }
+
+                is SyncResult.PermanentFailure -> {
+                    // It can never succeed, so it must never consume another
+                    // connectivity window.
+                    syncCommandDao.parkCorrupt(entity.id)
+                    Log.w(TAG, "Command ${entity.uuid} parked: permanent failure")
+                }
+            }
         }
 
-        return SyncResult.Success(processedCommands = processed)
+        return DrainOutcome.Drained(processedCommands = processed)
     }
 
     companion object {
         const val TAG = "SyncWorker"
         const val WORK_NAME = "haris-sync-command-drain"
+
+        /** Floor for a server retry hint — never re-drain in a hot loop. */
+        private const val MIN_RETRY_DELAY_MS = 1_000L
+
+        /**
+         * Ceiling for a server retry hint — a hint of hours must not silence
+         * the queue all day; the next enqueued command or connectivity window
+         * re-triggers the drain regardless.
+         */
+        private const val MAX_RETRY_DELAY_MS = 15 * 60 * 1000L
 
         /**
          * The standard drain request: runs only with connectivity, exponential
@@ -144,8 +186,53 @@ class SyncWorker @AssistedInject constructor(
          * @param policy KEEP for boot (never stack duplicates), APPEND_OR_REPLACE
          * after a fresh queue write (runs promptly even if a chain exists).
          */
-        fun schedule(workManager: androidx.work.WorkManager, policy: ExistingWorkPolicy) {
+        fun schedule(workManager: WorkManager, policy: ExistingWorkPolicy) {
             workManager.enqueueUniqueWork(WORK_NAME, policy, buildDrainRequest())
         }
+
+        /**
+         * Delayed re-drain honoring a [SyncResult.Retryable.retryAfter] hint.
+         * The delay is clamped to [MIN_RETRY_DELAY_MS]..[MAX_RETRY_DELAY_MS]:
+         * a zero/negative hint must not hot-loop the drain, and an
+         * over-long hint must not bury the queue badge for hours.
+         *
+         * APPEND_OR_REPLACE chains the delayed request behind any live drain
+         * instead of preempting it — FIFO ordering survives the pause.
+         */
+        fun schedule(workManager: WorkManager, policy: ExistingWorkPolicy, retryAfter: Duration) {
+            val delayMs = retryAfter.inWholeMilliseconds
+                .coerceIn(MIN_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS)
+            workManager.enqueueUniqueWork(
+                WORK_NAME,
+                policy,
+                OneTimeWorkRequestBuilder<SyncWorker>()
+                    .setConstraints(
+                        Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build(),
+                    )
+                    .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
+                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                    .build(),
+            )
+        }
     }
+}
+
+/**
+ * Worker-local summary of one drain pass — deliberately NOT part of the
+ * domain [SyncResult] taxonomy, which is per-command. The pass either ran to
+ * completion ([Drained]) or paused on the first transient rejection
+ * ([Paused], optionally carrying the server's retry hint).
+ */
+private sealed interface DrainOutcome {
+
+    /** The pass finished; [processedCommands] commands were accepted+deleted. */
+    data class Drained(val processedCommands: Int) : DrainOutcome
+
+    /** The pass stopped on a transient rejection at the failed command. */
+    data class Paused(
+        val reason: String,
+        val retryAfter: Duration? = null,
+    ) : DrainOutcome
 }
