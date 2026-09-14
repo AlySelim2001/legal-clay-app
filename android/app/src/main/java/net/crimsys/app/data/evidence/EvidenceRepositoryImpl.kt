@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.crimsys.app.core.Resource
@@ -23,6 +24,7 @@ import net.crimsys.app.core.evidence.ChainEventHasher
 import net.crimsys.app.data.local.EvidenceDao
 import net.crimsys.app.data.local.EvidenceEntity
 import net.crimsys.app.domain.evidence.ChainAction
+import net.crimsys.app.domain.evidence.ChainEvent
 import net.crimsys.app.domain.evidence.EvidenceRepository
 
 /**
@@ -261,6 +263,252 @@ class EvidenceRepositoryImpl @Inject constructor(
                 emit(
                     Resource.Error(
                         "تعذر تأمين الدليل وحفظ سلسلة حيازته.",
+                        t,
+                    ),
+                )
+            }
+        }.flowOn(Dispatchers.IO)
+
+    /**
+     * Stage 2 — OCR processing. The diagram is the contract:
+     *
+     * ```
+     * Original
+     *    │
+     *    └── OCR Processed
+     *            │
+     *            └── new hash
+     * ```
+     *
+     * | Diagram stage | Code | On failure |
+     * |---|---|---|
+     * | Original | [evidenceDao.findById] — the already-secured original row | `Resource.Error`, nothing written |
+     * | OCR Processed | fused SHA-256 + temp copy of the processed artifact → fsync → read-only → rename to `<id>.ocr.<ext>` | caught → `Resource.Error`, temp/final deleted |
+     * | new hash | stamped into `processedFileHash` AND bound into the `OCR_PROCESSED` event — one atomic UPDATE | caught → `Resource.Error`, files deleted |
+     *
+     * Custody invariants (same discipline as capture):
+     *  - the event links from the LIVE chain head (decoded from the row) and
+     *    binds the NEW hash, not the original's — the chain records which
+     *    content each action attests;
+     *  - the custody JSON is decoded BEFORE any byte is written — corrupt
+     *    custody blocks the append, it is never silently reset;
+     *  - a processed timestamp older than the chain head is rejected (the
+     *    chain's narrative must not contradict its order);
+     *  - exactly one processed derivative per evidence item — a second call
+     *    is refused rather than muddying the lineage;
+     *  - the stamp and the extended chain land in ONE UPDATE
+     *    ([EvidenceDao.updateProcessed]) — never half-committed.
+     */
+    override fun recordOcrProcessing(
+        evidenceId: String,
+        processedFile: File,
+    ): Flow<Resource<EvidenceEntity>> =
+        flow {
+
+            emit(Resource.Loading)
+
+            val original =
+                evidenceDao.findById(evidenceId)
+
+            if (original == null) {
+                emit(
+                    Resource.Error(
+                        "لم يتم العثور على الدليل الأصلي.",
+                    ),
+                )
+                return@flow
+            }
+
+            if (original.processedFileHash != null) {
+                emit(
+                    Resource.Error(
+                        "تمت معالجة هذا الدليل مسبقًا.",
+                    ),
+                )
+                return@flow
+            }
+
+            if (!processedFile.isFile || !processedFile.canRead()) {
+                emit(
+                    Resource.Error(
+                        "تعذر قراءة ملف المعالجة من مصدره.",
+                    ),
+                )
+                return@flow
+            }
+
+            val immutableDir =
+                File(
+                    context.filesDir,
+                    "evidence/immutable",
+                )
+
+            if (
+                !immutableDir.exists() &&
+                !immutableDir.mkdirs()
+            ) {
+                emit(
+                    Resource.Error(
+                        "تعذر إنشاء مساحة التخزين الآمنة للدليل.",
+                    ),
+                )
+                return@flow
+            }
+
+            val extension =
+                processedFile.extension
+                    .lowercase()
+                    .filter { it.isLetterOrDigit() }
+                    .take(12)
+
+            val finalName =
+                if (extension.isBlank()) {
+                    "${original.id}.ocr.bin"
+                } else {
+                    "${original.id}.ocr.$extension"
+                }
+
+            val finalFile =
+                File(
+                    immutableDir,
+                    finalName,
+                )
+
+            val tempFile =
+                File(
+                    immutableDir,
+                    "." + finalName + ".tmp",
+                )
+
+            try {
+
+                // Custody is decoded BEFORE any byte is written: a corrupt
+                // chain blocks the append instead of discovering the problem
+                // after the artifact is already on disk.
+                val chain =
+                    json.decodeFromString<List<ChainEvent>>(
+                        original.chainOfCustodyJson,
+                    )
+
+                val head =
+                    chain.lastOrNull()
+                        ?: throw IllegalStateException(
+                            "Empty custody chain.",
+                        )
+
+                val processedTimestamp =
+                    System.currentTimeMillis()
+
+                if (processedTimestamp < head.timestampEpochMillis) {
+                    throw IllegalStateException(
+                        "Chain timestamp regression.",
+                    )
+                }
+
+                val digest =
+                    MessageDigest.getInstance(
+                        "SHA-256",
+                    )
+
+                FileInputStream(processedFile).use { input ->
+
+                    BufferedInputStream(input).use { bufferedInput ->
+
+                        FileOutputStream(tempFile).use { output ->
+
+                            BufferedOutputStream(output).use {
+                                bufferedOutput ->
+
+                                val buffer =
+                                    ByteArray(64 * 1024)
+
+                                while (true) {
+
+                                    val read =
+                                        bufferedInput.read(
+                                            buffer,
+                                        )
+
+                                    if (read < 0) break
+
+                                    if (read == 0) continue
+
+                                    digest.update(
+                                        buffer,
+                                        0,
+                                        read,
+                                    )
+
+                                    bufferedOutput.write(
+                                        buffer,
+                                        0,
+                                        read,
+                                    )
+                                }
+
+                                bufferedOutput.flush()
+
+                                output.fd.sync()
+                            }
+                        }
+                    }
+                }
+
+                val processedHash =
+                    digest.digest()
+                        .joinToString("") {
+                            "%02x".format(it)
+                        }
+
+                if (!tempFile.setReadOnly()) {
+                    throw SecurityException(
+                        "Unable to mark processed evidence immutable.",
+                    )
+                }
+
+                if (!tempFile.renameTo(finalFile)) {
+                    throw java.io.IOException(
+                        "Processed evidence finalization failed.",
+                    )
+                }
+
+                val processedEvent =
+                    ChainEventHasher.create(
+                        action = ChainAction.OCR_PROCESSED,
+                        timestampEpochMillis =
+                            processedTimestamp,
+                        previousHash = head.currentHash,
+                        contentHash = processedHash,
+                    )
+
+                val updatedChain = chain + processedEvent
+
+                val updatedChainJson =
+                    json.encodeToString(updatedChain)
+
+                evidenceDao.updateProcessed(
+                    id = original.id,
+                    processedFileHash = processedHash,
+                    chainOfCustodyJson = updatedChainJson,
+                )
+
+                emit(
+                    Resource.Success(
+                        original.copy(
+                            processedFileHash = processedHash,
+                            chainOfCustodyJson = updatedChainJson,
+                        ),
+                    ),
+                )
+
+            } catch (t: Throwable) {
+
+                tempFile.delete()
+                finalFile.delete()
+
+                emit(
+                    Resource.Error(
+                        "تعذر توثيق المعالجة وحفظ بصمة الملف المعالج.",
                         t,
                     ),
                 )
