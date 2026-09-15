@@ -14,9 +14,12 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import java.time.Clock
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import net.crimsys.app.data.local.SyncCommandDao
+import net.crimsys.app.data.local.SyncCommandEntity
+import net.crimsys.app.data.local.toCommand
 import net.crimsys.app.domain.sync.SyncCommandExecutor
 import net.crimsys.app.domain.sync.SyncResult
 
@@ -32,24 +35,27 @@ import net.crimsys.app.domain.sync.SyncResult
  * request in CrimSysApplication covers a restart with a non-empty queue.
  *
  * Drain policy — one FIFO pass, per-command [SyncResult] outcomes:
- *  1. FIFO by row id (insertion order is the authority for ordering).
+ *  1. FIFO by [SyncCommandEntity.createdAtEpochMillis]; a row whose
+ *     [SyncCommandEntity.nextAttemptAtEpochMillis] is in the future is
+ *     SKIPPED (deferred, not abandoned — it becomes due automatically).
  *  2. [SyncResult.Accepted] — the remote write landed; the row is deleted
  *     and the drain continues.
- *  3. [SyncResult.Retryable] — a transient rejection (offline, no session,
- *     backend error) increments the attempt counter and STOPS the drain — a
- *     later command must never overtake a failed earlier one. A server
- *     [SyncResult.Retryable.retryAfter] hint schedules a delayed re-drain
- *     (capped; the next enqueued command or connectivity window re-triggers
- *     regardless).
+ *  3. [SyncResult.Retryable] — the attempt counter increments and the row's
+ *     [SyncCommandEntity.nextAttemptAtEpochMillis] is stamped on the SAME
+ *     UPDATE (durable across process death), then the drain STOPS — a later
+ *     command must never overtake a failed earlier one. A server
+ *     [SyncResult.Retryable.retryAfter] hint, when supplied, overrides the
+ *     backoff marker (clamped); the next enqueued command or connectivity
+ *     window re-triggers a drain regardless.
  *  4. [SyncResult.Conflict] — a newer remote row exists; a blind overwrite
  *     would destroy data, so the row is parked immediately for human
  *     inspection and the drain continues.
  *  5. [SyncResult.PermanentFailure] — the command can never succeed
  *     (corrupt row, unsupported schema version), so it must never consume
  *     another connectivity window: parked immediately, drain continues.
- *  6. A command whose attempt budget is exhausted is dead-lettered and the
- *     drain continues (no head-of-line blocking); the row is kept, never
- *     deleted.
+ *  6. A command whose attempt budget ([MAX_ATTEMPTS]) is exhausted is
+ *     dead-lettered and the drain continues (no head-of-line blocking); the
+ *     row is kept, never deleted.
  *
  * The worker always returns [Result.success] — the queue state IS the sync
  * state, and WorkManager's own retry machinery would only stack a second
@@ -64,6 +70,7 @@ class SyncWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val syncCommandDao: SyncCommandDao,
     private val executor: SyncCommandExecutor,
+    private val clock: Clock,
 ) : CoroutineWorker(app, params) {
 
     override suspend fun doWork(): Result {
@@ -86,11 +93,11 @@ class SyncWorker @AssistedInject constructor(
     private suspend fun drainOnce(): DrainOutcome {
         var processed = 0
 
-        for (entity in syncCommandDao.pendingInOrder()) {
+        for (entity in syncCommandDao.dueCommands(nowEpochMillis = clock.millis())) {
             // Poison-pill handling: exhausted budget → dead letter, keep the
             // row, keep draining the commands behind it.
-            if (entity.attemptCount >= entity.maxRetries) {
-                syncCommandDao.markDeadLetter(entity.id)
+            if (entity.attemptCount >= MAX_ATTEMPTS) {
+                syncCommandDao.markDeadLetter(entity.commandId, maxAttempts = MAX_ATTEMPTS)
                 Log.w(TAG, "Command ${entity.commandId} (${entity.type}) dead-lettered after ${entity.attemptCount} attempts")
                 continue
             }
@@ -98,30 +105,39 @@ class SyncWorker @AssistedInject constructor(
             val command = try {
                 entity.toCommand()
             } catch (t: IllegalArgumentException) {
-                null // unknown CommandType name — permanently broken row
+                null // unknown CommandType name or malformed UUID — permanently broken row
             } catch (t: java.time.format.DateTimeParseException) {
-                null // unparsable createdAt — permanently broken row
+                null // unparsable timestamps — permanently broken row
             }
             if (command == null) {
                 // Corrupt row — it will never decode, so it must never ride
-                // the queue again.
-                syncCommandDao.parkCorrupt(entity.id)
+                // the queue again. The breadcrumb stays non-legal and short.
+                syncCommandDao.parkCorrupt(entity.commandId, "undecodable command row")
                 Log.w(TAG, "Command ${entity.commandId} parked: corrupt row")
                 continue
             }
 
             when (val outcome = executor.execute(command)) {
                 is SyncResult.Accepted -> {
-                    syncCommandDao.deleteById(entity.id)
+                    syncCommandDao.deleteAccepted(entity.commandId)
                     processed++
                 }
 
                 is SyncResult.Retryable -> {
-                    // Transient rejection: keep order, stop the drain, retry
-                    // next window — honoring a server retry hint when one was
-                    // supplied.
-                    syncCommandDao.incrementAttempt(entity.id)
-                    Log.w(TAG, "Command ${entity.commandId} rejected transiently (attempt ${entity.attemptCount + 1}) — pausing drain")
+                    // Transient rejection: stamp the durable deferral marker
+                    // (server hint when present, clamped — else fixed backoff),
+                    // keep order, stop the drain.
+                    val delay = outcome.retryAfter?.let { clampRetryDelay(it) } ?: DEFAULT_RETRY_DELAY
+                    val nextAttemptAt = clock.millis() + delay.inWholeMilliseconds
+                    syncCommandDao.markAttemptFailed(
+                        commandId = entity.commandId,
+                        nextAttemptAtEpochMillis = nextAttemptAt,
+                        error = truncateBreadcrumb(outcome.reason),
+                    )
+                    Log.w(
+                        TAG,
+                        "Command ${entity.commandId} rejected transiently (attempt ${entity.attemptCount + 1}, next due in ${delay.inWholeMilliseconds} ms) — pausing drain",
+                    )
                     outcome.retryAfter?.let { retryAfter ->
                         schedule(
                             workManager = WorkManager.getInstance(applicationContext),
@@ -138,7 +154,10 @@ class SyncWorker @AssistedInject constructor(
                 is SyncResult.Conflict -> {
                     // A newer remote row exists — refuse the overwrite and
                     // park the row for human inspection; the drain continues.
-                    syncCommandDao.parkCorrupt(entity.id)
+                    syncCommandDao.parkCorrupt(
+                        entity.commandId,
+                        "remote conflict (remote version ${outcome.remoteVersion})",
+                    )
                     Log.w(
                         TAG,
                         "Command ${entity.commandId} parked: remote conflict (remote version ${outcome.remoteVersion})",
@@ -147,8 +166,12 @@ class SyncWorker @AssistedInject constructor(
 
                 is SyncResult.PermanentFailure -> {
                     // It can never succeed, so it must never consume another
-                    // connectivity window.
-                    syncCommandDao.parkCorrupt(entity.id)
+                    // connectivity window. Keep the transport's reason — it
+                    // never carries payload content by contract.
+                    syncCommandDao.parkCorrupt(
+                        entity.commandId,
+                        truncateBreadcrumb(outcome.reason),
+                    )
                     Log.w(TAG, "Command ${entity.commandId} parked: permanent failure")
                 }
             }
@@ -157,19 +180,41 @@ class SyncWorker @AssistedInject constructor(
         return DrainOutcome.Drained(processedCommands = processed)
     }
 
+    /** Clamp a server retry hint into the safe delay window. */
+    private fun clampRetryDelay(retryAfter: Duration): Duration =
+        retryAfter.coerceIn(MIN_RETRY_DELAY, MAX_RETRY_DELAY)
+
+    /**
+     * Breadcrumbs must never carry legal payload content into the database —
+     * cap length as a second line of defense behind the transport's own
+     * "no payload in reasons" contract.
+     */
+    private fun truncateBreadcrumb(reason: String): String =
+        reason.take(MAX_BREADCRUMB_LENGTH)
+
     companion object {
         const val TAG = "SyncWorker"
         const val WORK_NAME = "haris-sync-command-drain"
 
-        /** Floor for a server retry hint — never re-drain in a hot loop. */
-        private const val MIN_RETRY_DELAY_MS = 1_000L
-
         /**
-         * Ceiling for a server retry hint — a hint of hours must not silence
-         * the queue all day; the next enqueued command or connectivity window
-         * re-triggers the drain regardless.
+         * Attempt budget — was a per-row `maxRetries` column in the previous
+         * generation; the new entity carries no budget column, so the budget
+         * is a code constant. Requeueing a dead-lettered row resets the
+         * counter, giving it a fresh budget.
          */
-        private const val MAX_RETRY_DELAY_MS = 15 * 60 * 1000L
+        const val MAX_ATTEMPTS = 3
+
+        /** Fixed backoff when the transport supplies no retry hint. */
+        private val DEFAULT_RETRY_DELAY = Duration.parse("30s")
+
+        /** Floor for a server retry hint — never re-drain in a hot loop. */
+        private val MIN_RETRY_DELAY = Duration.parse("1s")
+
+        /** Ceiling for a server retry hint — never bury the queue all day. */
+        private val MAX_RETRY_DELAY = Duration.parse("15m")
+
+        /** Parked-row breadcrumb cap (chars). */
+        private const val MAX_BREADCRUMB_LENGTH = 200
 
         /**
          * The standard drain request: runs only with connectivity, exponential
@@ -196,7 +241,7 @@ class SyncWorker @AssistedInject constructor(
 
         /**
          * Delayed re-drain honoring a [SyncResult.Retryable.retryAfter] hint.
-         * The delay is clamped to [MIN_RETRY_DELAY_MS]..[MAX_RETRY_DELAY_MS]:
+         * The delay is clamped to [MIN_RETRY_DELAY]..[MAX_RETRY_DELAY]:
          * a zero/negative hint must not hot-loop the drain, and an
          * over-long hint must not bury the queue badge for hours.
          *
@@ -205,7 +250,7 @@ class SyncWorker @AssistedInject constructor(
          */
         fun schedule(workManager: WorkManager, policy: ExistingWorkPolicy, retryAfter: Duration) {
             val delayMs = retryAfter.inWholeMilliseconds
-                .coerceIn(MIN_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS)
+                .coerceIn(MIN_RETRY_DELAY.inWholeMilliseconds, MAX_RETRY_DELAY.inWholeMilliseconds)
             workManager.enqueueUniqueWork(
                 WORK_NAME,
                 policy,

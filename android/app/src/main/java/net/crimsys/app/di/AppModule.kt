@@ -77,6 +77,7 @@ object AppModule {
                 CrimSysDatabase.MIGRATION_3_4,
                 CrimSysDatabase.MIGRATION_4_5,
                 CrimSysDatabase.MIGRATION_5_6,
+                CrimSysDatabase.MIGRATION_6_7,
             )
             .build()
     }

@@ -1,18 +1,19 @@
 package net.crimsys.app.data.local
 
+import java.time.Instant
 import java.util.UUID
 import net.crimsys.app.domain.sync.CommandType
 import net.crimsys.app.domain.sync.SyncCommand
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
-import java.time.Instant
 
 /**
- * Round-trip coverage for the flat command ↔ entity mappers. The old JSON
- * envelope codec is gone — [SyncCommandEntity] IS the storage form now, so
- * these tests pin the field mapping, the attemptCount symmetry, and the
- * loud failure on a legacy/foreign enum value (the closed-vocabulary rule).
+ * Round-trip coverage for the command ↔ row extensions. The adopted entity
+ * is a pure data shape; the mapping lives in [SyncCommandEntityMappers.kt],
+ * and these tests pin the field mapping, lifecycle defaults, and the loud
+ * failure on a legacy/foreign enum value (the closed-vocabulary rule).
  */
 class SyncCommandEntityTest {
 
@@ -30,33 +31,50 @@ class SyncCommandEntityTest {
             attemptCount = attemptCount,
         )
 
+    private fun entity(command: SyncCommand = command()): SyncCommandEntity =
+        SyncCommandEntity(
+            commandId = command.commandId.toString(),
+            schemaVersion = command.schemaVersion,
+            aggregateId = command.aggregateId.toString(),
+            type = command.type.name,
+            payloadJson = command.payloadJson,
+            createdAtEpochMillis = command.createdAt.toEpochMilli(),
+            attemptCount = command.attemptCount,
+            nextAttemptAtEpochMillis = null,
+            status = SyncCommandStatus.PENDING,
+            lastError = null,
+        )
+
     @Test
     fun `round-trips through the flat row`() {
         val original = command()
-        val decoded = SyncCommandEntity.fromCommand(original).toCommand()
-        assertEquals(original, decoded)
+        assertEquals(original, entity(original).toCommand())
     }
 
     @Test
     fun `attemptCount survives persistence and re-persisting`() {
         val attempted = command(attemptCount = 2)
-        val entity = SyncCommandEntity.fromCommand(attempted)
-        assertEquals(2, entity.attemptCount)
-        assertEquals(attempted, entity.toCommand())
+        assertEquals(attempted, entity(attempted).toCommand())
     }
 
     @Test
-    fun `defaults a fresh row to PENDING with full retry budget`() {
-        val entity = SyncCommandEntity.fromCommand(command())
-        assertEquals(SyncCommandStatus.PENDING, entity.status)
-        assertEquals(0, entity.attemptCount)
-        assertEquals(3, entity.maxRetries)
+    fun `fresh mapping defers to the queue with due-now null marker and clean status`() {
+        val row = command().toEntity()
+        assertNull(row.nextAttemptAtEpochMillis)
+        assertEquals(SyncCommandStatus.PENDING, row.status)
+        assertNull(row.lastError)
+    }
+
+    @Test
+    fun `commandId is the row identity`() {
+        val row = entity()
+        assertEquals(row.commandId, row.toCommand().commandId.toString())
     }
 
     @Test
     fun `unknown CommandType name fails loudly instead of mis-routing`() {
-        val entity = SyncCommandEntity.fromCommand(command(type = CommandType.CREATE_CASE))
+        val row = entity(command(type = CommandType.CREATE_CASE))
             .copy(type = "NOT_A_REAL_TYPE")
-        assertThrows(IllegalArgumentException::class.java) { entity.toCommand() }
+        assertThrows(IllegalArgumentException::class.java) { row.toCommand() }
     }
 }

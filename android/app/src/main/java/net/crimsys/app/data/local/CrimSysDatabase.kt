@@ -23,7 +23,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         EvidenceEntity::class,
         SyncCommandEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class CrimSysDatabase : RoomDatabase() {
@@ -279,6 +279,65 @@ abstract class CrimSysDatabase : RoomDatabase() {
                     db.execSQL(
                         "CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_commands_commandId` " +
                             "ON `sync_commands` (`commandId`)",
+                    )
+                }
+            }
+
+        /**
+         * Sync-command queue reshape (v6 → v7), zero data loss: the queue row
+         * becomes command-keyed and self-scheduling.
+         *
+         *  - `commandId` moves from a UNIQUE column to the PRIMARY KEY — the
+         *    autoincrement ordinal was device-local bookkeeping; the command
+         *    UUID is the real identity.
+         *  - `createdAtEpochMs` → `createdAtEpochMillis` (renamed, value kept)
+         *    — the FIFO order authority is now a (status, createdAt) index.
+         *  - `nextAttemptAtEpochMillis` added, NULL default — per-row durable
+         *    retry deferral; NULL means "due now".
+         *  - `lastError` added, NULL default — short inspection breadcrumb.
+         *  - `maxRetries` dropped — the attempt budget is now a code constant
+         *    in [net.crimsys.app.data.sync.SyncWorker].
+         *  - `attemptCount` and `status` preserved for every row; `PENDING`
+         *    rows drain exactly as before, `DEAD` rows stay inspectable.
+         *
+         * Room cannot ALTER a primary key or rename a column in one step on
+         * older SQLite, so the table is rebuilt in place and every row is
+         * copied across — no queued mutation is lost.
+         */
+        val MIGRATION_6_7: Migration =
+            object : Migration(6, 7) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `sync_commands_new` (" +
+                            "`commandId` TEXT NOT NULL PRIMARY KEY, " +
+                            "`schemaVersion` INTEGER NOT NULL, " +
+                            "`aggregateId` TEXT NOT NULL, " +
+                            "`type` TEXT NOT NULL, " +
+                            "`payloadJson` TEXT NOT NULL, " +
+                            "`createdAtEpochMillis` INTEGER NOT NULL, " +
+                            "`attemptCount` INTEGER NOT NULL, " +
+                            "`nextAttemptAtEpochMillis` INTEGER, " +
+                            "`status` TEXT NOT NULL, " +
+                            "`lastError` TEXT)",
+                    )
+                    // Preserve every row: keep identity, schema stamp, payload,
+                    // creation time, attempt counter, and lifecycle status.
+                    // Deferred rows (none exist in v6) would map to NULL = due.
+                    db.execSQL(
+                        "INSERT INTO `sync_commands_new` " +
+                            "(`commandId`, `schemaVersion`, `aggregateId`, `type`, `payloadJson`, `createdAtEpochMillis`, `attemptCount`, `nextAttemptAtEpochMillis`, `status`, `lastError`) " +
+                            "SELECT `commandId`, `schemaVersion`, `aggregateId`, `type`, `payloadJson`, `createdAtEpochMs`, `attemptCount`, NULL, `status`, NULL " +
+                            "FROM `sync_commands`",
+                    )
+                    db.execSQL("DROP TABLE `sync_commands`")
+                    db.execSQL("ALTER TABLE `sync_commands_new` RENAME TO `sync_commands`")
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_sync_commands_status_createdAtEpochMillis` " +
+                            "ON `sync_commands` (`status`, `createdAtEpochMillis`)",
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_sync_commands_aggregateId` " +
+                            "ON `sync_commands` (`aggregateId`)",
                     )
                 }
             }
