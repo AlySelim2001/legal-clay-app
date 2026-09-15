@@ -6,13 +6,14 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * Encrypted local database (SQLCipher via SupportFactory — see AppModule).
- * Schema JSONs are exported to app/schemas for migration tests.
+ * Encrypted local database (SQLCipher via SupportOpenHelperFactory — see
+ * AppModule). Schema JSONs are exported to app/schemas for migration tests.
  *
  * NEVER enable `fallbackToDestructiveMigration` on this database: it holds
  * the practice's only local copy of case files, and the DB is deliberately
  * excluded from Android cloud backup. A failed migration must fail loudly,
- * not wipe evidence.
+ * not wipe evidence. Schema evolution goes exclusively through explicit
+ * `CrimSysDatabase.MIGRATION_x_y` objects.
  */
 @Database(
     entities = [
@@ -23,18 +24,25 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         EvidenceEntity::class,
         SyncCommandEntity::class,
     ],
-    version = 7,
+    version = 4,
     exportSchema = true,
 )
 abstract class CrimSysDatabase : RoomDatabase() {
+
     abstract fun caseDao(): CaseDao
+
     abstract fun hearingDao(): HearingDao
+
     abstract fun offlineActionDao(): OfflineActionDao
+
     abstract fun legalSourceDao(): LegalSourceDao
+
     abstract fun evidenceDao(): EvidenceDao
+
     abstract fun syncCommandDao(): SyncCommandDao
 
     companion object {
+
         /**
          * R2 remediation (v1 → v2), zero data loss:
          *  - `ALTER TABLE ... ADD COLUMN actionUuid TEXT NOT NULL DEFAULT ''`.
@@ -45,8 +53,8 @@ abstract class CrimSysDatabase : RoomDatabase() {
          *  - Existing rows (queued offline mutations) are preserved untouched:
          *    no table rebuild, no data loss. A DISTINCT uuid is assigned to
          *    each legacy row before the next drain (see SyncManager's repair
-         *    loop + [OfflineActionDao.legacyKeyed]/[OfflineActionDao.assignUuid])
-         *    so two legacy rows can never share one Firestore document id.
+         *    loop + [OfflineActionDao.assignUuid]) so two legacy rows can
+         *    never share one Firestore document id.
          */
         val MIGRATION_1_2: Migration =
             object : Migration(1, 2) {
@@ -85,260 +93,130 @@ abstract class CrimSysDatabase : RoomDatabase() {
             }
 
         /**
-         * HarisCore slice (v3 → v4): legal_sources, evidence_items,
-         * evidence_chain_events, sync_commands.
+         * HarisCore slice (v3 → v4), zero data loss: creates the three Haris
+         * tables — the authoritative legal-source registry, the single-table
+         * evidence store with embedded chain of custody, and the command-keyed
+         * sync queue — in their current production shapes.
          *
-         * [MIGRATION_4_5] below REPLACES the two evidence tables with the
-         * redesigned single-table `evidence` store — v4 evidence rows are
-         * unrecoverable from their new shape (the v4 store recorded bare
-         * digests with no file bytes or storage path, so a faithful custody
-         * reconstruction is impossible). See the migration's KDoc for the
-         * deliberate data decision and the reason this stays fail-loud.
+         * Every statement is CREATE ... IF NOT EXISTS; the existing v3 tables
+         * (`cases`, `hearings`, `offline_actions`) are untouched, so a v3
+         * install upgrades in place with no destructive step (project rule:
+         * no destructive migration, ever).
          */
-        val MIGRATION_3_4: Migration =
+        val MIGRATION_3_4 =
             object : Migration(3, 4) {
-                override fun migrate(db: SupportSQLiteDatabase) {
-                    // Legal-source registry (citation verification): a
-                    // TEMPORALLY VERSIONED store — one article may carry many
-                    // verified rows (amendments/replacements), each with its
-                    // own validity window (epoch days) and source digest.
-                    // Two non-unique indices back the exact-match lookups.
+
+                override fun migrate(
+                    db: SupportSQLiteDatabase,
+                ) {
+
                     db.execSQL(
-                        "CREATE TABLE IF NOT EXISTS `legal_sources` (" +
-                            "`id` TEXT NOT NULL PRIMARY KEY, " +
-                            "`lawNumber` TEXT NOT NULL, " +
-                            "`lawName` TEXT NOT NULL, " +
-                            "`article` TEXT NOT NULL, " +
-                            "`paragraph` TEXT, " +
-                            "`effectiveFromEpochDay` INTEGER NOT NULL, " +
-                            "`effectiveToEpochDay` INTEGER, " +
-                            "`sourceSha256` TEXT NOT NULL, " +
-                            "`officialSourceUrl` TEXT NOT NULL, " +
-                            "`gazetteIssue` TEXT, " +
-                            "`verified` INTEGER NOT NULL)",
-                    )
-                    db.execSQL(
-                        "CREATE INDEX IF NOT EXISTS " +
-                            "`index_legal_sources_lawName_article_paragraph` " +
-                            "ON `legal_sources` (`lawName`, `article`, `paragraph`)",
-                    )
-                    db.execSQL(
-                        "CREATE INDEX IF NOT EXISTS " +
-                            "`index_legal_sources_lawNumber_article_paragraph` " +
-                            "ON `legal_sources` (`lawNumber`, `article`, `paragraph`)",
+                        """
+                        CREATE TABLE IF NOT EXISTS legal_sources (
+                            id TEXT NOT NULL PRIMARY KEY,
+                            lawNumber TEXT NOT NULL,
+                            lawName TEXT NOT NULL,
+                            article TEXT NOT NULL,
+                            paragraph TEXT,
+                            effectiveFromEpochDay INTEGER NOT NULL,
+                            effectiveToEpochDay INTEGER,
+                            sourceSha256 TEXT NOT NULL,
+                            officialSourceUrl TEXT NOT NULL,
+                            gazetteIssue TEXT,
+                            verified INTEGER NOT NULL
+                        )
+                        """.trimIndent(),
                     )
 
-                    // Evidence items + hash-linked chain of custody.
-                    // (Superseded by the v4 → v5 redesign below; kept here so
-                    // a v3 install can reach v4 and then upgrade onward.)
                     db.execSQL(
-                        "CREATE TABLE IF NOT EXISTS `evidence_items` (" +
-                            "`id` TEXT NOT NULL PRIMARY KEY, " +
-                            "`label` TEXT NOT NULL, " +
-                            "`sha256Hex` TEXT NOT NULL, " +
-                            "`chainHeadHash` TEXT NOT NULL, " +
-                            "`eventCount` INTEGER NOT NULL, " +
-                            "`contentUri` TEXT, " +
-                            "`isSynced` INTEGER NOT NULL, " +
-                            "`capturedAtEpochMs` INTEGER NOT NULL, " +
-                            "`createdAt` INTEGER NOT NULL, " +
-                            "`updatedAt` INTEGER NOT NULL)",
-                    )
-                    db.execSQL(
-                        "CREATE INDEX IF NOT EXISTS `index_evidence_items_sha256Hex` " +
-                            "ON `evidence_items` (`sha256Hex`)",
-                    )
-                    db.execSQL(
-                        "CREATE TABLE IF NOT EXISTS `evidence_chain_events` (" +
-                            "`id` TEXT NOT NULL PRIMARY KEY, " +
-                            "`evidenceId` TEXT NOT NULL, " +
-                            "`action` TEXT NOT NULL, " +
-                            "`occurredAtEpochMs` INTEGER NOT NULL, " +
-                            "`contentHash` TEXT NOT NULL, " +
-                            "`eventHash` TEXT NOT NULL, " +
-                            "`previousEventHash` TEXT NOT NULL)",
-                    )
-                    db.execSQL(
-                        "CREATE INDEX IF NOT EXISTS `index_evidence_chain_events_evidenceId` " +
-                            "ON `evidence_chain_events` (`evidenceId`)",
+                        """
+                        CREATE INDEX IF NOT EXISTS
+                        index_legal_sources_lawName_article_paragraph
+                        ON legal_sources(
+                            lawName,
+                            article,
+                            paragraph
+                        )
+                        """.trimIndent(),
                     )
 
-                    // Haris sync-command queue (same lifecycle as offline_actions).
-                    // (v4 DDL kept as the historical upgrade path — the v4 → v6
-                    // reshape below rebuilds this table with the CQRS column set.)
                     db.execSQL(
-                        "CREATE TABLE IF NOT EXISTS `sync_commands` (" +
-                            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                            "`uuid` TEXT NOT NULL, " +
-                            "`type` TEXT NOT NULL, " +
-                            "`payloadJson` TEXT NOT NULL, " +
-                            "`retryCount` INTEGER NOT NULL, " +
-                            "`maxRetries` INTEGER NOT NULL, " +
-                            "`status` TEXT NOT NULL, " +
-                            "`createdAtEpochMs` INTEGER NOT NULL)",
+                        """
+                        CREATE INDEX IF NOT EXISTS
+                        index_legal_sources_lawNumber_article_paragraph
+                        ON legal_sources(
+                            lawNumber,
+                            article,
+                            paragraph
+                        )
+                        """.trimIndent(),
                     )
-                    db.execSQL(
-                        "CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_commands_uuid` " +
-                            "ON `sync_commands` (`uuid`)",
-                    )
-                }
-            }
 
-        /**
-         * Evidence redesign (v4 → v5): the two-table evidence store
-         * (`evidence_items` + `evidence_chain_events`) is replaced by the
-         * single `evidence` table — chain of custody embedded as a JSON
-         * column, storage path, case linkage, and a UNIQUE original-file
-         * hash for dedup.
-         *
-         * Deliberate data decision: v4 evidence rows cannot be faithfully
-         * reconstructed into the new shape. The v4 store persisted only bare
-         * SHA-256 digests — no file bytes, no storage path, no case linkage,
-         * no mime type — so the new NOT NULL columns would have to be filled
-         * with invented values, and an evidence record with fabricated
-         * provenance is worse than a loud failure. A v3→v4→v5 upgrade path
-         * therefore preserves cases/hearings/queues and FAILS on open with a
-         * clear IllegalStateException instead of silently substituting fake
-         * custody data. Field devices in that state need the SQLCipher file
-         * preserved for forensic extraction before upgrading.
-         */
-        val MIGRATION_4_5: Migration =
-            object : Migration(4, 5) {
-                override fun migrate(db: SupportSQLiteDatabase) {
-                    db.execSQL("DROP TABLE IF EXISTS `evidence_chain_events`")
-                    db.execSQL("DROP TABLE IF EXISTS `evidence_items`")
                     db.execSQL(
-                        "CREATE TABLE IF NOT EXISTS `evidence` (" +
-                            "`id` TEXT NOT NULL PRIMARY KEY, " +
-                            "`caseId` TEXT NOT NULL, " +
-                            "`originalFileHash` TEXT NOT NULL, " +
-                            "`processedFileHash` TEXT, " +
-                            "`mimeType` TEXT NOT NULL, " +
-                            "`captureTimestamp` INTEGER NOT NULL, " +
-                            "`chainOfCustodyJson` TEXT NOT NULL, " +
-                            "`immutableRelativePath` TEXT NOT NULL)",
+                        """
+                        CREATE TABLE IF NOT EXISTS evidence (
+                            id TEXT NOT NULL PRIMARY KEY,
+                            caseId TEXT NOT NULL,
+                            originalFileHash TEXT NOT NULL,
+                            processedFileHash TEXT,
+                            mimeType TEXT NOT NULL,
+                            captureTimestamp INTEGER NOT NULL,
+                            chainOfCustodyJson TEXT NOT NULL,
+                            immutableRelativePath TEXT NOT NULL
+                        )
+                        """.trimIndent(),
                     )
-                    db.execSQL(
-                        "CREATE INDEX IF NOT EXISTS `index_evidence_caseId` " +
-                            "ON `evidence` (`caseId`)",
-                    )
-                    db.execSQL(
-                        "CREATE UNIQUE INDEX IF NOT EXISTS `index_evidence_originalFileHash` " +
-                            "ON `evidence` (`originalFileHash`)",
-                    )
-                }
-            }
 
-        /**
-         * Sync-command queue reshape (v5 → v6), zero data loss: the queued
-         * [net.crimsys.app.domain.sync.SyncCommand] model moved from a
-         * free-form `type` string + JSON envelope to a closed [CommandType]
-         * enum with CQRS identity (commandId/aggregateId, schemaVersion,
-         * attemptCount). The table is rebuilt in place:
-         *
-         *  - columns are renamed, not dropped: `uuid` → `commandId`,
-         *    `retryCount` → `attemptCount` — every queued mutation survives.
-         *  - `schemaVersion` defaults to 1 (the version this transport speaks)
-         *    and `aggregateId` to the legacy sentinel `''`.
-         *  - the UNIQUE index moves from `uuid` to `commandId` — same
-         *    identity guarantee, new column name.
-         *  - legacy rows keep `PENDING`/`DEAD` status untouched: `PENDING`
-         *    rows drain exactly as before, `DEAD` rows stay inspectable.
-         *
-         * Legacy payload columns carry no digest anymore; integrity at the
-         * transport is enforced by remote document identity — commandId is
-         * the Firestore document key, so a replayed command overwrites its
-         * own doc instead of creating a second mutation (see
-         * FirebaseSyncCommandExecutor).
-         */
-        val MIGRATION_5_6: Migration =
-            object : Migration(5, 6) {
-                override fun migrate(db: SupportSQLiteDatabase) {
                     db.execSQL(
-                        "CREATE TABLE IF NOT EXISTS `sync_commands_new` (" +
-                            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                            "`commandId` TEXT NOT NULL, " +
-                            "`schemaVersion` INTEGER NOT NULL, " +
-                            "`aggregateId` TEXT NOT NULL, " +
-                            "`type` TEXT NOT NULL, " +
-                            "`payloadJson` TEXT NOT NULL, " +
-                            "`createdAtEpochMs` INTEGER NOT NULL, " +
-                            "`attemptCount` INTEGER NOT NULL, " +
-                            "`maxRetries` INTEGER NOT NULL, " +
-                            "`status` TEXT NOT NULL)",
+                        """
+                        CREATE UNIQUE INDEX IF NOT EXISTS
+                        index_evidence_originalFileHash
+                        ON evidence(originalFileHash)
+                        """.trimIndent(),
                     )
-                    // Preserve every row: rename the identity column, default
-                    // the new schema fields, keep the attempt counter.
-                    db.execSQL(
-                        "INSERT INTO `sync_commands_new` " +
-                            "(`id`, `commandId`, `schemaVersion`, `aggregateId`, `type`, `payloadJson`, `createdAtEpochMs`, `attemptCount`, `maxRetries`, `status`) " +
-                            "SELECT `id`, `uuid`, 1, '', `type`, `payloadJson`, `createdAtEpochMs`, `retryCount`, `maxRetries`, `status` " +
-                            "FROM `sync_commands`",
-                    )
-                    db.execSQL("DROP TABLE `sync_commands`")
-                    db.execSQL("ALTER TABLE `sync_commands_new` RENAME TO `sync_commands`")
-                    db.execSQL(
-                        "CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_commands_commandId` " +
-                            "ON `sync_commands` (`commandId`)",
-                    )
-                }
-            }
 
-        /**
-         * Sync-command queue reshape (v6 → v7), zero data loss: the queue row
-         * becomes command-keyed and self-scheduling.
-         *
-         *  - `commandId` moves from a UNIQUE column to the PRIMARY KEY — the
-         *    autoincrement ordinal was device-local bookkeeping; the command
-         *    UUID is the real identity.
-         *  - `createdAtEpochMs` → `createdAtEpochMillis` (renamed, value kept)
-         *    — the FIFO order authority is now a (status, createdAt) index.
-         *  - `nextAttemptAtEpochMillis` added, NULL default — per-row durable
-         *    retry deferral; NULL means "due now".
-         *  - `lastError` added, NULL default — short inspection breadcrumb.
-         *  - `maxRetries` dropped — the attempt budget is now a code constant
-         *    in [net.crimsys.app.data.sync.SyncWorker].
-         *  - `attemptCount` and `status` preserved for every row; `PENDING`
-         *    rows drain exactly as before, `DEAD` rows stay inspectable.
-         *
-         * Room cannot ALTER a primary key or rename a column in one step on
-         * older SQLite, so the table is rebuilt in place and every row is
-         * copied across — no queued mutation is lost.
-         */
-        val MIGRATION_6_7: Migration =
-            object : Migration(6, 7) {
-                override fun migrate(db: SupportSQLiteDatabase) {
                     db.execSQL(
-                        "CREATE TABLE IF NOT EXISTS `sync_commands_new` (" +
-                            "`commandId` TEXT NOT NULL PRIMARY KEY, " +
-                            "`schemaVersion` INTEGER NOT NULL, " +
-                            "`aggregateId` TEXT NOT NULL, " +
-                            "`type` TEXT NOT NULL, " +
-                            "`payloadJson` TEXT NOT NULL, " +
-                            "`createdAtEpochMillis` INTEGER NOT NULL, " +
-                            "`attemptCount` INTEGER NOT NULL, " +
-                            "`nextAttemptAtEpochMillis` INTEGER, " +
-                            "`status` TEXT NOT NULL, " +
-                            "`lastError` TEXT)",
+                        """
+                        CREATE INDEX IF NOT EXISTS
+                        index_evidence_caseId
+                        ON evidence(caseId)
+                        """.trimIndent(),
                     )
-                    // Preserve every row: keep identity, schema stamp, payload,
-                    // creation time, attempt counter, and lifecycle status.
-                    // Deferred rows (none exist in v6) would map to NULL = due.
+
                     db.execSQL(
-                        "INSERT INTO `sync_commands_new` " +
-                            "(`commandId`, `schemaVersion`, `aggregateId`, `type`, `payloadJson`, `createdAtEpochMillis`, `attemptCount`, `nextAttemptAtEpochMillis`, `status`, `lastError`) " +
-                            "SELECT `commandId`, `schemaVersion`, `aggregateId`, `type`, `payloadJson`, `createdAtEpochMs`, `attemptCount`, NULL, `status`, NULL " +
-                            "FROM `sync_commands`",
+                        """
+                        CREATE TABLE IF NOT EXISTS sync_commands (
+                            commandId TEXT NOT NULL PRIMARY KEY,
+                            schemaVersion INTEGER NOT NULL,
+                            aggregateId TEXT NOT NULL,
+                            type TEXT NOT NULL,
+                            payloadJson TEXT NOT NULL,
+                            createdAtEpochMillis INTEGER NOT NULL,
+                            attemptCount INTEGER NOT NULL,
+                            nextAttemptAtEpochMillis INTEGER,
+                            status TEXT NOT NULL,
+                            lastError TEXT
+                        )
+                        """.trimIndent(),
                     )
-                    db.execSQL("DROP TABLE `sync_commands`")
-                    db.execSQL("ALTER TABLE `sync_commands_new` RENAME TO `sync_commands`")
+
                     db.execSQL(
-                        "CREATE INDEX IF NOT EXISTS `index_sync_commands_status_createdAtEpochMillis` " +
-                            "ON `sync_commands` (`status`, `createdAtEpochMillis`)",
+                        """
+                        CREATE INDEX IF NOT EXISTS
+                        index_sync_commands_status_createdAtEpochMillis
+                        ON sync_commands(
+                            status,
+                            createdAtEpochMillis
+                        )
+                        """.trimIndent(),
                     )
+
                     db.execSQL(
-                        "CREATE INDEX IF NOT EXISTS `index_sync_commands_aggregateId` " +
-                            "ON `sync_commands` (`aggregateId`)",
+                        """
+                        CREATE INDEX IF NOT EXISTS
+                        index_sync_commands_aggregateId
+                        ON sync_commands(aggregateId)
+                        """.trimIndent(),
                     )
                 }
             }
