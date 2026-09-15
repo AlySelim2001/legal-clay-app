@@ -1,300 +1,299 @@
 package net.crimsys.app.data.sync
 
 import android.content.Context
-import android.util.Log
 import androidx.hilt.work.HiltWorker
-import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import java.time.Clock
+import java.time.Instant
+import java.util.UUID
 import java.util.concurrent.TimeUnit
-import kotlin.time.Duration
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.math.min
+import kotlin.random.Random
 import net.crimsys.app.data.local.SyncCommandDao
 import net.crimsys.app.data.local.SyncCommandEntity
-import net.crimsys.app.data.local.toCommand
+import net.crimsys.app.domain.sync.CommandType
+import net.crimsys.app.domain.sync.SyncCommand
 import net.crimsys.app.domain.sync.SyncCommandExecutor
 import net.crimsys.app.domain.sync.SyncResult
 
 /**
- * Drains the Haris sync-command queue (case creation, memo updates, hearing
- * records, evidence registration) to the backend via
- * [SyncCommandExecutor].
+ * Drains the Haris sync-command queue: pop-one-at-a-time FIFO with
+ * exponential backoff + jitter, durable per-row deferral, and a dead-letter
+ * path. Scheduling is owned by [SyncWorkScheduler] (boot/on-write KEEP) and
+ * [scheduleSelf] (post-failure delayed REPLACE).
  *
- * Scheduling model: repositories enqueue an expedited one-time request with a
- * CONNECTED constraint after every queued write, so no connectivity check of
- * our own is needed — WorkManager holds the request while offline. Requests
- * survive process death (WorkManager persists them), and a boot-time KEEP
- * request in CrimSysApplication covers a restart with a non-empty queue.
- *
- * Drain model: POP-ONE-AT-A-TIME. Each iteration takes the single oldest
- * ready command ([SyncCommandDao.nextReady]), dispatches it, and applies the
- * per-command outcome to exactly that row. Ordering is FIFO by
- * [SyncCommandEntity.createdAtEpochMillis] with `commandId` as a total-order
- * tiebreaker — the queue can never observe two commands with equal creation
- * timestamps in an unstable order.
- *
- * Per-command outcome policy ([SyncResult] → row transition):
- *  1. [SyncResult.Accepted] — the remote write landed; the row is deleted
- *     and the loop continues.
- *  2. [SyncResult.Retryable] — the attempt counter increments and the row's
- *     [SyncCommandEntity.nextAttemptAtEpochMillis] is stamped on the SAME
- *     UPDATE ([SyncCommandDao.recordRetry], durable across process death);
- *     the loop STOPS — a later command must never overtake a failed earlier
- *     one. A server [SyncResult.Retryable.retryAfter] hint, when supplied,
- *     overrides the fixed backoff (clamped to 1s..15m); the next enqueued
- *     command or connectivity window re-triggers a drain regardless.
- *  3. [SyncResult.Conflict] — a newer remote row exists; a blind overwrite
- *     would destroy data, so the row is parked under the dedicated
- *     'CONFLICT' status ([SyncCommandDao.markConflict]) — distinct from
- *     'DEAD' so inspection can prioritize split-brain rows — and the loop
- *     continues.
- *  4. [SyncResult.PermanentFailure] — the command can never succeed
- *     (corrupt row, permission denied), so it must never consume another
- *     connectivity window: parked as 'DEAD' immediately, loop continues.
- *  5. A command whose attempt budget ([MAX_ATTEMPTS]) is exhausted is
- *     dead-lettered before any dispatch (poison-pill protection; the row is
- *     kept, never deleted) and the loop continues.
- *  6. A row that fails to decode (foreign CommandType name, malformed UUID)
- *     is parked as 'DEAD' — it can never be routed, so it must never block
- *     the head of the queue.
- *
- * The worker always returns [Result.success] — the queue state IS the sync
- * state, and WorkManager's own retry machinery would only stack a second
- * retry policy on top of the queue's. Re-drains are triggered by the next
- * enqueued command, the next connectivity change (a fresh CONNECTED request),
- * a [SyncResult.Retryable.retryAfter] hint, or the next drain window.
+ * Backoff model ([computeNextAttempt]): a transport [SyncResult.Retryable.retryAfter]
+ * hint, when present, is the base delay (floor 0 — bounded by [MAX_ATTEMPTS],
+ * which dead-letters a permanently hint-broken row within 8 cycles);
+ * otherwise exponential 10s × 2^attempt capped at 15 minutes. Jitter is up
+ * to 20% of the base (capped at 30s) so concurrent devices never drain in
+ * lockstep.
  */
 @HiltWorker
 class SyncWorker @AssistedInject constructor(
     @Assisted appContext: Context,
-    @Assisted params: WorkerParameters,
-    private val syncCommandDao: SyncCommandDao,
+    @Assisted workerParams: WorkerParameters,
+    private val commandDao: SyncCommandDao,
     private val executor: SyncCommandExecutor,
-    private val clock: Clock,
-) : CoroutineWorker(app, params) {
+) : CoroutineWorker(
+    appContext,
+    workerParams,
+) {
 
     override suspend fun doWork(): Result {
-        return when (val outcome = drainOnce()) {
-            is DrainOutcome.Drained -> Result.success()
-            is DrainOutcome.Paused -> {
-                // Transient pause decisions are already persisted; nothing
-                // here should fail the worker itself.
-                Log.w(TAG, "Drain paused: ${outcome.reason}")
-                Result.success()
-            }
-        }
-    }
 
-    /**
-     * Repeatedly pops the single oldest ready command and applies its
-     * outcome. Returns a [DrainOutcome] describing the pass — the worker's
-     * own summary; per-command outcomes are the [SyncResult] taxonomy
-     * reported by [executor].
-     */
-    private suspend fun drainOnce(): DrainOutcome {
-        var processed = 0
+        while (!isStopped) {
 
-        while (true) {
-            val now = clock.millis()
+            val entity =
+                commandDao.nextReady(
+                    System.currentTimeMillis(),
+                ) ?: return Result.success()
 
-            // Pop exactly one ready command; an empty queue ends the pass.
-            val entity = syncCommandDao.nextReady(now) ?: break
+            if (
+                entity.attemptCount >= MAX_ATTEMPTS
+            ) {
 
-            // Poison-pill handling: exhausted budget → dead letter, keep the
-            // row, keep popping the commands behind it.
-            if (entity.attemptCount >= MAX_ATTEMPTS) {
-                syncCommandDao.markDead(entity.commandId, "attempt budget exhausted")
-                Log.w(TAG, "Command ${entity.commandId} (${entity.type}) dead-lettered after ${entity.attemptCount} attempts")
+                commandDao.markDead(
+                    commandId = entity.commandId,
+                    error = "MAX_ATTEMPTS_EXCEEDED",
+                )
+
                 continue
             }
 
-            val command = try {
-                entity.toCommand()
-            } catch (t: IllegalArgumentException) {
-                null // unknown CommandType name or malformed UUID — permanently broken row
-            } catch (t: java.time.format.DateTimeParseException) {
-                null // unparsable timestamps — permanently broken row
-            }
-            if (command == null) {
-                // Corrupt row — it will never decode, so it must never ride
-                // the queue again. The breadcrumb stays non-legal and short.
-                syncCommandDao.markDead(entity.commandId, "undecodable command row")
-                Log.w(TAG, "Command ${entity.commandId} parked: corrupt row")
-                continue
-            }
+            /*
+             * Decode guard: a row written by an older generation (free-form
+             * type string preserved by migration) or a corrupted row can
+             * never parse. The throw happens BEFORE recordRetry, so without
+             * this guard the attempt counter never advances, MAX_ATTEMPTS
+             * can never fire, and the row livelocks at the head of the
+             * queue — crashing every future drain pass. Dead-letter it
+             * instead (zero head-of-line blocking; row kept for inspection).
+             */
+            val command =
+                try {
+                    entity.toDomain()
+                } catch (t: IllegalArgumentException) {
+                    commandDao.markDead(
+                        commandId = entity.commandId,
+                        error = "UNDECODABLE_COMMAND_ROW",
+                    )
+                    continue
+                }
 
-            when (val outcome = executor.execute(command)) {
+            when (
+                val outcome =
+                    executor.execute(command)
+            ) {
+
                 is SyncResult.Accepted -> {
-                    syncCommandDao.deleteAccepted(entity.commandId)
-                    processed++
+
+                    commandDao.deleteAccepted(
+                        commandId =
+                            entity.commandId,
+                    )
                 }
 
                 is SyncResult.Retryable -> {
-                    // Transient rejection: stamp the durable deferral marker
-                    // (server hint when present, clamped — else fixed backoff),
-                    // keep order, stop the drain.
-                    val delay = outcome.retryAfter?.let { clampRetryDelay(it) } ?: DEFAULT_RETRY_DELAY
-                    syncCommandDao.recordRetry(
-                        commandId = entity.commandId,
-                        error = truncateBreadcrumb(outcome.reason),
-                        nextAttemptAt = now + delay.inWholeMilliseconds,
-                    )
-                    Log.w(
-                        TAG,
-                        "Command ${entity.commandId} rejected transiently (attempt ${entity.attemptCount + 1}, next due in ${delay.inWholeMilliseconds} ms) — pausing drain",
-                    )
-                    outcome.retryAfter?.let { retryAfter ->
-                        schedule(
-                            workManager = WorkManager.getInstance(applicationContext),
-                            policy = ExistingWorkPolicy.APPEND_OR_REPLACE,
-                            retryAfter = retryAfter,
+
+                    val nextAttempt =
+                        computeNextAttempt(
+                            entity.attemptCount,
+                            outcome.retryAfter,
                         )
-                    }
-                    return DrainOutcome.Paused(
-                        reason = outcome.reason,
-                        retryAfter = outcome.retryAfter,
+
+                    commandDao.recordRetry(
+                        commandId =
+                            entity.commandId,
+                        error =
+                            outcome.reason
+                                .take(MAX_ERROR_LENGTH),
+                        nextAttemptAt =
+                            nextAttempt,
                     )
+
+                    scheduleSelf(
+                        nextAttempt -
+                            System.currentTimeMillis(),
+                    )
+
+                    return Result.success()
                 }
 
                 is SyncResult.Conflict -> {
-                    // A newer remote row exists — refuse the overwrite and
-                    // park the row under the dedicated conflict status; the
-                    // loop continues.
-                    syncCommandDao.markConflict(
-                        entity.commandId,
-                        truncateBreadcrumb("remote conflict (remote version ${outcome.remoteVersion})"),
-                    )
-                    Log.w(
-                        TAG,
-                        "Command ${entity.commandId} parked: remote conflict (remote version ${outcome.remoteVersion})",
+
+                    commandDao.markConflict(
+                        commandId =
+                            entity.commandId,
+                        error =
+                            "REMOTE_VERSION=${outcome.remoteVersion}",
                     )
                 }
 
                 is SyncResult.PermanentFailure -> {
-                    // It can never succeed, so it must never consume another
-                    // connectivity window. Keep the transport's reason — it
-                    // never carries payload content by contract.
-                    syncCommandDao.markDead(
-                        entity.commandId,
-                        truncateBreadcrumb(outcome.reason),
+
+                    commandDao.markDead(
+                        commandId =
+                            entity.commandId,
+                        error =
+                            outcome.reason
+                                .take(MAX_ERROR_LENGTH),
                     )
-                    Log.w(TAG, "Command ${entity.commandId} parked: permanent failure")
                 }
             }
         }
 
-        return DrainOutcome.Drained(processedCommands = processed)
+        return Result.success()
     }
 
-    /** Clamp a server retry hint into the safe delay window. */
-    private fun clampRetryDelay(retryAfter: Duration): Duration =
-        retryAfter.coerceIn(MIN_RETRY_DELAY, MAX_RETRY_DELAY)
+    private fun scheduleSelf(
+        delayMillis: Long,
+    ) {
 
-    /**
-     * Breadcrumbs must never carry legal payload content into the database —
-     * cap length as a second line of defense behind the transport's own
-     * "no payload in reasons" contract.
-     */
-    private fun truncateBreadcrumb(reason: String): String =
-        reason.take(MAX_BREADCRUMB_LENGTH)
-
-    companion object {
-        const val TAG = "SyncWorker"
-        const val WORK_NAME = "haris-sync-command-drain"
-
-        /**
-         * Attempt budget — was a per-row `maxRetries` column in the previous
-         * generation; the entity carries no budget column, so the budget is
-         * a code constant.
-         */
-        const val MAX_ATTEMPTS = 3
-
-        /** Fixed backoff when the transport supplies no retry hint. */
-        private val DEFAULT_RETRY_DELAY = Duration.parse("30s")
-
-        /** Floor for a server retry hint — never re-drain in a hot loop. */
-        private val MIN_RETRY_DELAY = Duration.parse("1s")
-
-        /** Ceiling for a server retry hint — never bury the queue all day. */
-        private val MAX_RETRY_DELAY = Duration.parse("15m")
-
-        /** Parked-row breadcrumb cap (chars). */
-        private const val MAX_BREADCRUMB_LENGTH = 200
-
-        /**
-         * The standard drain request: runs only with connectivity, exponential
-         * backoff (mostly irrelevant since we always return success, but it
-         * guards framework-level restarts).
-         */
-        fun buildDrainRequest(): OneTimeWorkRequest =
+        val request =
             OneTimeWorkRequestBuilder<SyncWorker>()
-                .setConstraints(
-                    Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build(),
+                .setInitialDelay(
+                    delayMillis.coerceAtLeast(0L),
+                    TimeUnit.MILLISECONDS,
                 )
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(
+                            NetworkType.CONNECTED,
+                        )
+                        .build(),
+                )
                 .build()
 
-        /**
-         * Boot-time / on-write scheduling helper.
-         *
-         * @param policy KEEP for boot (never stack duplicates), APPEND_OR_REPLACE
-         * after a fresh queue write (runs promptly even if a chain exists).
-         */
-        fun schedule(workManager: WorkManager, policy: ExistingWorkPolicy) {
-            workManager.enqueueUniqueWork(WORK_NAME, policy, buildDrainRequest())
-        }
-
-        /**
-         * Delayed re-drain honoring a [SyncResult.Retryable.retryAfter] hint.
-         * The delay is clamped to [MIN_RETRY_DELAY]..[MAX_RETRY_DELAY]:
-         * a zero/negative hint must not hot-loop the drain, and an
-         * over-long hint must not bury the queue badge for hours.
-         *
-         * APPEND_OR_REPLACE chains the delayed request behind any live drain
-         * instead of preempting it — FIFO ordering survives the pause.
-         */
-        fun schedule(workManager: WorkManager, policy: ExistingWorkPolicy, retryAfter: Duration) {
-            val delayMs = retryAfter.inWholeMilliseconds
-                .coerceIn(MIN_RETRY_DELAY.inWholeMilliseconds, MAX_RETRY_DELAY.inWholeMilliseconds)
-            workManager.enqueueUniqueWork(
-                WORK_NAME,
-                policy,
-                OneTimeWorkRequestBuilder<SyncWorker>()
-                    .setConstraints(
-                        Constraints.Builder()
-                            .setRequiredNetworkType(NetworkType.CONNECTED)
-                            .build(),
-                    )
-                    .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
-                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
-                    .build(),
+        WorkManager
+            .getInstance(applicationContext)
+            .enqueueUniqueWork(
+                UNIQUE_WORK_NAME,
+                ExistingWorkPolicy.REPLACE,
+                request,
             )
-        }
+    }
+
+    private fun computeNextAttempt(
+        attemptCount: Int,
+        retryAfter: kotlin.time.Duration?,
+    ): Long {
+
+        val now =
+            System.currentTimeMillis()
+
+        val baseMillis =
+            retryAfter
+                ?.inWholeMilliseconds
+                ?.coerceAtLeast(0L)
+                ?: min(
+                    MAX_BACKOFF_MILLIS,
+                    BASE_BACKOFF_MILLIS *
+                        (
+                            1L shl
+                                attemptCount
+                                    .coerceAtMost(20)
+                        ),
+                )
+
+        val jitter =
+            Random.nextLong(
+                0L,
+                min(
+                    JITTER_MAX_MILLIS,
+                    maxOf(
+                        1L,
+                        baseMillis / 5L,
+                    ),
+                ),
+            )
+
+        return now +
+            baseMillis +
+            jitter
+    }
+
+    private fun SyncCommandEntity.toDomain(): SyncCommand =
+        SyncCommand(
+            commandId =
+                UUID.fromString(commandId),
+
+            schemaVersion =
+                schemaVersion,
+
+            aggregateId =
+                UUID.fromString(aggregateId),
+
+            type =
+                CommandType.valueOf(type),
+
+            payloadJson =
+                payloadJson,
+
+            createdAt =
+                Instant.ofEpochMilli(
+                    createdAtEpochMillis,
+                ),
+
+            attemptCount =
+                attemptCount,
+        )
+
+    private companion object {
+        const val BASE_BACKOFF_MILLIS = 10_000L
+        const val MAX_BACKOFF_MILLIS = 15 * 60 * 1000L
+        const val JITTER_MAX_MILLIS = 30_000L
+        const val MAX_ERROR_LENGTH = 512
+        const val MAX_ATTEMPTS = 8
+        const val UNIQUE_WORK_NAME =
+            "haris_sync_commands"
     }
 }
 
 /**
- * Worker-local summary of one drain pass — deliberately NOT part of the
- * domain [SyncResult] taxonomy, which is per-command. The pass either ran to
- * completion ([Drained]) or paused on the first transient rejection
- * ([Paused], optionally carrying the server's retry hint).
+ * Public scheduling entry point for the Haris command queue. KEEP policy:
+ * a pending/running drain is never stacked or replaced — a new enqueue
+ * simply relies on the running drain's pop loop (or the next scheduleSelf)
+ * to pick the command up. Boot-time and on-write callers share one instance.
  */
-private sealed interface DrainOutcome {
+@Singleton
+class SyncWorkScheduler @Inject constructor(
+    private val context: Context,
+) {
 
-    /** The pass finished; [processedCommands] commands were accepted+deleted. */
-    data class Drained(val processedCommands: Int) : DrainOutcome
+    fun enqueue() {
 
-    /** The pass stopped on a transient rejection at the failed command. */
-    data class Paused(
-        val reason: String,
-        val retryAfter: Duration? = null,
-    ) : DrainOutcome
+        val request =
+            OneTimeWorkRequestBuilder<SyncWorker>()
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(
+                            NetworkType.CONNECTED,
+                        )
+                        .build(),
+                )
+                .build()
+
+        WorkManager
+            .getInstance(context)
+            .enqueueUniqueWork(
+                UNIQUE_WORK_NAME,
+                ExistingWorkPolicy.KEEP,
+                request,
+            )
+    }
+
+    private companion object {
+        const val UNIQUE_WORK_NAME =
+            "haris_sync_commands"
+    }
 }

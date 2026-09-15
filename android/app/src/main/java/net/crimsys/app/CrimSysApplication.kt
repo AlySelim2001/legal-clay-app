@@ -5,15 +5,13 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import androidx.work.ExistingWorkPolicy
-import androidx.work.WorkManager
 import dagger.hilt.android.HiltAndroidApp
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import net.crimsys.app.data.sync.SyncManager
-import net.crimsys.app.data.sync.SyncWorker
+import net.crimsys.app.data.sync.SyncWorkScheduler
+import javax.inject.Inject
 
 /**
  * CRIM-SYS 2026 application class.
@@ -25,21 +23,22 @@ import net.crimsys.app.data.sync.SyncWorker
  *  - [SyncManager] listens to [net.crimsys.app.data.sync.NetworkMonitor] in
  *    an application-scoped [CoroutineScope] and drains the legacy Offline
  *    Action Queue whenever connectivity returns.
- *  - The Haris sync-command queue (evidence chain events, legal
- *    attestations, pending queries) is drained by [SyncWorker]: a KEEP
- *    request is scheduled at boot so a process restart with a non-empty
- *    queue cannot strand commands (the CONNECTED constraint parks the
- *    request until a network exists).
- *
- * Implements [Configuration.Provider] with the Hilt worker factory so
- * @HiltWorker injection works with on-demand WorkManager initialization
- * (the default initializer is removed in the manifest).
+ *  - The Haris sync-command queue (case creation, memo updates, hearing
+ *    records, evidence registration) is drained by [SyncWorker] — a KEEP
+ *    request is scheduled at boot via [SyncWorkScheduler] so a process
+ *    restart with a non-empty queue cannot strand commands (the CONNECTED
+ *    constraint parks the request until a network exists). Repositories
+ *    schedule the same entry point after every queued write; KEEP makes
+ *    both paths converge on one drain.
  */
 @HiltAndroidApp
 class CrimSysApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var syncManager: SyncManager
+
+    @Inject
+    lateinit var syncWorkScheduler: SyncWorkScheduler
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
@@ -58,9 +57,8 @@ class CrimSysApplication : Application(), Configuration.Provider {
             LocaleListCompat.forLanguageTags("ar"),
         )
         syncManager.start(appScope)
-        // Boot-time drain for the Haris command queue. KEEP: never stack a
-        // duplicate chain — repositories enqueue their own expedited
-        // APPEND_OR_REPLACE requests on every queued write.
-        SyncWorker.schedule(WorkManager.getInstance(this), ExistingWorkPolicy.KEEP)
+        // Boot-time drain for the Haris command queue (KEEP: converge on the
+        // single unique work chain; on-write callers share this scheduler).
+        syncWorkScheduler.enqueue()
     }
 }
