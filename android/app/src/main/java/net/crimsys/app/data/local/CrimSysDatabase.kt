@@ -246,9 +246,10 @@ abstract class CrimSysDatabase : RoomDatabase() {
          *    rows drain exactly as before, `DEAD` rows stay inspectable.
          *
          * Legacy payload columns carry no digest anymore; integrity at the
-         * transport is now enforced by the schema gate + create-vs-conflict
-         * transaction (see FirebaseSyncCommandExecutor), not by a stored
-         * digest.
+         * transport is enforced by remote document identity — commandId is
+         * the Firestore document key, so a replayed command overwrites its
+         * own doc instead of creating a second mutation (see
+         * FirebaseSyncCommandExecutor).
          */
         val MIGRATION_5_6: Migration =
             object : Migration(5, 6) {

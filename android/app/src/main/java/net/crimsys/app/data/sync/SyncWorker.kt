@@ -57,7 +57,7 @@ import net.crimsys.app.domain.sync.SyncResult
  *     'DEAD' so inspection can prioritize split-brain rows — and the loop
  *     continues.
  *  4. [SyncResult.PermanentFailure] — the command can never succeed
- *     (unsupported schema version), so it must never consume another
+ *     (corrupt row, permission denied), so it must never consume another
  *     connectivity window: parked as 'DEAD' immediately, loop continues.
  *  5. A command whose attempt budget ([MAX_ATTEMPTS]) is exhausted is
  *     dead-lettered before any dispatch (poison-pill protection; the row is
