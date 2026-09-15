@@ -51,7 +51,7 @@ cp keystore.properties.example keystore.properties
 
 ```bash
 # بعد البناء:
-$ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs \
+$ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose --print-certs \
   app/build/outputs/apk/release/app-release.apk
 ```
 
@@ -80,7 +80,7 @@ cd android
 ./gradlew :app:assembleRelease -Pandroid.enableR8.fullMode=true
 ```
 
-> 🔴 **خطأ شائع:** بناء release من جهاز بلا JDK 17 أو SDK 35 → `assembleDebug` يعمل وrelease يفشل. تأكد: `java -version` (يجب 17.x) و `sdkmanager --list | grep android-35`.
+> 🔴 **خطأ شائع:** بناء release من جهاز بلا JDK 17 أو SDK 36 → `assembleDebug` يعمل وrelease يفشل. تأكد: `java -version` (يجب 17.x) و `sdkmanager --list | grep android-36`.
 
 > 🔴 **خطأ شائع:** تعديل `versionCode` بلا رفع `versionName` (أو العكس) يربك Play Console وتتبع الأعطال. ارفعهما معاً في كل إصدار.
 

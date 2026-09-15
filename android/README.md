@@ -74,8 +74,8 @@ cd android
 ./gradlew :app:lintDebug         # lint
 ```
 
-- Requires JDK 17 and an Android SDK with platform 35 (`sdkmanager "platforms;android-35"`).
-- The Gradle wrapper bootstraps Gradle 8.9 automatically on first run.
+- Requires JDK 17 and an Android SDK with platform 36 (`sdkmanager "platforms;android-36"`).
+- The Gradle wrapper bootstraps Gradle 8.11.1 automatically on first run.
 - `google-services.json` is **optional**: without it, Firestore init fails
   gracefully and the app runs fully offline (queue waits indefinitely).
 

@@ -24,12 +24,12 @@ val firestoreProjectId: String = keystoreProperties.getProperty("firestoreProjec
 
 android {
     namespace = "net.crimsys.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "net.crimsys.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "2026.1.0"
 
