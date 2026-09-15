@@ -2,12 +2,10 @@ package net.crimsys.app.data.remote
 
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
-import java.io.ByteArrayInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
-import net.crimsys.app.core.evidence.Sha256
 import net.crimsys.app.data.auth.AuthRepository
 import net.crimsys.app.domain.sync.SyncCommand
 import net.crimsys.app.domain.sync.SyncCommandExecutor
@@ -16,36 +14,37 @@ import net.crimsys.app.domain.sync.SyncResult
 /**
  * Firestore transport for [SyncCommand]s.
  *
- * Document path: `haris/{commandType}/items/{command.uuid}` — the command's
- * enqueue-time UUID is the remote key, so two devices can never collide and
- * overwrite each other (same rule as the legacy `crimsys/...` queue).
+ * Document path: `haris/{commandType}/items/{command.commandId}` — the
+ * command's enqueue-time UUID is the remote key, so two devices can never
+ * collide and overwrite each other (same rule as the legacy `crimsys/...` queue).
  *
  * Result mapping (contract of [SyncCommandExecutor] — every failure is a
  * typed [SyncResult], never an exception):
  *
  * | Condition                                        | Result                                   |
  * |--------------------------------------------------|------------------------------------------|
- * | Payload digest mismatch (corrupt/tampered row)   | [SyncResult.PermanentFailure]            |
+ * | [SyncCommand.schemaVersion] above known versions | [SyncResult.PermanentFailure]            |
  * | Firestore unavailable (no google-services.json)  | [SyncResult.Retryable]                   |
  * | No auth session this window                      | [SyncResult.Retryable]                   |
  * | Transport / transaction error                    | [SyncResult.Retryable]                   |
  * | New write (or identical redelivery — idempotent) | [SyncResult.Accepted]                    |
  * | Existing remote row with DIFFERENT content       | [SyncResult.Conflict]                    |
  *
- * Integrity gate: the payload digest is re-computed and compared BEFORE any
- * remote read/write. A corrupted queue row fails fast as a permanent failure —
- * the caller dead-letters it — and a tampered or truncated payload can never
- * reach the backend silently.
+ * Schema gate: a command stamped with a [SyncCommand.schemaVersion] newer
+ * than this transport understands is PERMANENTLY rejected before any remote
+ * read/write — a newer app must never half-decode into an older backend.
+ * The local schema version this transport speaks lives in
+ * [SUPPORTED_SCHEMA_VERSION].
  *
  * Idempotent redelivery: the queue may re-send a command after a crash
  * between the remote write and the local row delete. A remote row with the
- * SAME `payloadSha256` is the same command → [SyncResult.Accepted], not a
- * conflict. A remote row with DIFFERENT content is a genuine split-brain
- * conflict → [SyncResult.Conflict]; the write is refused (a blind `set`
- * would destroy the remote row) and the local row is parked for human
- * inspection. `remoteVersion` reports the existing row's `createdAt`
- * (epoch ms) — Firestore exposes no monotonic server version counter, so
- * the transport uses the only ordering marker it has.
+ * SAME command id and identical (type, aggregate, payload, createdAt) is the
+ * same command → [SyncResult.Accepted], not a conflict. A remote row with
+ * DIFFERENT content is a genuine split-brain conflict → [SyncResult.Conflict];
+ * the write is refused (a blind `set` would destroy the remote row) and the
+ * local row is parked for human inspection. `remoteVersion` reports the
+ * existing row's `createdAt` (epoch ms) — Firestore exposes no monotonic
+ * server version counter, so the transport uses the only ordering marker it has.
  *
  * Authentication (R1, unchanged): every write runs under a session from
  * [AuthRepository.withSession]; Firestore rules validate `request.auth.uid`.
@@ -58,6 +57,13 @@ import net.crimsys.app.domain.sync.SyncResult
 class FirebaseSyncCommandExecutor @Inject constructor(
     private val authRepository: AuthRepository,
 ) : SyncCommandExecutor {
+
+    /**
+     * Highest command envelope schema version this transport can decode.
+     * Bump when the remote document shape gains fields the old transport
+     * could not have written correctly.
+     */
+    private val supportedSchemaVersion: Int = SUPPORTED_SCHEMA_VERSION
 
     // Initialized lazily on first use; the Firebase SDK throws when
     // google-services.json is absent (optional-sync degrade path).
@@ -76,7 +82,7 @@ class FirebaseSyncCommandExecutor @Inject constructor(
         /** Row was absent → written. */
         data object Written : TxOutcome
 
-        /** Row exists with the same payload digest → idempotent redelivery. */
+        /** Row exists with identical content → idempotent redelivery. */
         data object Idempotent : TxOutcome
 
         /** Row exists with different content → refuse the write. */
@@ -84,14 +90,11 @@ class FirebaseSyncCommandExecutor @Inject constructor(
     }
 
     override suspend fun execute(command: SyncCommand): SyncResult {
-        // 1) Integrity gate — never ship a payload that no longer hashes to
-        //    the digest recorded at enqueue time.
-        val payloadDigest =
-            Sha256.digest(ByteArrayInputStream(command.payloadJson.toByteArray(Charsets.UTF_8)))
-        if (!command.payloadSha256.equals(payloadDigest, ignoreCase = true)) {
-            // Permanent, per-command failure → caller dead-letters the row.
+        // 1) Schema gate — a newer envelope must never be half-decoded by an
+        //    older backend. Permanent, per-command failure → caller dead-letters.
+        if (command.schemaVersion > supportedSchemaVersion) {
             return SyncResult.PermanentFailure(
-                "payload digest mismatch for command ${command.uuid}",
+                "schemaVersion ${command.schemaVersion} unsupported (transport speaks <= $supportedSchemaVersion)",
             )
         }
 
@@ -104,9 +107,9 @@ class FirebaseSyncCommandExecutor @Inject constructor(
 
         val docRef =
             db.collection(COLLECTION_ROOT)
-                .document(command.type)
+                .document(command.type.name)
                 .collection("items")
-                .document(command.uuid)
+                .document(command.commandId.toString())
 
         return try {
             // Transactional conditional write: create-if-absent, dedup on
@@ -119,20 +122,20 @@ class FirebaseSyncCommandExecutor @Inject constructor(
                             tx.set(
                                 docRef,
                                 mapOf(
-                                    FIELD_UUID to command.uuid,
-                                    FIELD_TYPE to command.type,
+                                    FIELD_COMMAND_ID to command.commandId.toString(),
+                                    FIELD_SCHEMA_VERSION to command.schemaVersion,
+                                    FIELD_AGGREGATE_ID to command.aggregateId.toString(),
+                                    FIELD_TYPE to command.type.name,
                                     FIELD_PAYLOAD to command.payloadJson,
-                                    FIELD_PAYLOAD_SHA256 to command.payloadSha256,
-                                    FIELD_CREATED_AT to command.createdAtEpochMs,
+                                    FIELD_CREATED_AT to command.createdAt.toEpochMilli(),
+                                    FIELD_ATTEMPT_COUNT to command.attemptCount,
                                     FIELD_OWNER_UID to uid,
                                 ),
                             )
                             TxOutcome.Written
                         }
 
-                        existing.getString(FIELD_PAYLOAD_SHA256)
-                            ?.equals(command.payloadSha256, ignoreCase = true) == true ->
-                            TxOutcome.Idempotent
+                        isIdenticalRedelivery(existing, command) -> TxOutcome.Idempotent
 
                         else ->
                             TxOutcome.Conflict(
@@ -153,20 +156,41 @@ class FirebaseSyncCommandExecutor @Inject constructor(
         } catch (t: Throwable) {
             // Deliberately no payload content in logs — legal data must not hit
             // Logcat; only the exception class, never its message/stack payload.
-            Log.w(TAG, "Sync command rejected (type=${command.type}) — will retry", t)
+            Log.w(TAG, "Sync command rejected (type=${command.type.name}) — will retry", t)
             SyncResult.Retryable("transport error: ${t.javaClass.simpleName}")
         }
     }
+
+    /**
+     * Redelivery is idempotent only when EVERY semantic field matches: same
+     * command identity, same aggregate, same type, same payload, same enqueue
+     * time. A row that differs in any of these is a real conflict, not a
+     * retry of the same mutation.
+     */
+    private fun isIdenticalRedelivery(
+        existing: com.google.firebase.firestore.DocumentSnapshot,
+        command: SyncCommand,
+    ): Boolean =
+        existing.getString(FIELD_AGGREGATE_ID) == command.aggregateId.toString() &&
+            existing.getString(FIELD_TYPE) == command.type.name &&
+            existing.getString(FIELD_PAYLOAD) == command.payloadJson &&
+            (existing.getLong(FIELD_CREATED_AT) ?: -1L) == command.createdAt.toEpochMilli() &&
+            (existing.getLong(FIELD_SCHEMA_VERSION) ?: -1L) == command.schemaVersion.toLong()
 
     private companion object {
         const val TAG = "SyncCommandExecutor"
         const val COLLECTION_ROOT = "haris"
 
-        const val FIELD_UUID = "uuid"
+        /** Envelope schema version this transport decodes. */
+        const val SUPPORTED_SCHEMA_VERSION = 1
+
+        const val FIELD_COMMAND_ID = "commandId"
+        const val FIELD_SCHEMA_VERSION = "schemaVersion"
+        const val FIELD_AGGREGATE_ID = "aggregateId"
         const val FIELD_TYPE = "type"
         const val FIELD_PAYLOAD = "payload"
-        const val FIELD_PAYLOAD_SHA256 = "payloadSha256"
         const val FIELD_CREATED_AT = "createdAt"
+        const val FIELD_ATTEMPT_COUNT = "attemptCount"
         const val FIELD_OWNER_UID = "ownerUid"
     }
 }

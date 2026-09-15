@@ -16,14 +16,15 @@ package net.crimsys.app.domain.sync
  *    backend 5xx); the queue retries in a later window, honoring
  *    [SyncResult.Retryable.retryAfter] when the backend supplied one;
  *  - [SyncResult.Conflict] — a newer remote version exists
- *    ([SyncResult.Conflict.remoteVersion]); a `false` overwrite would destroy
+ *    ([SyncResult.Conflict.remoteVersion]); a blind overwrite would destroy
  *    data, so the row must be parked for human inspection;
- *  - [SyncResult.PermanentFailure] — this command can never succeed
- *    (malformed input, digest mismatch); the caller dead-letters it.
+ *  - [SyncResult.PermanentFailure] — this command can never succeed; the
+ *    caller dead-letters it.
  *
  * Implementations MUST:
- *  - verify the command payload against [SyncCommand.payloadSha256] before any
- *    remote write (a corrupted row must fail fast, not ship);
+ *  - reject commands whose [SyncCommand.schemaVersion] is above the highest
+ *    version the transport understands (a newer app talking to an older
+ *    backend is a permanent, not transient, incompatibility — `PermanentFailure`);
  *  - re-throw `kotlinx.coroutines.CancellationException` untouched;
  *  - never throw for domain failures — every failure is expressed as a
  *    [SyncResult] variant so the caller's drain logic stays exhaustive.

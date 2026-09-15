@@ -23,7 +23,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         EvidenceEntity::class,
         SyncCommandEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class CrimSysDatabase : RoomDatabase() {
@@ -164,6 +164,8 @@ abstract class CrimSysDatabase : RoomDatabase() {
                     )
 
                     // Haris sync-command queue (same lifecycle as offline_actions).
+                    // (v4 DDL kept as the historical upgrade path — the v4 → v6
+                    // reshape below rebuilds this table with the CQRS column set.)
                     db.execSQL(
                         "CREATE TABLE IF NOT EXISTS `sync_commands` (" +
                             "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
@@ -186,8 +188,8 @@ abstract class CrimSysDatabase : RoomDatabase() {
          * Evidence redesign (v4 → v5): the two-table evidence store
          * (`evidence_items` + `evidence_chain_events`) is replaced by the
          * single `evidence` table — chain of custody embedded as a JSON
-         * column, content-addressed storage path, case linkage, and a UNIQUE
-         * original-file hash for dedup.
+         * column, storage path, case linkage, and a UNIQUE original-file
+         * hash for dedup.
          *
          * Deliberate data decision: v4 evidence rows cannot be faithfully
          * reconstructed into the new shape. The v4 store persisted only bare
@@ -223,6 +225,60 @@ abstract class CrimSysDatabase : RoomDatabase() {
                     db.execSQL(
                         "CREATE UNIQUE INDEX IF NOT EXISTS `index_evidence_originalFileHash` " +
                             "ON `evidence` (`originalFileHash`)",
+                    )
+                }
+            }
+
+        /**
+         * Sync-command queue reshape (v5 → v6), zero data loss: the queued
+         * [net.crimsys.app.domain.sync.SyncCommand] model moved from a
+         * free-form `type` string + JSON envelope to a closed [CommandType]
+         * enum with CQRS identity (commandId/aggregateId, schemaVersion,
+         * attemptCount). The table is rebuilt in place:
+         *
+         *  - columns are renamed, not dropped: `uuid` → `commandId`,
+         *    `retryCount` → `attemptCount` — every queued mutation survives.
+         *  - `schemaVersion` defaults to 1 (the version this transport speaks)
+         *    and `aggregateId` to the legacy sentinel `''`.
+         *  - the UNIQUE index moves from `uuid` to `commandId` — same
+         *    identity guarantee, new column name.
+         *  - legacy rows keep `PENDING`/`DEAD` status untouched: `PENDING`
+         *    rows drain exactly as before, `DEAD` rows stay inspectable.
+         *
+         * Legacy payload columns carry no digest anymore; integrity at the
+         * transport is now enforced by the schema gate + create-vs-conflict
+         * transaction (see FirebaseSyncCommandExecutor), not by a stored
+         * digest.
+         */
+        val MIGRATION_5_6: Migration =
+            object : Migration(5, 6) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `sync_commands_new` (" +
+                            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                            "`commandId` TEXT NOT NULL, " +
+                            "`schemaVersion` INTEGER NOT NULL, " +
+                            "`aggregateId` TEXT NOT NULL, " +
+                            "`type` TEXT NOT NULL, " +
+                            "`payloadJson` TEXT NOT NULL, " +
+                            "`createdAtEpochMs` INTEGER NOT NULL, " +
+                            "`attemptCount` INTEGER NOT NULL, " +
+                            "`maxRetries` INTEGER NOT NULL, " +
+                            "`status` TEXT NOT NULL)",
+                    )
+                    // Preserve every row: rename the identity column, default
+                    // the new schema fields, keep the attempt counter.
+                    db.execSQL(
+                        "INSERT INTO `sync_commands_new` " +
+                            "(`id`, `commandId`, `schemaVersion`, `aggregateId`, `type`, `payloadJson`, `createdAtEpochMs`, `attemptCount`, `maxRetries`, `status`) " +
+                            "SELECT `id`, `uuid`, 1, '', `type`, `payloadJson`, `createdAtEpochMs`, `retryCount`, `maxRetries`, `status` " +
+                            "FROM `sync_commands`",
+                    )
+                    db.execSQL("DROP TABLE `sync_commands`")
+                    db.execSQL("ALTER TABLE `sync_commands_new` RENAME TO `sync_commands`")
+                    db.execSQL(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_commands_commandId` " +
+                            "ON `sync_commands` (`commandId`)",
                     )
                 }
             }

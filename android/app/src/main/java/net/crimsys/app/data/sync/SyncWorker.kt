@@ -14,7 +14,6 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import java.time.Clock
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import net.crimsys.app.data.local.SyncCommandDao
@@ -22,8 +21,8 @@ import net.crimsys.app.domain.sync.SyncCommandExecutor
 import net.crimsys.app.domain.sync.SyncResult
 
 /**
- * Drains the Haris sync-command queue (evidence chain events, legal
- * attestations, pending queries) to the backend via
+ * Drains the Haris sync-command queue (case creation, memo updates, hearing
+ * records, evidence registration) to the backend via
  * [SyncCommandExecutor].
  *
  * Scheduling model: repositories enqueue an expedited one-time request with a
@@ -37,7 +36,7 @@ import net.crimsys.app.domain.sync.SyncResult
  *  2. [SyncResult.Accepted] — the remote write landed; the row is deleted
  *     and the drain continues.
  *  3. [SyncResult.Retryable] — a transient rejection (offline, no session,
- *     backend error) increments the retry counter and STOPS the drain — a
+ *     backend error) increments the attempt counter and STOPS the drain — a
  *     later command must never overtake a failed earlier one. A server
  *     [SyncResult.Retryable.retryAfter] hint schedules a delayed re-drain
  *     (capped; the next enqueued command or connectivity window re-triggers
@@ -46,9 +45,9 @@ import net.crimsys.app.domain.sync.SyncResult
  *     would destroy data, so the row is parked immediately for human
  *     inspection and the drain continues.
  *  5. [SyncResult.PermanentFailure] — the command can never succeed
- *     (corrupt envelope, digest mismatch), so it must never consume another
- *     connectivity window: parked immediately, drain continues.
- *  6. A command whose retry budget is exhausted is dead-lettered and the
+ *     (corrupt row, unsupported schema version), so it must never consume
+ *     another connectivity window: parked immediately, drain continues.
+ *  6. A command whose attempt budget is exhausted is dead-lettered and the
  *     drain continues (no head-of-line blocking); the row is kept, never
  *     deleted.
  *
@@ -65,7 +64,6 @@ class SyncWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val syncCommandDao: SyncCommandDao,
     private val executor: SyncCommandExecutor,
-    private val clock: Clock,
 ) : CoroutineWorker(app, params) {
 
     override suspend fun doWork(): Result {
@@ -91,18 +89,24 @@ class SyncWorker @AssistedInject constructor(
         for (entity in syncCommandDao.pendingInOrder()) {
             // Poison-pill handling: exhausted budget → dead letter, keep the
             // row, keep draining the commands behind it.
-            if (entity.retryCount >= entity.maxRetries) {
+            if (entity.attemptCount >= entity.maxRetries) {
                 syncCommandDao.markDeadLetter(entity.id)
-                Log.w(TAG, "Command ${entity.uuid} (${entity.type}) dead-lettered after ${entity.retryCount} attempts")
+                Log.w(TAG, "Command ${entity.commandId} (${entity.type}) dead-lettered after ${entity.attemptCount} attempts")
                 continue
             }
 
-            val command = entity.toCommand()
+            val command = try {
+                entity.toCommand()
+            } catch (t: IllegalArgumentException) {
+                null // unknown CommandType name — permanently broken row
+            } catch (t: java.time.format.DateTimeParseException) {
+                null // unparsable createdAt — permanently broken row
+            }
             if (command == null) {
-                // Corrupt envelope — it will never parse, so it must never
-                // ride the queue again.
+                // Corrupt row — it will never decode, so it must never ride
+                // the queue again.
                 syncCommandDao.parkCorrupt(entity.id)
-                Log.w(TAG, "Command ${entity.uuid} parked: corrupt envelope")
+                Log.w(TAG, "Command ${entity.commandId} parked: corrupt row")
                 continue
             }
 
@@ -116,8 +120,8 @@ class SyncWorker @AssistedInject constructor(
                     // Transient rejection: keep order, stop the drain, retry
                     // next window — honoring a server retry hint when one was
                     // supplied.
-                    syncCommandDao.incrementRetry(entity.id)
-                    Log.w(TAG, "Command ${entity.uuid} rejected transiently (attempt ${entity.retryCount + 1}) — pausing drain")
+                    syncCommandDao.incrementAttempt(entity.id)
+                    Log.w(TAG, "Command ${entity.commandId} rejected transiently (attempt ${entity.attemptCount + 1}) — pausing drain")
                     outcome.retryAfter?.let { retryAfter ->
                         schedule(
                             workManager = WorkManager.getInstance(applicationContext),
@@ -137,7 +141,7 @@ class SyncWorker @AssistedInject constructor(
                     syncCommandDao.parkCorrupt(entity.id)
                     Log.w(
                         TAG,
-                        "Command ${entity.uuid} parked: remote conflict (remote version ${outcome.remoteVersion})",
+                        "Command ${entity.commandId} parked: remote conflict (remote version ${outcome.remoteVersion})",
                     )
                 }
 
@@ -145,7 +149,7 @@ class SyncWorker @AssistedInject constructor(
                     // It can never succeed, so it must never consume another
                     // connectivity window.
                     syncCommandDao.parkCorrupt(entity.id)
-                    Log.w(TAG, "Command ${entity.uuid} parked: permanent failure")
+                    Log.w(TAG, "Command ${entity.commandId} parked: permanent failure")
                 }
             }
         }

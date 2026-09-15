@@ -52,12 +52,12 @@ UI (Compose, StateFlow)
 | `data/legal/LegalRegistryRepositoryImpl.kt` | Exact-match lookup (`findExact` + temporal `isEffective`) over the registered set — only verified artifacts are ever stored |
 | `data/local/{EvidenceEntity,EvidenceDao}.kt` | Single `evidence` table — chain of custody embedded as JSON, UNIQUE original-file hash dedup, case linkage (v5 migration replaces the v4 evidence tables) |
 | `data/local/{LegalSourceEntity,LegalSourceDao}.kt` | `legal_sources` — temporally versioned citable sources (amendments coexist; windows resolved on the event date) |
-| `data/local/{SyncCommandEntity,SyncCommandDao}.kt` | `sync_commands` — FIFO queue with DLQ (same lifecycle as `offline_actions`) |
-| `data/remote/FirebaseSyncCommandExecutor.kt` | Firestore transport behind `SyncCommandExecutor`; digest gate, transactional create-or-dedup-or-refuse write (idempotent redelivery, `Conflict` instead of blind overwrite) |
-| `data/sync/SyncWorker.kt` | `@HiltWorker` drain: FIFO, per-command `SyncResult` outcomes (Accepted→delete, Retryable→pause + retry-after re-drain, Conflict/PermanentFailure→park), DLQ, WorkManager CONNECTED constraint |
+| `data/local/{SyncCommandEntity,SyncCommandDao}.kt` | `sync_commands` — FIFO queue with DLQ (same lifecycle as `offline_actions`); flat command columns, `commandId` UNIQUE |
+| `data/remote/FirebaseSyncCommandExecutor.kt` | Firestore transport behind `SyncCommandExecutor`; schema-version gate, transactional create-or-dedup-or-refuse write (idempotent redelivery, `Conflict` instead of blind overwrite) |
+| `data/sync/SyncWorker.kt` | `@HiltWorker` drain: FIFO, per-command `SyncResult` outcomes (Accepted→delete, Retryable→pause + retry-after re-drain, Conflict/PermanentFailure→park), attempt budget, DLQ, WorkManager CONNECTED constraint |
 | `domain/evidence/` | `ChainEvent` (`@Serializable`, closed `ChainAction` vocabulary), `EvidenceRepository` (capture + OCR stages on `Resource<T>`) |
 | `domain/legal/` | `LegalCitation` (evidence-grade: temporal window + source digest + gazette), `CitationValidator` (self-parsing Arabic citations, clock-injected event dates, sanitize-with-refusal) + `LegalRegistryRepository` |
-| `domain/sync/` | `SyncCommand` (+ JSON codec, digest-carrying), `SyncResult` (Accepted/Retryable/Conflict/PermanentFailure), `SyncCommandExecutor` |
+| `domain/sync/` | `SyncCommand` (CQRS: commandId/aggregateId, closed `CommandType` enum, schemaVersion, attemptCount), `SyncResult` (Accepted/Retryable/Conflict/PermanentFailure), `SyncCommandExecutor` |
 | `di/HarisCoreModule.kt` | Bindings + DAO/WorkManager providers for the slice |
 | `ui/` | `CrimSysApp` scaffold (RTL drawer + top bar), NavHost, clay components, theme (Cairo font, urgency tokens) |
 | `ui/screens/cases/` | Case list, case file, rich-text memo editor |

@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Queue access for [net.crimsys.app.data.sync.SyncWorker]. Mirrors the
  * OfflineActionDao conventions: FIFO by id, scoped dead-letter transitions,
- * zero destructive deletes.
+ * zero destructive deletes of dead-lettered rows.
  */
 @Dao
 interface SyncCommandDao {
@@ -24,8 +24,9 @@ interface SyncCommandDao {
     @Query("SELECT COUNT(*) FROM sync_commands WHERE status = 'PENDING'")
     fun observePendingCount(): Flow<Int>
 
-    @Query("UPDATE sync_commands SET retryCount = retryCount + 1 WHERE id = :id")
-    suspend fun incrementRetry(id: Long)
+    /** Persisted attempt counter — survives process death between attempt and outcome. */
+    @Query("UPDATE sync_commands SET attemptCount = attemptCount + 1 WHERE id = :id")
+    suspend fun incrementAttempt(id: Long)
 
     /**
      * Park an exhausted command. The `status = 'PENDING'` guard means a
@@ -34,7 +35,7 @@ interface SyncCommandDao {
      */
     @Query(
         "UPDATE sync_commands SET status = 'DEAD' " +
-            "WHERE id = :id AND status = 'PENDING' AND retryCount >= maxRetries",
+            "WHERE id = :id AND status = 'PENDING' AND attemptCount >= maxRetries",
     )
     suspend fun markDeadLetter(id: Long)
 
@@ -48,13 +49,13 @@ interface SyncCommandDao {
 
     /** User-initiated second chance with a fresh retry budget. */
     @Query(
-        "UPDATE sync_commands SET status = 'PENDING', retryCount = 0 " +
+        "UPDATE sync_commands SET status = 'PENDING', attemptCount = 0 " +
             "WHERE id = :id AND status = 'DEAD'",
     )
     suspend fun requeueDeadLettered(id: Long)
 
     /**
-     * Park a permanently broken command (corrupt envelope, digest mismatch)
+     * Park a permanently broken command (corrupt row, schema-version gate)
      * immediately instead of burning retry windows on a row that can never
      * succeed. Scoped by status='PENDING' so it can never double-park.
      */

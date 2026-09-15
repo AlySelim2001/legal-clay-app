@@ -71,7 +71,13 @@ object AppModule {
             )
         return Room.databaseBuilder(context, CrimSysDatabase::class.java, "crimsys.db")
             .openHelperFactory(factory)
-            .addMigrations(CrimSysDatabase.MIGRATION_1_2, CrimSysDatabase.MIGRATION_2_3, CrimSysDatabase.MIGRATION_3_4, CrimSysDatabase.MIGRATION_4_5)
+            .addMigrations(
+                CrimSysDatabase.MIGRATION_1_2,
+                CrimSysDatabase.MIGRATION_2_3,
+                CrimSysDatabase.MIGRATION_3_4,
+                CrimSysDatabase.MIGRATION_4_5,
+                CrimSysDatabase.MIGRATION_5_6,
+            )
             .build()
     }
 
