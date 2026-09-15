@@ -28,8 +28,10 @@ import net.crimsys.app.domain.sync.SyncResult
 /**
  * Drains the Haris sync-command queue: pop-one-at-a-time FIFO with
  * exponential backoff + jitter, durable per-row deferral, and a dead-letter
- * path. Scheduling is owned by [SyncWorkScheduler] (boot/on-write KEEP) and
- * [scheduleSelf] (post-failure delayed REPLACE).
+ * path. Scheduling is owned by [SyncWorkScheduler] (on-write KEEP, called by
+ * command-producing repositories) and [scheduleSelf] (post-failure delayed
+ * REPLACE); there is no boot-time trigger — a command enqueued while offline
+ * is drained by the next on-write enqueue or connectivity window.
  *
  * Backoff model ([computeNextAttempt]): a transport [SyncResult.Retryable.retryAfter]
  * hint, when present, is the base delay (floor 0 — bounded by [MAX_ATTEMPTS],
@@ -263,7 +265,7 @@ class SyncWorker @AssistedInject constructor(
  * Public scheduling entry point for the Haris command queue. KEEP policy:
  * a pending/running drain is never stacked or replaced — a new enqueue
  * simply relies on the running drain's pop loop (or the next scheduleSelf)
- * to pick the command up. Boot-time and on-write callers share one instance.
+ * to pick the command up. On-write callers share one instance.
  */
 @Singleton
 class SyncWorkScheduler @Inject constructor(
