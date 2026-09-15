@@ -14,12 +14,17 @@ import net.crimsys.app.domain.sync.SyncResult
 /**
  * Firestore transport for [SyncCommand]s.
  *
- * Document path: `haris/{commandType}/items/{command.commandId}` — the
- * command's enqueue-time UUID is the remote key, so two devices can never
- * collide and overwrite each other (same rule as the legacy `crimsys/...` queue).
+ * Contract (domain [SyncCommandExecutor]): **commandId is the idempotency
+ * key** — replaying the same command after an ambiguous network failure
+ * MUST NOT create a second logical mutation. This implementation satisfies
+ * it by remote document identity: the command's enqueue-time UUID is the
+ * Firestore document key (`haris/{commandType}/items/{command.commandId}`),
+ * so a replayed command lands on the SAME document, and the write is
+ * create-or-dedup-or-refuse (see the transaction below). Two devices can
+ * never collide and overwrite each other (same rule as the legacy
+ * `crimsys/...` queue).
  *
- * Result mapping (contract of [SyncCommandExecutor] — every failure is a
- * typed [SyncResult], never an exception):
+ * Result mapping — every failure is a typed [SyncResult], never an exception:
  *
  * | Condition                                        | Result                                   |
  * |--------------------------------------------------|------------------------------------------|
@@ -30,11 +35,11 @@ import net.crimsys.app.domain.sync.SyncResult
  * | New write (or identical redelivery — idempotent) | [SyncResult.Accepted]                    |
  * | Existing remote row with DIFFERENT content       | [SyncResult.Conflict]                    |
  *
- * Schema gate: a command stamped with a [SyncCommand.schemaVersion] newer
- * than this transport understands is PERMANENTLY rejected before any remote
- * read/write — a newer app must never half-decode into an older backend.
- * The local schema version this transport speaks lives in
- * [SUPPORTED_SCHEMA_VERSION].
+ * Schema gate (implementation behavior): a command stamped with a
+ * [SyncCommand.schemaVersion] newer than this transport understands is
+ * PERMANENTLY rejected before any remote read/write — a newer app must never
+ * half-decode into an older backend. The local schema version this transport
+ * speaks lives in [SUPPORTED_SCHEMA_VERSION].
  *
  * Idempotent redelivery: the queue may re-send a command after a crash
  * between the remote write and the local row delete. A remote row with the
