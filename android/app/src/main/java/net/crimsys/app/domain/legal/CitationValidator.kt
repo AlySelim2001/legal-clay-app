@@ -44,13 +44,18 @@ class CitationValidator @Inject constructor(
         const val SAFETY_REFUSAL =
             "لم يتم التحقق من النص المحدث للمادة من المصدر التشريعي المعتمد."
 
+        // Named laws MUST be tried before the greedy catch-all: with the
+        // catch-all first, "من قانون العقوبات على ذلك" captures trailing prose
+        // into the citation span, so the refusal replaces words it shouldn't
+        // and registry lookups by lawName can never hit (pinned by
+        // CitationValidatorTest `unverified citation is replaced`).
         private val ARTICLE_PATTERN = Regex(
-            """المادة\s+([0-9٠-٩]+)(?:\s+من\s+(قانون\s+[^\n،؛.]+|قانون\s+العقوبات|قانون\s+الإثبات|قانون\s+الإجراءات\s+الجنائية))?""",
+            """المادة\s+([0-9٠-٩]+)(?:\s+من\s+(قانون\s+العقوبات|قانون\s+الإثبات|قانون\s+الإجراءات\s+الجنائية|قانون\s+[^\n،؛.]+))?""",
             RegexOption.IGNORE_CASE,
         )
 
         private val PARAGRAPH_FIRST_PATTERN = Regex(
-            """الفقرة\s+([0-9٠-٩]+)\s+من\s+المادة\s+([0-9٠-٩]+)(?:\s+من\s+(قانون\s+[^\n،؛.]+|قانون\s+العقوبات|قانون\s+الإثبات|قانون\s+الإجراءات\s+الجنائية))?""",
+            """الفقرة\s+([0-9٠-٩]+)\s+من\s+المادة\s+([0-9٠-٩]+)(?:\s+من\s+(قانون\s+العقوبات|قانون\s+الإثبات|قانون\s+الإجراءات\s+الجنائية|قانون\s+[^\n،؛.]+))?""",
             RegexOption.IGNORE_CASE,
         )
 
