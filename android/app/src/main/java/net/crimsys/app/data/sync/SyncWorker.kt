@@ -34,35 +34,43 @@ import net.crimsys.app.domain.sync.SyncResult
  * survive process death (WorkManager persists them), and a boot-time KEEP
  * request in CrimSysApplication covers a restart with a non-empty queue.
  *
- * Drain policy — one FIFO pass, per-command [SyncResult] outcomes:
- *  1. FIFO by [SyncCommandEntity.createdAtEpochMillis]; a row whose
- *     [SyncCommandEntity.nextAttemptAtEpochMillis] is in the future is
- *     SKIPPED (deferred, not abandoned — it becomes due automatically).
- *  2. [SyncResult.Accepted] — the remote write landed; the row is deleted
- *     and the drain continues.
- *  3. [SyncResult.Retryable] — the attempt counter increments and the row's
+ * Drain model: POP-ONE-AT-A-TIME. Each iteration takes the single oldest
+ * ready command ([SyncCommandDao.nextReady]), dispatches it, and applies the
+ * per-command outcome to exactly that row. Ordering is FIFO by
+ * [SyncCommandEntity.createdAtEpochMillis] with `commandId` as a total-order
+ * tiebreaker — the queue can never observe two commands with equal creation
+ * timestamps in an unstable order.
+ *
+ * Per-command outcome policy ([SyncResult] → row transition):
+ *  1. [SyncResult.Accepted] — the remote write landed; the row is deleted
+ *     and the loop continues.
+ *  2. [SyncResult.Retryable] — the attempt counter increments and the row's
  *     [SyncCommandEntity.nextAttemptAtEpochMillis] is stamped on the SAME
- *     UPDATE (durable across process death), then the drain STOPS — a later
- *     command must never overtake a failed earlier one. A server
- *     [SyncResult.Retryable.retryAfter] hint, when supplied, overrides the
- *     backoff marker (clamped); the next enqueued command or connectivity
- *     window re-triggers a drain regardless.
- *  4. [SyncResult.Conflict] — a newer remote row exists; a blind overwrite
- *     would destroy data, so the row is parked immediately for human
- *     inspection and the drain continues.
- *  5. [SyncResult.PermanentFailure] — the command can never succeed
- *     (corrupt row, unsupported schema version), so it must never consume
- *     another connectivity window: parked immediately, drain continues.
- *  6. A command whose attempt budget ([MAX_ATTEMPTS]) is exhausted is
- *     dead-lettered and the drain continues (no head-of-line blocking); the
- *     row is kept, never deleted.
+ *     UPDATE ([SyncCommandDao.recordRetry], durable across process death);
+ *     the loop STOPS — a later command must never overtake a failed earlier
+ *     one. A server [SyncResult.Retryable.retryAfter] hint, when supplied,
+ *     overrides the fixed backoff (clamped to 1s..15m); the next enqueued
+ *     command or connectivity window re-triggers a drain regardless.
+ *  3. [SyncResult.Conflict] — a newer remote row exists; a blind overwrite
+ *     would destroy data, so the row is parked under the dedicated
+ *     'CONFLICT' status ([SyncCommandDao.markConflict]) — distinct from
+ *     'DEAD' so inspection can prioritize split-brain rows — and the loop
+ *     continues.
+ *  4. [SyncResult.PermanentFailure] — the command can never succeed
+ *     (unsupported schema version), so it must never consume another
+ *     connectivity window: parked as 'DEAD' immediately, loop continues.
+ *  5. A command whose attempt budget ([MAX_ATTEMPTS]) is exhausted is
+ *     dead-lettered before any dispatch (poison-pill protection; the row is
+ *     kept, never deleted) and the loop continues.
+ *  6. A row that fails to decode (foreign CommandType name, malformed UUID)
+ *     is parked as 'DEAD' — it can never be routed, so it must never block
+ *     the head of the queue.
  *
  * The worker always returns [Result.success] — the queue state IS the sync
  * state, and WorkManager's own retry machinery would only stack a second
  * retry policy on top of the queue's. Re-drains are triggered by the next
  * enqueued command, the next connectivity change (a fresh CONNECTED request),
- * a [SyncResult.Retryable.retryAfter] hint, or the user requeueing
- * dead-lettered rows.
+ * a [SyncResult.Retryable.retryAfter] hint, or the next drain window.
  */
 @HiltWorker
 class SyncWorker @AssistedInject constructor(
@@ -86,18 +94,24 @@ class SyncWorker @AssistedInject constructor(
     }
 
     /**
-     * One FIFO pass over the live queue. Returns a [DrainOutcome] describing
-     * the pass — the worker's own summary; per-command outcomes are the
-     * [SyncResult] taxonomy reported by [executor].
+     * Repeatedly pops the single oldest ready command and applies its
+     * outcome. Returns a [DrainOutcome] describing the pass — the worker's
+     * own summary; per-command outcomes are the [SyncResult] taxonomy
+     * reported by [executor].
      */
     private suspend fun drainOnce(): DrainOutcome {
         var processed = 0
 
-        for (entity in syncCommandDao.dueCommands(nowEpochMillis = clock.millis())) {
+        while (true) {
+            val now = clock.millis()
+
+            // Pop exactly one ready command; an empty queue ends the pass.
+            val entity = syncCommandDao.nextReady(now) ?: break
+
             // Poison-pill handling: exhausted budget → dead letter, keep the
-            // row, keep draining the commands behind it.
+            // row, keep popping the commands behind it.
             if (entity.attemptCount >= MAX_ATTEMPTS) {
-                syncCommandDao.markDeadLetter(entity.commandId, maxAttempts = MAX_ATTEMPTS)
+                syncCommandDao.markDead(entity.commandId, "attempt budget exhausted")
                 Log.w(TAG, "Command ${entity.commandId} (${entity.type}) dead-lettered after ${entity.attemptCount} attempts")
                 continue
             }
@@ -112,7 +126,7 @@ class SyncWorker @AssistedInject constructor(
             if (command == null) {
                 // Corrupt row — it will never decode, so it must never ride
                 // the queue again. The breadcrumb stays non-legal and short.
-                syncCommandDao.parkCorrupt(entity.commandId, "undecodable command row")
+                syncCommandDao.markDead(entity.commandId, "undecodable command row")
                 Log.w(TAG, "Command ${entity.commandId} parked: corrupt row")
                 continue
             }
@@ -128,11 +142,10 @@ class SyncWorker @AssistedInject constructor(
                     // (server hint when present, clamped — else fixed backoff),
                     // keep order, stop the drain.
                     val delay = outcome.retryAfter?.let { clampRetryDelay(it) } ?: DEFAULT_RETRY_DELAY
-                    val nextAttemptAt = clock.millis() + delay.inWholeMilliseconds
-                    syncCommandDao.markAttemptFailed(
+                    syncCommandDao.recordRetry(
                         commandId = entity.commandId,
-                        nextAttemptAtEpochMillis = nextAttemptAt,
                         error = truncateBreadcrumb(outcome.reason),
+                        nextAttemptAt = now + delay.inWholeMilliseconds,
                     )
                     Log.w(
                         TAG,
@@ -153,10 +166,11 @@ class SyncWorker @AssistedInject constructor(
 
                 is SyncResult.Conflict -> {
                     // A newer remote row exists — refuse the overwrite and
-                    // park the row for human inspection; the drain continues.
-                    syncCommandDao.parkCorrupt(
+                    // park the row under the dedicated conflict status; the
+                    // loop continues.
+                    syncCommandDao.markConflict(
                         entity.commandId,
-                        "remote conflict (remote version ${outcome.remoteVersion})",
+                        truncateBreadcrumb("remote conflict (remote version ${outcome.remoteVersion})"),
                     )
                     Log.w(
                         TAG,
@@ -168,7 +182,7 @@ class SyncWorker @AssistedInject constructor(
                     // It can never succeed, so it must never consume another
                     // connectivity window. Keep the transport's reason — it
                     // never carries payload content by contract.
-                    syncCommandDao.parkCorrupt(
+                    syncCommandDao.markDead(
                         entity.commandId,
                         truncateBreadcrumb(outcome.reason),
                     )
@@ -198,9 +212,8 @@ class SyncWorker @AssistedInject constructor(
 
         /**
          * Attempt budget — was a per-row `maxRetries` column in the previous
-         * generation; the new entity carries no budget column, so the budget
-         * is a code constant. Requeueing a dead-lettered row resets the
-         * counter, giving it a fresh budget.
+         * generation; the entity carries no budget column, so the budget is
+         * a code constant.
          */
         const val MAX_ATTEMPTS = 3
 

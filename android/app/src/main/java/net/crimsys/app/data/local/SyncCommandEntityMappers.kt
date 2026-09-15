@@ -46,8 +46,17 @@ fun SyncCommand.toEntity(): SyncCommandEntity =
         lastError = null,
     )
 
-/** Queue lifecycle — plain constants so migration SQL can reference values. */
+/**
+ * Queue lifecycle — plain constants so migration SQL can reference values.
+ *
+ * PENDING → the live queue (drained FIFO by [SyncCommandDao.nextReady]);
+ * CONFLICT → parked by a remote split-brain refusal, distinct from DEAD so
+ * human inspection can prioritize "the backend disagrees with us" over
+ * "this row is broken";
+ * DEAD → permanently broken or budget-exhausted, kept for inspection.
+ */
 object SyncCommandStatus {
     const val PENDING = "PENDING"
+    const val CONFLICT = "CONFLICT"
     const val DEAD = "DEAD"
 }
