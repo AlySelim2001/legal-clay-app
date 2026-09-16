@@ -86,6 +86,35 @@ cd android
 
 ---
 
+## 3.1 سلم التحقق بعد إدخال ملفات جديدة (Post-integration verification ladder)
+
+تشغيل **إلزامي بالترتيب** من مجلد `android/` بعد أي إدخال كود، على آلة JDK 17 مع SDK 36 (بيئة التطوير السحابية لا تملك JDK/SDK ولا يمكنها تشغيل Gradle):
+
+```bash
+cd android
+./gradlew clean
+./gradlew test
+./gradlew lint
+./gradlew assembleDebug
+./gradlew assembleRelease
+./gradlew bundleRelease
+
+# ثم تحديدًا — بوابة الاقتباس:
+./gradlew test --tests "net.crimsys.app.domain.legal.CitationValidatorTest"
+```
+
+ملاحظات: `test` يشغّل `testDebugUnitTest` و`testReleaseUnitTest` معًا؛ تشغيل المهام بالاسم من الجذر ينفّذها في كل وحدة تحمل المهمة. أي فشل في السلم = ممنوع النشر، بلا استثناء.
+
+### اختبارات المرحلة التالية (محطات ما قبل النشر — لم تُبنَ بعد)
+
+1. **Room migration test 3 → 4** — عبر `MigrationTestHelper`، يحتاج:
+   - إضافة `androidTestImplementation(libs.androidx.room.testing)` + `androidx.test` runner في `app/build.gradle.kts`.
+   - ملفات المخططات: `4.json` يُصدَّر تلقائيًا بأول بناء (`exportSchema = true`)؛ **`3.json` يجب توليده والاحتفاظ به من نقطة v3** — لا يوجد build سابق صدّر مخططات هنا، وبدونه لا يمكن اختبار المسار من 3.
+2. **Evidence capture instrumentation test** — جهاز/محاكي فقط (`Context` + `filesDir` + مكتبة `sqlcipher` الأصلية)، لا يعمل على JVM: يثبت المسار الحرج كاملًا عبر `captureAndSecureEvidence` (hash أثناء النسخ → fsync → read-only → rename → حدث CAPTURED المؤسِّس، ثم فشل نظيف مع تنظيف الملفات عند الخطأ).
+3. **SyncWorker integration test** — عبر `androidx.work:work-testing` (`TestListenableWorkerBuilder` + `WorkManagerTestInitHelper`، يعمل على JVM مع Robolectric) مع fake لـ `SyncCommandExecutor` يغطي: `Accepted → حذف`، `Retryable → تأجيل durable + إعادة جدولة`، `PermanentFailure → DEAD`، وصف غير قابل للفك → DEAD **دون حجب ما خلفه** (اختبار livelock عمدًا بصف تالف في المقدمة).
+
+---
+
 ## 4. اختبار ما بعد البناء (Post-build smoke test)
 
 قبل توزيع أي APK، جرّب يدوياً على جهاز حقيقي:
