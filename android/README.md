@@ -29,6 +29,46 @@ UI (Compose, StateFlow)
 - **Sync**: `SyncManager` (booted in `CrimSysApplication`) collects
   `NetworkMonitor.observe()` and drains the queue FIFO on reconnect; a failed
   push increments `retryCount` and stops the drain to preserve ordering.
+
+**Two queue generations coexist by policy — the legacy `OfflineActionQueue`
+must NOT be deleted while it still has live producers:**
+
+```
+                    CURRENT
+                       │
+              OfflineActionQueue
+                       │
+             ┌─────────┴─────────┐
+             │                   │
+       Existing producers    New producers
+             │                   │
+             ▼                   ▼
+       Legacy Queue        SyncCommand Queue
+                                 │
+                                 ▼
+                            WorkManager
+                                 │
+                                 ▼
+                       Typed SyncResult
+                                 │
+             ┌───────────────────┼──────────────────┐
+             ▼                   ▼                  ▼
+          Accepted            Retryable          Conflict
+             │                   │                  │
+          Delete             Backoff              Review
+```
+
+- `CaseRepositoryImpl` and `HearingRepositoryImpl` are **live producers** of
+  the legacy queue (Room write → `offlineActionDao.enqueue` → `SyncManager`
+  drain), and the UI sync badges read its Flows — removal would break case
+  intake outright.
+- New producers write to the `SyncCommandQueue` (`SyncCommandEntity` →
+  `SyncWorkScheduler` → `SyncWorker` → typed `SyncResult`).
+- **Deprecation order (hard gate):** migrate ALL producers to the
+  sync-command queue → run parity tests (identical outcomes for the same
+  operation through both queues) → only then mark the legacy queue DEPRECATED
+  and remove it.
+
 - **Encryption**: the SQLCipher passphrase is a random 256-bit key wrapped by
   an Android Keystore AES-GCM key (`DatabasePassphraseProvider`); the DB file
   and key blob are excluded from backups.
@@ -60,7 +100,7 @@ UI (Compose, StateFlow)
 | `domain/legal/` | `LegalCitation` (evidence-grade: temporal window + source digest + gazette), `CitationValidator` (self-parsing Arabic citations, clock-injected event dates, sanitize-with-refusal) + `LegalRegistryRepository` |
 | `domain/sync/` | `SyncCommand` (CQRS: commandId/aggregateId, closed `CommandType` enum, schemaVersion, attemptCount), `SyncResult` (Accepted/Retryable/Conflict/PermanentFailure), `SyncCommandExecutor` |
 
-**Sync-command queue generations:** v6 rebuilt the table around the CQRS `SyncCommand` (closed enum, no digest); v7 (current) made `commandId` the primary key, added durable per-row retry deferral + `lastError`, and moved the attempt budget into code (`SyncWorker.MAX_ATTEMPTS = 3`). |
+**Sync-command queue generations:** v6 rebuilt the table around the CQRS `SyncCommand` (closed enum, no digest); v7 (current) made `commandId` the primary key, added durable per-row retry deferral + `lastError`, and moved the attempt budget into code (`SyncWorker.MAX_ATTEMPTS = 8`). |
 | `di/HarisCoreModule.kt` | Bindings + DAO/WorkManager providers for the slice |
 | `ui/` | `CrimSysApp` scaffold (RTL drawer + top bar), NavHost, clay components, theme (Cairo font, urgency tokens) |
 | `ui/screens/cases/` | Case list, case file, rich-text memo editor |

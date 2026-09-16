@@ -33,6 +33,12 @@ import net.crimsys.app.domain.sync.SyncResult
  * REPLACE); there is no boot-time trigger — a command enqueued while offline
  * is drained by the next on-write enqueue or connectivity window.
  *
+ * Coexistence policy (see `android/README.md`): no production code constructs
+ * `SyncCommandEntity` yet — this queue's producers arrive with the
+ * case/hearing repository migration, and the legacy `OfflineActionQueue`
+ * (`SyncManager`) stays the live write path until every producer has moved
+ * over and parity tests pass. Do not delete the legacy queue before then.
+ *
  * Backoff model ([computeNextAttempt]): a transport [SyncResult.Retryable.retryAfter]
  * hint, when present, is the base delay (floor 0 — bounded by [MAX_ATTEMPTS],
  * which dead-letters a permanently hint-broken row within 8 cycles);
