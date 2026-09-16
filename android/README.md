@@ -106,8 +106,38 @@ must NOT be deleted while it still has live producers:**
 | `ui/screens/cases/` | Case list, case file, rich-text memo editor |
 | `ui/screens/calendar/` | kizitonwose hearings calendar with day indicators |
 
-## Build
+## Production Gates — what is NOT yet allowed to ship
 
+**Gate 1 — Command envelope validation (backend).**
+`FirebaseSyncCommandExecutor` makes redelivery idempotent by document
+identity, but document identity alone is not domain synchronization.
+`firestore.rules` (this directory) is the deployable first enforcement layer:
+`commandId` == document key, `schemaVersion == 1` only, closed `CommandType`
+vocabulary, exact field shape, `ownerUid == request.auth.uid`, updates must be
+byte-identical (append-only log), no client deletes. Honest boundary: rules
+cannot parse `payloadJson` — deep payload-schema validation, aggregate
+referential checks, and retention are Cloud Functions responsibilities.
+
+**Gate 2 — Legal source ingestion (process, not code).** The DAO is not
+trust: every `LegalSourceDao` query reads `verified = 1` rows only, so an
+unreviewed source is invisible to the Citation Gate *by construction*. Trust
+comes from the ingestion pipeline — official source → downloaded original →
+SHA-256 → parser → legal review → effective dates → `verified = true` —
+enforced by `docs/engineering/skills/legal-source-review.md`. There is
+intentionally NO in-app producer of `LegalSourceEntity`.
+
+**Gate 3 — Evidence integrity verification (runtime).** `setReadOnly()` is
+defense-in-depth, not a rooted-device guarantee. The evidence is the
+COMBINATION: original hash + chain of custody + encrypted metadata —
+re-derived at runtime by `EvidenceIntegrityVerifier` (SHA-256 recomputation
+from disk bytes + custody-chain replay with genesis anchoring to the stored
+`originalFileHash`), red-team tested in `EvidenceIntegrityVerifierTest`
+(tamper-and-compare, swapped anchor, reordered/forged links). Honest
+boundary: this proves tamper-*evidence*, not tamper-*proof*; an attacker who
+can rewrite both the file and the local DB is a remote-log/attestation
+problem (Gate 1's append-only command log is the anchor).
+
+## Build
 ```bash
 cd android
 ./gradlew assembleDebug          # debug APK

@@ -1,0 +1,101 @@
+rules_version = '2';
+
+// =============================================================================
+// CRIM-SYS 2026 — Gate 1: command-envelope validation at the transport edge.
+//
+// FirebaseSyncCommandExecutor makes redelivery idempotent via document
+// identity, but document identity alone is NOT domain synchronization: the
+// backend must independently validate every field of every command. These
+// rules are the first enforcement layer — deployable as-is, and the source
+// of truth for the envelope contract until Cloud Functions take over deep
+// validation.
+//
+// Enforced here (client cannot bypass):
+//   commandId            — doc key identity, field == document key
+//   schemaVersion        — only the supported version (1) is accepted
+//   aggregateId          — required string (referential check = backend)
+//   type                 — closed CommandType vocabulary only
+//   payload schema       — shape/type only (opaque string; deep schema
+//                          validation is a Cloud Functions trigger, see NOTE)
+//   authorization        — ownerUid == request.auth.uid, on every operation
+//
+// NOTE (honest boundary): security rules cannot parse payloadJson. Payload
+// deep-schema validation, aggregate referential checks, and retention are
+// server-side responsibilities (Cloud Functions on write). Rules make the
+// remote copy an append-only, owner-scoped, version-gated log — which is
+// also what makes it a usable tamper-evident anchor for evidence integrity
+// (client-side DB writes alone prove nothing against a compromised device).
+//
+// Deploy: `firebase deploy --only firestore:rules` (backend provisioning), or
+// paste into the Firebase console for the practice project.
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownedByCaller(data) {
+      return signedIn() && data.ownerUid == request.auth.uid;
+    }
+
+    // The closed CommandType vocabulary — must mirror
+    // net.crimsys.app.domain.sync.CommandType exactly. A new enum constant is
+    // a two-file change (Kotlin + here), never one.
+    function knownCommandType(type) {
+      return type in ['CREATE_CASE', 'UPDATE_MEMO', 'CREATE_HEARING', 'CREATE_EVIDENCE'];
+    }
+
+    // Exact field set: nothing missing, nothing extra, correct scalar types.
+    function commandShape(data) {
+      return data.keys().hasAll([
+        'commandId', 'schemaVersion', 'aggregateId', 'type',
+        'payloadJson', 'createdAtEpochMillis', 'ownerUid',
+      ])
+      && data.keys().hasOnly([
+        'commandId', 'schemaVersion', 'aggregateId', 'type',
+        'payloadJson', 'createdAtEpochMillis', 'ownerUid',
+      ])
+      && data.commandId is string
+      && data.schemaVersion is number
+      && data.aggregateId is string
+      && data.type is string
+      && data.payloadJson is string
+      && data.createdAtEpochMillis is number
+      && data.ownerUid is string;
+    }
+
+    match /haris_sync_commands/{commandId} {
+
+      // CREATE — first delivery. The enqueue-time UUID is the idempotency
+      // key: the document key must equal the commandId field, the owner must
+      // be the authenticated caller, and the envelope must be fully valid.
+      allow create: if commandShape(request.resource.data)
+        && request.resource.data.commandId == commandId
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.schemaVersion == 1
+        && knownCommandType(request.resource.data.type);
+
+      // UPDATE — idempotent redelivery ONLY: a byte-identical rewrite of the
+      // same document by the same owner. Any content change under an existing
+      // commandId is a replay/rewrite attempt and is denied. This is what
+      // makes the remote copy append-only in practice.
+      allow update: if commandShape(request.resource.data)
+        && ownedByCaller(resource.data)
+        && request.resource.data == resource.data;
+
+      // READ — owner-scoped inspection only (backend/audit tooling reads with
+      // admin credentials, which bypass rules by design).
+      allow read: if ownedByCaller(resource.data);
+
+      // DELETE — never a client decision. Retention is a backend lifecycle
+      // policy (Cloud Functions), keeping the log usable as an audit anchor.
+      allow delete: if false;
+    }
+
+    // Everything else: denied by default. No collection is client-writable
+    // unless a rule above explicitly allows it.
+  }
+}
