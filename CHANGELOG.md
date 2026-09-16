@@ -5,6 +5,15 @@ All notable changes to CRIM-SYS 2026 (LAW-SYS) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🤖 Android Native — HarisCore Test Gates (all three pre-release stages complete)
+
+- **Room migration test 3 → 4** (`RoomMigration3To4Test`) — hand-written frozen `3.json` + `MIGRATION_3_4` validation, zero data loss byte-for-byte
+- **Evidence capture instrumentation test** (`EvidenceCaptureInstrumentedTest`) — real-device custody pipeline: fused hash+copy → fsync → read-only → rename → genesis `CAPTURED` event, red-team tamper-and-compare, clean-failure paths, OCR stage
+- **SyncWorker integration test** (`SyncWorkerTest`, JVM/Robolectric SDK 36) — real in-memory Room queue + fake executor: Accepted/Retryable/Conflict/PermanentFailure, undecodable-head livelock regression, MAX_ATTEMPTS=8, durable retry deferral
+- Gradle wiring: `robolectric` 4.16, `androidx-work-testing`, `androidx-test-core`, `testOptions.unitTests.isIncludeAndroidResources = true`
+
 ## [2.0.0] - 2026-09-03
 
 ### 🚀 Added — Phase 2 Enterprise Features

@@ -111,6 +111,13 @@ android {
             assets.srcDir("$projectDir/schemas")
         }
     }
+
+    testOptions {
+        unitTests {
+            // Robolectric (SyncWorkerTest) needs the merged resources.
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 ksp {
@@ -176,8 +183,14 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    // SyncWorker integration test (JVM): Robolectric + WorkManager test harness
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.work.testing)
+    testImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.junit.ext)
     androidTestImplementation(libs.espresso.core)
+    // Evidence capture instrumentation test needs androidx.test.core on device too
+    androidTestImplementation(libs.androidx.test.core)
     // Room migration tests: MigrationTestHelper reads the exported schema
     // JSONs packaged above as androidTest assets.
     androidTestImplementation(libs.androidx.room.testing)

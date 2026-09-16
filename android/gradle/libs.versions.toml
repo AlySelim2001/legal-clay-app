@@ -34,6 +34,10 @@ espresso = "3.6.1"
 turbine = "1.2.0"
 mockk = "1.13.13"
 uiautomator = "2.3.0"
+# Robolectric 4.16 — supports SDK 36 (the app's compile/target API).
+robolectric = "4.16"
+workTesting = "2.10.0"
+testCore = "1.6.1"
 
 [libraries]
 # AndroidX core
@@ -106,6 +110,10 @@ espresso-core = { group = "androidx.test.espresso", name = "espresso-core", vers
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
+# JVM-side instrumented-test stand-ins (SyncWorkerTest: Robolectric + work-testing)
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "workTesting" }
+androidx-test-core = { group = "androidx.test", name = "core-ktx", version.ref = "testCore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
