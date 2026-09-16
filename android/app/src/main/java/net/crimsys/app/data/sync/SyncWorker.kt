@@ -11,6 +11,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -275,7 +276,7 @@ class SyncWorker @AssistedInject constructor(
  */
 @Singleton
 class SyncWorkScheduler @Inject constructor(
-    private val context: Context,
+    @ApplicationContext private val context: Context,
 ) {
 
     fun enqueue() {

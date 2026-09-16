@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🧱 Android Native — P0 Hilt graph hardening
+
+- `@ApplicationContext` added to the unqualified `Context` injections in `SyncWorkScheduler` and `DatabasePassphraseProvider` — Dagger cannot satisfy an unqualified `Context` binding in `SingletonComponent`, so the first command-queue producer to inject `SyncWorkScheduler` (and any direct injection of `DatabasePassphraseProvider`) would have failed the Hilt graph at compile time
+
 ### 🤖 Android Native — HarisCore Test Gates (all three pre-release stages complete)
 
 - **Room migration test 3 → 4** (`RoomMigration3To4Test`) — hand-written frozen `3.json` + `MIGRATION_3_4` validation, zero data loss byte-for-byte
