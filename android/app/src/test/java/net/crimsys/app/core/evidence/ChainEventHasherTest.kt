@@ -34,6 +34,62 @@ class ChainEventHasherTest {
     }
 
     @Test
+    fun `same inputs produce same hash`() {
+
+        val first =
+            ChainEventHasher.create(
+                action =
+                    ChainAction.CAPTURED,
+                timestampEpochMillis =
+                    1_000L,
+                previousHash = null,
+                contentHash =
+                    "a".repeat(64),
+            )
+
+        val second =
+            ChainEventHasher.create(
+                action =
+                    ChainAction.CAPTURED,
+                timestampEpochMillis =
+                    1_000L,
+                previousHash = null,
+                contentHash =
+                    "a".repeat(64),
+            )
+
+        assertEquals(
+            first.currentHash,
+            second.currentHash,
+        )
+    }
+
+    @Test
+    fun `different parent changes chain`() {
+
+        val first =
+            ChainEventHasher.create(
+                ChainAction.OCR_PROCESSED,
+                1_000L,
+                "a".repeat(64),
+                "b".repeat(64),
+            )
+
+        val second =
+            ChainEventHasher.create(
+                ChainAction.OCR_PROCESSED,
+                1_000L,
+                "c".repeat(64),
+                "b".repeat(64),
+            )
+
+        assertNotEquals(
+            first.currentHash,
+            second.currentHash,
+        )
+    }
+
+    @Test
     fun `null and empty previousHash denote the same genesis link`() {
         val fromNull = ChainEventHasher.create(ChainAction.CAPTURED, 42L, null, content)
         val fromEmpty = ChainEventHasher.create(ChainAction.CAPTURED, 42L, "", content)
