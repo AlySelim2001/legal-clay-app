@@ -39,6 +39,11 @@ android {
 
         vectorDrawables { useSupportLibrary = true }
 
+        // Instrumented tests (Room migration suite) run on the standard
+        // AndroidJUnitRunner; MigrationTestHelper reads the exported schema
+        // JSONs packaged below as androidTest assets.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
         // BuildConfig passthrough — secrets stay in keystore.properties,
         // never in source control. Both are OPTIONAL: the app is offline-first
         // and Firestore degrades gracefully when unset (RemoteDataSource
@@ -94,6 +99,16 @@ android {
                 "META-INF/DEPENDENCIES",
                 "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
             )
+        }
+    }
+
+    sourceSets {
+        // Room migration-test assets (official Room docs pattern): the
+        // exported schema JSONs are packaged as androidTest assets, where
+        // MigrationTestHelper finds them (it checks the test assets first,
+        // then the application assets). They never ship in the production APK.
+        getByName("androidTest") {
+            assets.srcDir("$projectDir/schemas")
         }
     }
 }
@@ -163,6 +178,9 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.junit.ext)
     androidTestImplementation(libs.espresso.core)
+    // Room migration tests: MigrationTestHelper reads the exported schema
+    // JSONs packaged above as androidTest assets.
+    androidTestImplementation(libs.androidx.room.testing)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
 

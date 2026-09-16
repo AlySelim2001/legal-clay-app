@@ -105,11 +105,19 @@ cd android
 
 ملاحظات: `test` يشغّل `testDebugUnitTest` و`testReleaseUnitTest` معًا؛ تشغيل المهام بالاسم من الجذر ينفّذها في كل وحدة تحمل المهمة. أي فشل في السلم = ممنوع النشر، بلا استثناء.
 
-### اختبارات المرحلة التالية (محطات ما قبل النشر — لم تُبنَ بعد)
+### اختبارات المرحلة التالية (محطات ما قبل النشر)
 
-1. **Room migration test 3 → 4** — عبر `MigrationTestHelper`، يحتاج:
-   - إضافة `androidTestImplementation(libs.androidx.room.testing)` + `androidx.test` runner في `app/build.gradle.kts`.
-   - ملفات المخططات: `4.json` يُصدَّر تلقائيًا بأول بناء (`exportSchema = true`)؛ **`3.json` يجب توليده والاحتفاظ به من نقطة v3** — لا يوجد build سابق صدّر مخططات هنا، وبدونه لا يمكن اختبار المسار من 3.
+1. **Room migration test 3 → 4 — ✅ مُنفّذ** (`app/src/androidTest/.../RoomMigration3To4Test.kt`)، عبر `MigrationTestHelper`:
+   - `androidTestImplementation(libs.androidx.room.testing)` مُضافة، والعدّاء `testInstrumentationRunner` مضبوط، ومجلد `app/schemas/` مُعبَّأ كأصول androidTest (لا يدخل APK الإنتاج).
+   - **`3.json` وُلّد يدويًا بشكل حتمي** يعكس بالضبط ما بنيته `MIGRATION_1_2` + `MIGRATION_2_3` (جداول `cases`/`hearings`/`offline_actions` + فهرس `index_offline_actions_status_id` + AUTOINCREMENT) — والاحتفاظ به إلزامي في Git لأنه لا توجد طريقة لإعادة توليده من تاريخ المشروع.
+   - `4.json` يُعاد توليده تلقائيًا بأول بناء (`exportSchema = true`)؛ الملف الحالي placeholder صالح البنية يستبدله KSP بالـ identityHash الحقيقي.
+   - يغطي: إنشاء قاعدة v3 حقيقية → بذر صفوف حدّية (PENDING + DLQ DEAD + صف legacy بحامل `actionUuid = ''`) → تشغيل `MIGRATION_3_4` مع تحقق مخطط كامل → مطابقة كل صف byte-for-byte + اختبار قيود الجداول الجديدة (`UNIQUE(originalFileHash)` يرفض التكرار).
+   - التشغيل (يتطلب جهاز/محاكي — لا يعمل على JVM):
+     ```bash
+     ./gradlew connectedDebugAndroidTest \
+       -Pandroid.testInstrumentationRunnerArguments.class=net.crimsys.app.data.local.RoomMigration3To4Test
+     ```
+   - 🔴 **إصلاح مواكب أظهره بناء الاختبار:** فهرس `index_offline_actions_status_id` (المولود في `MIGRATION_2_3`) كان غير مُصرَّح به في `OfflineActionEntity` — كان سيفشل `onValidateSchema` ("Migration didn't properly handle offline_actions") عند فتح v4 على أي جهاز حقيقي مُرقّى. صُحّح بإعلان `Index(value = ["status", "id"])` في الكيان (بدون أي SQL أو حذف بيانات).
 2. **Evidence capture instrumentation test** — جهاز/محاكي فقط (`Context` + `filesDir` + مكتبة `sqlcipher` الأصلية)، لا يعمل على JVM: يثبت المسار الحرج كاملًا عبر `captureAndSecureEvidence` (hash أثناء النسخ → fsync → read-only → rename → حدث CAPTURED المؤسِّس، ثم فشل نظيف مع تنظيف الملفات عند الخطأ).
 3. **SyncWorker integration test** — عبر `androidx.work:work-testing` (`TestListenableWorkerBuilder` + `WorkManagerTestInitHelper`، يعمل على JVM مع Robolectric) مع fake لـ `SyncCommandExecutor` يغطي: `Accepted → حذف`، `Retryable → تأجيل durable + إعادة جدولة`، `PermanentFailure → DEAD`، وصف غير قابل للفك → DEAD **دون حجب ما خلفه** (اختبار livelock عمدًا بصف تالف في المقدمة).
 

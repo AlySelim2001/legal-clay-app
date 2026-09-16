@@ -1,6 +1,7 @@
 package net.crimsys.app.data.local
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.UUID
 
@@ -28,7 +29,18 @@ object OfflineActionStatus {
  * in insertion order by [net.crimsys.app.data.sync.SyncManager] once
  * connectivity returns, then deleted.
  */
-@Entity(tableName = "offline_actions")
+@Entity(
+    tableName = "offline_actions",
+    indices = [
+        // Declared in MIGRATION_2_3 (P1) and shipped to real databases since
+        // schema v3. Room validates table indices on every open — the index
+        // must be declared here or onValidateSchema fails with
+        // "Migration didn't properly handle offline_actions" on every device
+        // upgraded past v3. Pure annotation alignment: no columns change, no
+        // data is touched, and new installs get the identical index.
+        Index(value = ["status", "id"]),
+    ],
+)
 data class OfflineActionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     /**

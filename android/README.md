@@ -101,6 +101,8 @@ must NOT be deleted while it still has live producers:**
 | `domain/sync/` | `SyncCommand` (CQRS: commandId/aggregateId, closed `CommandType` enum, schemaVersion, attemptCount), `SyncResult` (Accepted/Retryable/Conflict/PermanentFailure), `SyncCommandExecutor` |
 
 **Sync-command queue generations:** v6 rebuilt the table around the CQRS `SyncCommand` (closed enum, no digest); v7 (current) made `commandId` the primary key, added durable per-row retry deferral + `lastError`, and moved the attempt budget into code (`SyncWorker.MAX_ATTEMPTS = 8`). |
+| `app/schemas/…CrimSysDatabase/` | Exported Room schema JSONs — the migration-test contract. `3.json` is **hand-written and frozen** (deterministic mirror of what `MIGRATION_1_2`+`MIGRATION_2_3` built — nothing in the repo can regenerate it); `4.json` is re-exported by KSP on every build (`exportSchema = true`). Packaged as androidTest assets so `MigrationTestHelper` finds them; never shipped in the production APK. |
+| `app/src/androidTest/…/RoomMigration3To4Test.kt` | Instrumented 3→4 migration gate: builds a real v3 db from `3.json`, seeds boundary rows (PENDING, DLQ `DEAD`, legacy `actionUuid=''` sentinel), runs `MIGRATION_3_4` with full schema validation, asserts zero data loss byte-for-byte + new-table constraints (`UNIQUE(originalFileHash)` dedup). Requires a device/emulator. |
 | `di/HarisCoreModule.kt` | Bindings + DAO/WorkManager providers for the slice |
 | `ui/` | `CrimSysApp` scaffold (RTL drawer + top bar), NavHost, clay components, theme (Cairo font, urgency tokens) |
 | `ui/screens/cases/` | Case list, case file, rich-text memo editor |
