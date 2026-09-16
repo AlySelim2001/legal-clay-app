@@ -68,6 +68,11 @@ must NOT be deleted while it still has live producers:**
   sync-command queue → run parity tests (identical outcomes for the same
   operation through both queues) → only then mark the legacy queue DEPRECATED
   and remove it.
+- **Parity gate — implemented:** `QueueParityTest` (unit tests) already
+  proves identical observable outcomes through both generations for case
+  intake (accepted / rejected / poison-head / FIFO order). When a producer
+  migrates, extend the suite with that producer's operation on the command
+  side and re-run BEFORE deleting its legacy enqueue.
 
 - **Encryption**: the SQLCipher passphrase is a random 256-bit key wrapped by
   an Android Keystore AES-GCM key (`DatabasePassphraseProvider`); the DB file
@@ -96,6 +101,7 @@ must NOT be deleted while it still has live producers:**
 | `data/remote/FirebaseSyncCommandExecutor.kt` | Firestore transport behind `SyncCommandExecutor` (contract: **commandId is the idempotency key**, satisfied by remote document identity); typed `FirebaseFirestoreException` → `SyncResult` mapping |
 | `data/sync/SyncWorker.kt` | `@HiltWorker` drain: pop-one FIFO loop, per-command `SyncResult` outcomes (Accepted→delete, Retryable→backoff+jitter deferral + delayed REPLACE re-drain, Conflict→'CONFLICT' park, PermanentFailure→'DEAD' park), MAX_ATTEMPTS=8 budget, decode-guard dead-lettering |
 | `test/…/data/sync/SyncWorkerTest.kt` | JVM/Robolectric (SDK 35 — Robolectric 4.16 needs JDK 21 for the SDK 36 target; the ladder pins JDK 17) drain integration test: real in-memory Room queue + fake executor over work-testing. Covers Accepted/Retryable/Conflict/PermanentFailure, the undecodable-head livelock regression (poor row dead-lettered, tail still drained), MAX_ATTEMPTS=8 dead-letter without transport touch, and durable retry deferral (attemptCount/lastError/nextAttemptAt + invisibility inside the window) |
+| `test/…/data/sync/QueueParityTest.kt` | **Parity gate (coexistence policy):** proves the two queue generations produce IDENTICAL observable outcomes for the same operations — real `CaseRepositoryImpl` + `SyncManager` on the legacy side vs the canonical command mapping + `SyncWorker` on the command side, both against real in-memory Room, transport faked. Scenarios: accepted (one delivery, empty queue), rejected (retained, one attempt), poison-head (dead-lettered without blocking the tail), multi-mutation FIFO order. Legacy-only producer behaviors (isSynced flip) and command-side bindings (payload caseId == aggregateId) are asserted on their own sides — the isSynced coupling migrates WITH the producer, after this suite passes |
 | `data/sync/SyncWorkScheduler.kt` (in `SyncWorker.kt`) | Public `enqueue()` entry point (KEEP) for on-write drain scheduling by command-producing repositories |
 | `domain/evidence/` | `ChainEvent` (`@Serializable`, closed `ChainAction` vocabulary), `EvidenceRepository` (capture + OCR stages on `Resource<T>`) |
 | `domain/legal/` | `LegalCitation` (evidence-grade: temporal window + source digest + gazette), `CitationValidator` (self-parsing Arabic citations, clock-injected event dates, sanitize-with-refusal) + `LegalRegistryRepository` |

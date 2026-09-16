@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Room migration test 3 → 4** (`RoomMigration3To4Test`) — hand-written frozen `3.json` + `MIGRATION_3_4` validation, zero data loss byte-for-byte
 - **Evidence capture instrumentation test** (`EvidenceCaptureInstrumentedTest`) — real-device custody pipeline: fused hash+copy → fsync → read-only → rename → genesis `CAPTURED` event, red-team tamper-and-compare, clean-failure paths, OCR stage
-- **SyncWorker integration test** (`SyncWorkerTest`, JVM/Robolectric SDK 36) — real in-memory Room queue + fake executor: Accepted/Retryable/Conflict/PermanentFailure, undecodable-head livelock regression, MAX_ATTEMPTS=8, durable retry deferral
+- **SyncWorker integration test** (`SyncWorkerTest`, JVM/Robolectric SDK 35 — Robolectric 4.16 needs JDK 21 for an SDK 36 target; the ladder pins JDK 17) — real in-memory Room queue + fake executor: Accepted/Retryable/Conflict/PermanentFailure, undecodable-head livelock regression, MAX_ATTEMPTS=8, durable retry deferral
+- **Queue parity suite** (`QueueParityTest`) — the coexistence-policy gate: identical observable outcomes (delivery count, payload, FIFO order, park/retain semantics, anti-livelock) through the legacy OfflineActionQueue (real `CaseRepositoryImpl` + `SyncManager`) and the SyncCommand queue (canonical mapping + `SyncWorker`); passing it unblocks producer migration to the command queue
 - Gradle wiring: `robolectric` 4.16, `androidx-work-testing`, `androidx-test-core`, `testOptions.unitTests.isIncludeAndroidResources = true`
 
 ## [2.0.0] - 2026-09-03
