@@ -73,6 +73,14 @@ must NOT be deleted while it still has live producers:**
   intake (accepted / rejected / poison-head / FIFO order). When a producer
   migrates, extend the suite with that producer's operation on the command
   side and re-run BEFORE deleting its legacy enqueue.
+- **P1-A semantic parity suites:** the operation vocabulary mapping
+  (`OperationMappingParityTest`), the canonical payload shapes
+  (`PayloadParityTest`), the typed-command reliability matrix incl.
+  remote-registry idempotency (`SyncOperationParityTest`), and the
+  crash-consistency matrix on a file-backed DB (`CrashConsistencyMatrixTest`)
+  — P1-A is verification-only: no legacy component removed, no producer
+  changed. Producer-side atomicity rows of the crash matrix (Case+Command
+  in one transaction) are P1-B RED tests, not yet claimable.
 
 - **Encryption**: the SQLCipher passphrase is a random 256-bit key wrapped by
   an Android Keystore AES-GCM key (`DatabasePassphraseProvider`); the DB file

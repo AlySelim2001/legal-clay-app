@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔁 Android Native — P1-A: queue parity verification (no producers changed)
+
+- **Semantic parity suites for the typed sync queue** (`data/sync/`): `OperationMappingParityTest` (exhaustive legacy→typed operation mapping, fails on any gap, no UNKNOWN fallback), `PayloadParityTest` (field-by-field payload parity for CREATE_CASE/UPDATE_MEMO/CREATE_HEARING, decode/re-encode safety, no-secret keys, verbatim transport delivery, FIFO order), `SyncOperationParityTest` (identity/payload-opaque/durability/retry/permanent/conflict matrix + remote-registry idempotency evidence: same commandId retried after a lost response commits the remote mutation exactly once), and `CrashConsistencyMatrixTest` (file-backed DB close/reopen proving commands, retry state, and parked CONFLICT rows survive process death)
+- All suites run the REAL `SyncWorker` drain against REAL Room; only the transport is faked. P1-A is verification-only: legacy queue intact, producers untouched
+
 ### 🧱 Android Native — P0 Hilt graph hardening
 
 - `@ApplicationContext` added to the unqualified `Context` injections in `SyncWorkScheduler` and `DatabasePassphraseProvider` — Dagger cannot satisfy an unqualified `Context` binding in `SingletonComponent`, so the first command-queue producer to inject `SyncWorkScheduler` (and any direct injection of `DatabasePassphraseProvider`) would have failed the Hilt graph at compile time
