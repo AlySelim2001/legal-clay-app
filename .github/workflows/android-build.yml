@@ -115,3 +115,103 @@ jobs:
           echo "| Triggered by | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Web QC | ${{ needs.quality.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Native Build | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+
+  # ──────────────────────────────────────────────────────
+  # Job 3: JVM unit tests — real test verification (P1 gate).
+  #        Independent job: a test failure MUST NOT hide the APK build
+  #        result, and MUST fail this workflow (no continue-on-error).
+  #        Focused sync-parity classes first (P1-A gate), then full suite.
+  # ──────────────────────────────────────────────────────
+  android-tests:
+    name: 🧪 JVM Unit Tests (parity + full suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: "gradle"
+
+      - name: Grant Gradle Permissions
+        run: chmod +x android/gradlew
+
+      - name: Focused Sync-Parity Tests
+        working-directory: android
+        timeout-minutes: 15
+        run: |
+          ./gradlew :app:testDebugUnitTest \
+            --tests "net.crimsys.app.data.sync.QueueParityTest" \
+            --tests "net.crimsys.app.data.sync.SyncOperationParityTest" \
+            --tests "net.crimsys.app.data.sync.PayloadParityTest" \
+            --tests "net.crimsys.app.data.sync.OperationMappingParityTest" \
+            --tests "net.crimsys.app.data.sync.CrashConsistencyMatrixTest" \
+            --no-daemon --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8"
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+
+      - name: Full JVM Test Suite
+        working-directory: android
+        timeout-minutes: 15
+        run: |
+          ./gradlew test \
+            --no-daemon --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8"
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+
+      - name: Upload JVM Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jvm-test-reports
+          path: |
+            android/app/build/reports/tests/
+            android/app/build/test-results/
+          retention-days: 14
+
+  # ──────────────────────────────────────────────────────
+  # Job 4: Instrumented tests — Room migration 3→4 on a real emulator.
+  #        API 36 to match the project baseline (compileSdk/targetSdk 36);
+  #        the migration test itself is API-independent (minSdk 26).
+  # ──────────────────────────────────────────────────────
+  android-instrumentation:
+    name: 📱 Instrumented Tests (Room migration on emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: "gradle"
+
+      - name: Grant Gradle Permissions
+        run: chmod +x android/gradlew
+
+      - name: Run RoomMigration3To4Test on Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          script: cd android && ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=net.crimsys.app.data.local.RoomMigration3To4Test --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8"
+
+      - name: Upload Instrumentation Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumentation-test-reports
+          path: |
+            android/app/build/outputs/androidTest-results/
+            android/app/build/reports/androidTests/
+          retention-days: 14
