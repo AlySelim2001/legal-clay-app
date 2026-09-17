@@ -1,0 +1,23 @@
+services:
+  local-ai-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: legal_clay_local_ai
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      QDRANT_URL: http://qdrant-vectorstore:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY in .env}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-egyptian_legal_docs}
+      OLLAMA_BASE_URL: http://ollama-engine:11434
+      PRIMARY_MODEL: ${PRIMARY_MODEL:-qwen2.5:7b}
+      EMBED_MODEL: ${EMBED_MODEL:-BAAI/bge-small-en-v1.5}
+    networks: [ai-internal]
+    depends_on:
+      qdrant-vectorstore:
+        condition: service_started
+      ollama-engine:
+        condition: service_started
+

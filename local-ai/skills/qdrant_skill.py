@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import os
 import uuid
 from typing import Any, Dict, List, Optional
@@ -8,16 +7,17 @@ from typing import Any, Dict, List, Optional
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
+from skills.embedding_skill import LocalEmbeddingSkill
+
 
 class QdrantLegalSkill:
-    """Indexes and retrieves Egyptian legal text in a local Qdrant collection."""
-
-    VECTOR_SIZE = 384
+    """Semantic indexing and retrieval for local Egyptian legal documents."""
 
     def __init__(self, host: Optional[str] = None, port: Optional[int] = None, collection_name: Optional[str] = None) -> None:
+        self.embedder = LocalEmbeddingSkill()
+        self.collection_name = collection_name or os.getenv("QDRANT_COLLECTION", "egyptian_legal_docs")
         url = os.getenv("QDRANT_URL")
         api_key = os.getenv("QDRANT_API_KEY")
-        self.collection_name = collection_name or os.getenv("QDRANT_COLLECTION", "egyptian_legal_docs")
         if url:
             self.client = QdrantClient(url=url, api_key=api_key)
         else:
@@ -28,45 +28,29 @@ class QdrantLegalSkill:
         try:
             names = {item.name for item in self.client.get_collections().collections}
             if self.collection_name not in names:
-                self.client.create_collection(collection_name=self.collection_name, vectors_config=VectorParams(size=self.VECTOR_SIZE, distance=Distance.COSINE))
+                self.client.create_collection(collection_name=self.collection_name, vectors_config=VectorParams(size=self.embedder.vector_dim, distance=Distance.COSINE))
         except Exception:
-            # Connection failures are reported by apply/search instead of breaking API import.
             return
 
-    @classmethod
-    def embed_text(cls, text: str) -> List[float]:
-        """Create a deterministic local baseline embedding without network calls."""
-        vector = [0.0] * cls.VECTOR_SIZE
-        encoded = text.encode("utf-8")
-        if not encoded:
-            return vector
-        for index in range(0, len(encoded), 2):
-            digest = hashlib.sha256(encoded[index:index + 64]).digest()
-            position = int.from_bytes(digest[:4], "big") % cls.VECTOR_SIZE
-            vector[position] += 1.0 if digest[4] % 2 else -1.0
-        magnitude = sum(value * value for value in vector) ** 0.5
-        return [value / magnitude for value in vector] if magnitude else vector
-
-    def index_text(self, text: str, vector: Optional[List[float]] = None, metadata: Optional[Dict[str, Any]] = None) -> str:
+    def index_text(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
         if not text or not text.strip():
             raise ValueError("Legal text must not be empty.")
         point_id = str(uuid.uuid4())
-        embedding = vector or self.embed_text(text)
-        if len(embedding) != self.VECTOR_SIZE:
-            raise ValueError(f"Vector must contain exactly {self.VECTOR_SIZE} dimensions.")
         payload = {"text": text, **(metadata or {})}
-        self.client.upsert(collection_name=self.collection_name, points=[PointStruct(id=point_id, vector=embedding, payload=payload)])
+        self.client.upsert(collection_name=self.collection_name, points=[PointStruct(id=point_id, vector=self.embedder.embed_text(text), payload=payload)])
         return point_id
 
-    def search_similar(self, vector: Optional[List[float]] = None, limit: int = 5, query: str = "") -> List[Dict[str, Any]]:
-        if limit < 1 or limit > 50:
+    def search_similar(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+        if not query or not query.strip():
+            raise ValueError("Search query must not be empty.")
+        if not 1 <= limit <= 50:
             raise ValueError("limit must be between 1 and 50.")
-        embedding = vector or self.embed_text(query)
+        vector = self.embedder.embed_text(query)
         try:
-            results = self.client.query_points(collection_name=self.collection_name, query=embedding, limit=limit, with_payload=True).points
-        except AttributeError:  # qdrant-client compatibility with older releases
-            results = self.client.search(collection_name=self.collection_name, query_vector=embedding, limit=limit)
-        return [{"id": result.id, "score": result.score, "payload": result.payload or {}} for result in results]
+            results = self.client.query_points(collection_name=self.collection_name, query=vector, limit=limit, with_payload=True).points
+        except AttributeError:
+            results = self.client.search(collection_name=self.collection_name, query_vector=vector, limit=limit, with_payload=True)
+        return [{"id": str(result.id), "score": float(result.score), "payload": result.payload or {}} for result in results]
 
 
 __all__ = ["QdrantLegalSkill"]
