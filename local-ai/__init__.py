@@ -1,0 +1,2 @@
+"""Local AI package initialization."""
+
