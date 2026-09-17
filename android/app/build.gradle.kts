@@ -1,9 +1,4 @@
-// CRIM-SYS 2026 — app module (production-hardened).
-//
-// Signing: reads android/keystore.properties (git-ignored). Copy
-// keystore.properties.example → keystore.properties and fill in your values.
-// Missing file → assembleRelease produces an unsigned build that apksigner
-// will reject; the checklist in RELEASE_CHECKLIST.md covers verification.
+// CRIM-SYS 2026 — production Android module.
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -13,45 +8,26 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Release signing from keystore.properties (outside VCS)
-// ─────────────────────────────────────────────────────────────────────────────
 val keystoreProperties = java.util.Properties().apply {
-    val f = rootProject.file("keystore.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
+    rootProject.file("keystore.properties").takeIf { it.isFile }?.inputStream()?.use(::load)
 }
-val firestoreProjectId: String = keystoreProperties.getProperty("firestoreProjectId") ?: ""
+val firestoreProjectId = keystoreProperties.getProperty("firestoreProjectId") ?: ""
 
 android {
     namespace = "net.crimsys.app"
     compileSdk = 36
-
     defaultConfig {
         applicationId = "net.crimsys.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "2026.1.0"
-
-        // Arabic-first practice: strip all other library locales (~saves MBs
-        // of translations pulled in via AppCompat/Play-services).
         resourceConfigurations += listOf("ar", "en")
-
         vectorDrawables { useSupportLibrary = true }
-
-        // Instrumented tests (Room migration suite) run on the standard
-        // AndroidJUnitRunner; MigrationTestHelper reads the exported schema
-        // JSONs packaged below as androidTest assets.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // BuildConfig passthrough — secrets stay in keystore.properties,
-        // never in source control. Both are OPTIONAL: the app is offline-first
-        // and Firestore degrades gracefully when unset (RemoteDataSource
-        // returns push=false and the queue keeps waiting).
         buildConfigField("String", "FIRESTORE_PROJECT_ID", "\"$firestoreProjectId\"")
         buildConfigField("boolean", "SYNC_ENABLED", keystoreProperties.getProperty("syncEnabled") ?: "true")
     }
-
     signingConfigs {
         if (keystoreProperties.isNotEmpty()) {
             create("release") {
@@ -62,62 +38,28 @@ android {
             }
         }
     }
-
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
-            if (keystoreProperties.isNotEmpty()) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (keystoreProperties.isNotEmpty()) signingConfig = signingConfigs.getByName("release")
         }
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // Deliberately no release signing configuration.
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-    buildFeatures {
-        compose = true
-        buildConfig = true
-    }
-    packaging {
-        resources {
-            excludes += setOf(
-                "/META-INF/{AL2.0,LGPL2.1}",
-                "META-INF/DEPENDENCIES",
-                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
-            )
-        }
-    }
-
-    sourceSets {
-        // Room migration-test assets (official Room docs pattern): the
-        // exported schema JSONs are packaged as androidTest assets, where
-        // MigrationTestHelper finds them (it checks the test assets first,
-        // then the application assets). They never ship in the production APK.
-        getByName("androidTest") {
-            assets.srcDir("$projectDir/schemas")
-        }
-    }
-
-    testOptions {
-        unitTests {
-            // Robolectric (SyncWorkerTest) needs the merged resources.
-            isIncludeAndroidResources = true
-        }
-    }
+    kotlinOptions { jvmTarget = "17" }
+    buildFeatures { compose = true; buildConfig = true }
+    packaging.resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}", "META-INF/DEPENDENCIES", "META-INF/versions/9/OSGI-INF/MANIFEST.MF")
+    sourceSets { getByName("androidTest") { assets.srcDir("$projectDir/schemas") } }
+    testOptions { unitTests { isIncludeAndroidResources = true } }
 }
 
 ksp {
@@ -126,7 +68,6 @@ ksp {
 }
 
 dependencies {
-    // AndroidX core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.biometric)
@@ -135,8 +76,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
-
-    // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -144,93 +83,59 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
-
-    // Room + SQLCipher encryption (single source of truth)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.sqlcipher)
-
-    // DataStore (app preferences)
     implementation(libs.androidx.datastore.preferences)
-
-    // Firestore + Auth (sync target; optional — offline-first degrades
-    // gracefully when google-services.json is missing).
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.coroutines.play.services)
-
-    // Serialization (offline action JSON payloads)
     implementation(libs.kotlinx.serialization.json)
-
-    // WorkManager (Haris sync-command queue drain) + Hilt worker injection
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
-
-    // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
-
-    // Calendar & rich text editor
     implementation(libs.kizitonwose.calendar.compose)
     implementation(libs.richeditor.compose)
-
-    // Testing
     testImplementation(libs.junit)
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
-    // SyncWorker integration test (JVM): Robolectric + WorkManager test harness
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.junit.ext)
     androidTestImplementation(libs.espresso.core)
-    // Evidence capture instrumentation test needs androidx.test.core on device too
     androidTestImplementation(libs.androidx.test.core)
-    // Room migration tests: MigrationTestHelper reads the exported schema
-    // JSONs packaged above as androidTest assets.
     androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Distribution tasks
-//   ./gradlew copyReleaseApk    → app/build/distribution/CRIM-SYS-<ver>-<sha>.apk
-//   ./gradlew copyReleaseBundle → app/build/distribution/CRIM-SYS-<ver>-<sha>.aab
-// Version+commit naming so builds shared with the practice are tellable apart.
-// ─────────────────────────────────────────────────────────────────────────────
 val appVersionName = android.defaultConfig.versionName
-
 val gitShortSha: String by lazy {
     runCatching {
-        val p = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
-            .directory(rootDir).start()
-        p.inputStream.bufferedReader().readText().trim()
+        ProcessBuilder("git", "rev-parse", "--short", "HEAD").directory(rootDir).start().inputStream.bufferedReader().readText().trim()
     }.getOrDefault("nogit")
 }
-
 tasks.register("copyReleaseApk") {
     dependsOn("assembleRelease")
     doLast {
         val src = layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile
-        val dstDir = layout.buildDirectory.dir("distribution").get().asFile
-        dstDir.mkdirs()
-        src.copyTo(java.io.File(dstDir, "CRIM-SYS-$appVersionName-$gitShortSha.apk"), overwrite = true)
-        println("Distribution APK → ${dstDir}/CRIM-SYS-$appVersionName-$gitShortSha.apk")
+        val dir = layout.buildDirectory.dir("distribution").get().asFile.also { it.mkdirs() }
+        src.copyTo(java.io.File(dir, "CRIM-SYS-$appVersionName-$gitShortSha.apk"), overwrite = true)
     }
 }
-
 tasks.register("copyReleaseBundle") {
     dependsOn("bundleRelease")
     doLast {
         val src = layout.buildDirectory.file("outputs/bundle/release/app-release.aab").get().asFile
-        val dstDir = layout.buildDirectory.dir("distribution").get().asFile
-        dstDir.mkdirs()
-        src.copyTo(java.io.File(dstDir, "CRIM-SYS-$appVersionName-$gitShortSha.aab"), overwrite = true)
-        println("Distribution AAB → ${dstDir}/CRIM-SYS-$appVersionName-$gitShortSha.aab")
+        val dir = layout.buildDirectory.dir("distribution").get().asFile.also { it.mkdirs() }
+        src.copyTo(java.io.File(dir, "CRIM-SYS-$appVersionName-$gitShortSha.aab"), overwrite = true)
     }
 }
