@@ -1,3 +1,14 @@
-<?xml version="1.0" encoding="utf-8"?><resources>
-<string name="dashboard_title">لوحة المعلومات</string><string name="dashboard_empty">لا توجد قضايا بعد</string><string name="dashboard_open_cases">القضايا المسجلة</string><string name="dashboard_upcoming">الجلسات القادمة</string><string name="dashboard_deadlines">المواعيد القادمة</string><string name="dashboard_catalog">المواد القانونية الموثقة</string><string name="dashboard_dead_letters">أوامر مزامنة تحتاج مراجعة: %1$d</string>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_empty">No cases yet</string>
+    <string name="dashboard_open_cases">Registered cases</string>
+    <string name="dashboard_upcoming">Upcoming hearings</string>
+    <string name="dashboard_deadlines">Upcoming deadlines</string>
+    <string name="dashboard_catalog">Verified legal documents</string>
+    <string name="dashboard_dead_letters">Sync commands requiring review: %1$d</string>
+    <string name="invalid_case_id">The case identifier is invalid.</string>
+    <string name="action_back">Back</string>
+    <string name="state_offline">You are offline. Local data remains available and will sync later.</string>
+    <string name="state_sync_pending">Saved locally — sync pending (%1$d)</string>
 </resources>

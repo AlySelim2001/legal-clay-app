@@ -2,11 +2,13 @@ package net.crimsys.app.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import net.crimsys.app.R
 import net.crimsys.app.ui.components.state.ErrorState
 import net.crimsys.app.ui.screens.about.AboutScreen
 import net.crimsys.app.ui.screens.calendar.HearingsCalendarScreen
@@ -27,16 +29,40 @@ fun NavHostController.navigateWithDefaultOptions(route: String) {
 fun CrimSysNavHost(navController: NavHostController, modifier: Modifier = Modifier) {
     NavHost(navController, startDestination = Routes.DASHBOARD, modifier = modifier) {
         composable(Routes.DASHBOARD) { DashboardScreen() }
-        composable(Routes.CASES) { CaseListScreen(onCaseClick = { navController.navigate(Routes.caseDetail(it)) }) }
-        composable(Routes.CASE_DETAIL, arguments = listOf(navArgument("caseId") { type = NavType.StringType })) { entry ->
-            val caseId = entry.arguments?.getString("caseId")
-            if (caseId.isNullOrBlank()) ErrorState(message = "معرّف القضية غير صالح", onRetry = { navController.popBackStack() })
-            else CaseDetailScreen(caseId = caseId, onBack = { navController.popBackStack() }, onOpenMemo = { navController.navigate(Routes.memoEditor(caseId)) })
+        composable(Routes.CASES) {
+            CaseListScreen(onCaseClick = { navController.navigate(Routes.caseDetail(it)) })
         }
-        composable(Routes.MEMO_EDITOR, arguments = listOf(navArgument("caseId") { type = NavType.StringType })) { entry ->
+        composable(
+            Routes.CASE_DETAIL,
+            arguments = listOf(navArgument("caseId") { type = NavType.StringType }),
+        ) { entry ->
             val caseId = entry.arguments?.getString("caseId")
-            if (caseId.isNullOrBlank()) ErrorState(message = "معرّف القضية غير صالح", onRetry = { navController.popBackStack() })
-            else MemoEditorScreen(caseId = caseId, onBack = { navController.popBackStack() })
+            if (caseId.isNullOrBlank()) {
+                ErrorState(
+                    message = stringResource(R.string.invalid_case_id),
+                    onRetry = { navController.popBackStack() },
+                )
+            } else {
+                CaseDetailScreen(
+                    caseId = caseId,
+                    onBack = { navController.popBackStack() },
+                    onOpenMemo = { navController.navigate(Routes.memoEditor(caseId)) },
+                )
+            }
+        }
+        composable(
+            Routes.MEMO_EDITOR,
+            arguments = listOf(navArgument("caseId") { type = NavType.StringType }),
+        ) { entry ->
+            val caseId = entry.arguments?.getString("caseId")
+            if (caseId.isNullOrBlank()) {
+                ErrorState(
+                    message = stringResource(R.string.invalid_case_id),
+                    onRetry = { navController.popBackStack() },
+                )
+            } else {
+                MemoEditorScreen(caseId = caseId, onBack = { navController.popBackStack() })
+            }
         }
         composable(Routes.CALENDAR) { HearingsCalendarScreen() }
         composable(Routes.LEGAL_FRAMEWORK) { LegalSearchScreen() }
