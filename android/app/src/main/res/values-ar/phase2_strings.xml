@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?><resources>
+<string name="dashboard_title">لوحة المعلومات</string><string name="dashboard_empty">لا توجد قضايا بعد — أضف قضيتك الأولى</string><string name="dashboard_open_cases">القضايا المفتوحة</string><string name="dashboard_upcoming">الجلسات القادمة</string><string name="dashboard_deadlines">المواعيد الحرجة</string><string name="dashboard_catalog">المواد القانونية الموثقة</string><string name="dashboard_dead_letters">أوامر مزامنة تحتاج مراجعة: %1$d</string>
+</resources>
