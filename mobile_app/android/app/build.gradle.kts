@@ -37,10 +37,10 @@ android {
                         "(see mobile_app/README.md → Release flow)."
                 )
             }
-            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
-            storePassword = keystoreProperties.getProperty("storePassword")
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
+            storeFile = rootProject.file(keystoreProperties["storeFile"].toString())
+            storePassword = keystoreProperties["storePassword"].toString()
+            keyAlias = keystoreProperties["keyAlias"].toString()
+            keyPassword = keystoreProperties["keyPassword"].toString()
         }
     }
 
