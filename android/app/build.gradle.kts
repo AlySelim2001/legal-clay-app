@@ -1,3 +1,6 @@
+import java.io.File
+import java.util.Properties
+
 // CRIM-SYS 2026 — production Android module.
 plugins {
     alias(libs.plugins.android.application)
@@ -8,7 +11,7 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-val keystoreProperties = java.util.Properties().apply {
+val keystoreProperties = Properties().apply {
     rootProject.file("keystore.properties").takeIf { it.isFile }?.inputStream()?.use(::load)
 }
 val firestoreProjectId = keystoreProperties.getProperty("firestoreProjectId") ?: ""
@@ -31,10 +34,10 @@ android {
     signingConfigs {
         if (keystoreProperties.isNotEmpty()) {
             create("release") {
-                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = rootProject.file(keystoreProperties["storeFile"].toString())
+                storePassword = keystoreProperties["storePassword"].toString()
+                keyAlias = keystoreProperties["keyAlias"].toString()
+                keyPassword = keystoreProperties["keyPassword"].toString()
             }
         }
     }
@@ -128,7 +131,7 @@ tasks.register("copyReleaseApk") {
     doLast {
         val src = layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile
         val dir = layout.buildDirectory.dir("distribution").get().asFile.also { it.mkdirs() }
-        src.copyTo(java.io.File(dir, "CRIM-SYS-$appVersionName-$gitShortSha.apk"), overwrite = true)
+        src.copyTo(File(dir, "CRIM-SYS-$appVersionName-$gitShortSha.apk"), overwrite = true)
     }
 }
 tasks.register("copyReleaseBundle") {
@@ -136,6 +139,6 @@ tasks.register("copyReleaseBundle") {
     doLast {
         val src = layout.buildDirectory.file("outputs/bundle/release/app-release.aab").get().asFile
         val dir = layout.buildDirectory.dir("distribution").get().asFile.also { it.mkdirs() }
-        src.copyTo(java.io.File(dir, "CRIM-SYS-$appVersionName-$gitShortSha.aab"), overwrite = true)
+        src.copyTo(File(dir, "CRIM-SYS-$appVersionName-$gitShortSha.aab"), overwrite = true)
     }
 }

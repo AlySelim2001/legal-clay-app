@@ -1,3 +1,6 @@
+import java.io.File
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -21,7 +24,7 @@ android {
     // "release" APK ever ships.
     signingConfigs {
         create("release") {
-            val keystoreProperties = java.util.Properties()
+            val keystoreProperties = Properties()
             val keystoreFile = rootProject.file("key.properties")
             if (keystoreFile.exists()) {
                 keystoreFile.inputStream().use { keystoreProperties.load(it) }
