@@ -25,7 +25,9 @@ export default function EnterpriseSettings() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setDarkMode(document.documentElement.classList.contains("dark"));
+    queueMicrotask(() =>
+      setDarkMode(document.documentElement.classList.contains("dark")),
+    );
   }, []);
 
   const toggleDark = () => {

@@ -46,7 +46,10 @@ export function useSessionTimeout({
 }: UseSessionTimeoutOptions) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onTimeoutRef = useRef(onTimeout);
-  onTimeoutRef.current = onTimeout;
+
+  useEffect(() => {
+    onTimeoutRef.current = onTimeout;
+  }, [onTimeout]);
 
   const resetTimer = useCallback(() => {
     if (timerRef.current) {

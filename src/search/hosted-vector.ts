@@ -34,7 +34,6 @@ export const HOSTED_VECTOR_ENV = {
 } as const;
 
 const DEFAULT_BASE_URL = "https://api.turbopuffer.com/v1";
-const DEFAULT_DIMENSIONS = 384; // e.g. multilingual-e5-small, set at namespace creation
 
 interface EnvLike {
   [key: string]: string | undefined;

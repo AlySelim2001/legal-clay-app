@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   announce,
   listenOnce,
@@ -29,22 +29,7 @@ export function LegalChatPanel({ onClose }: { onClose: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Focus management on open (a11y) + listen for voice-routed questions
-  useEffect(() => {
-    inputRef.current?.focus();
-    const onAsk = (e: Event) => {
-      const text = (e as CustomEvent<string>).detail;
-      setQuestion(text);
-      void submit(text);
-    };
-    window.addEventListener("crimsys:ask", onAsk);
-    return () => {
-      window.removeEventListener("crimsys:ask", onAsk);
-      stopSpeaking();
-    };
-  }, []);
-
-  const submit = async (q: string) => {
+  const submit = useCallback(async (q: string) => {
     if (!q.trim()) {
       announce("اكتب سؤالك أولاً", true);
       return;
@@ -72,7 +57,22 @@ export function LegalChatPanel({ onClose }: { onClose: () => void }) {
       setError(msg);
       announce(msg, true);
     }
-  };
+  }, []);
+
+  // Focus management on open (a11y) + listen for voice-routed questions
+  useEffect(() => {
+    inputRef.current?.focus();
+    const onAsk = (e: Event) => {
+      const text = (e as CustomEvent<string>).detail;
+      setQuestion(text);
+      void submit(text);
+    };
+    window.addEventListener("crimsys:ask", onAsk);
+    return () => {
+      window.removeEventListener("crimsys:ask", onAsk);
+      stopSpeaking();
+    };
+  }, [submit]);
 
   const startListening = () => {
     const support = sttSupport();

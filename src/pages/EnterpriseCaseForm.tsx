@@ -29,7 +29,7 @@ export default function EnterpriseCaseCreateEdit() {
   const loading = creating || updating;
 
   const [form, setForm] = useState<CaseInsert>({
-    case_code: existingCase?.case_code ?? `CASE-${Date.now()}`,
+    case_code: existingCase?.case_code ?? "",
     case_number: existingCase?.case_number ?? "",
     case_year: existingCase?.case_year ?? new Date().getFullYear(),
     case_type: existingCase?.case_type ?? "جنح",
@@ -62,7 +62,11 @@ export default function EnterpriseCaseCreateEdit() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = CaseInsertSchema.safeParse(form);
+    const payload: CaseInsert = {
+      ...form,
+      case_code: form.case_code.trim() || `CASE-${Date.now()}`,
+    };
+    const parsed = CaseInsertSchema.safeParse(payload);
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
       parsed.error.issues.forEach((issue) => {

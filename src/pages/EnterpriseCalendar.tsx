@@ -1,5 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSessions, useCases } from "@/hooks/useEnterprise";
@@ -145,11 +144,6 @@ export default function EnterpriseCalendar() {
       });
     }
   }, [events]);
-
-  const handleSessionCreated = useCallback(() => {
-    setSessionModalOpen(false);
-    // React Query will auto-refetch
-  }, []);
 
   if (loadingSessions) {
     return (

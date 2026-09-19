@@ -1,4 +1,4 @@
-import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { action, internalMutation, internalQuery, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
@@ -9,7 +9,9 @@ import {
   PIPELINE_NAME,
   type IndexedChunk,
   type PipelineResult,
+  type QueryType,
 } from "./lib/evidence";
+import type { EvidenceStatus } from "./schema";
 
 /** Build the retrieval index from published chunks only. */
 export const publishedIndex = internalQuery({
@@ -126,11 +128,11 @@ export const saveAnswer = internalMutation({
   handler: async (ctx, args) => {
     const answerId = await ctx.db.insert("answers", {
       ...args,
-      queryType: args.queryType as any,
-      evidenceStatus: args.evidenceStatus as any,
+      queryType: args.queryType as QueryType,
+      evidenceStatus: args.evidenceStatus as EvidenceStatus,
       claims: args.claims.map((c) => ({
         text: c.text,
-        status: c.status as any,
+        status: c.status as EvidenceStatus,
         chunkIds: c.chunkIds,
       })),
       knowledgeVersion: "kb-2026.09-seed1",
@@ -144,7 +146,7 @@ export const saveAnswer = internalMutation({
           answerId,
           refId: chunkId,
           claimIndex: i,
-          status: claim.status as any,
+          status: claim.status as EvidenceStatus,
           excerpt: claim.text.slice(0, 300),
           createdAt: Date.now(),
         });

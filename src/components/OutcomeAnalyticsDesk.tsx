@@ -136,7 +136,7 @@ export function OutcomeAnalyticsDesk() {
 
   useEffect(() => {
     let cancelled = false;
-    setLiveLoading(true);
+    queueMicrotask(() => setLiveLoading(true));
     void (async () => {
       const result = await analyzer.analyzeSuccessRate(
         lawyerFilter === "الكل" ? null : lawyerFilter,

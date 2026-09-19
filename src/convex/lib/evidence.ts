@@ -8,7 +8,6 @@
  */
 
 import {
-  EMBEDDING_DIM,
   cosineSimilarity,
   detectPii,
   embed,

@@ -1,4 +1,4 @@
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ArrowLeft, Gavel, Loader2, Search, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -72,17 +72,19 @@ export default function Ask() {
   // Loading a saved answer from history
   useEffect(() => {
     if (saved) {
-      setResult({
-        answer: saved.answer.answer,
-        claims: saved.answer.claims,
-        citations: [],
-        evidenceStatus: saved.answer.evidenceStatus,
-        confidence: saved.answer.confidence,
-        warnings: saved.answer.warnings,
-        knowledgeVersion: saved.answer.knowledgeVersion,
-        retrievalVersion: saved.answer.retrievalVersion,
-        modelName: saved.answer.modelName,
-      });
+      queueMicrotask(() =>
+        setResult({
+          answer: saved.answer.answer,
+          claims: saved.answer.claims,
+          citations: [],
+          evidenceStatus: saved.answer.evidenceStatus,
+          confidence: saved.answer.confidence,
+          warnings: saved.answer.warnings,
+          knowledgeVersion: saved.answer.knowledgeVersion,
+          retrievalVersion: saved.answer.retrievalVersion,
+          modelName: saved.answer.modelName,
+        }),
+      );
     }
   }, [saved]);
 

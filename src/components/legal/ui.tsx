@@ -100,7 +100,6 @@ export function LegalDisclaimerCard({ compact = false }: { compact?: boolean }) 
 /** One citation with full provenance — the "لماذا ظهرت هذه النتيجة؟" view. */
 export function CitationCard({
   sourceTitle,
-  sourceType,
   officialUrl,
   provenance,
   excerpt,

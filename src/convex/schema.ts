@@ -71,6 +71,9 @@ export const evidenceStatusValidator = v.union(
   ...EVIDENCE_STATUSES.map((s) => v.literal(s)),
 );
 
+/** Inferred literal-union type for an evidence pack status. */
+export type EvidenceStatus = Infer<typeof evidenceStatusValidator>;
+
 /** Query classifier output — processing strategy only, never guilt. */
 export const QUERY_TYPES = [
   "LEGAL_DEFINITION",

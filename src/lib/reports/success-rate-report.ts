@@ -26,7 +26,6 @@ const A4_PT: [number, number] = [595.28, 841.89];
 const SCALE = 2;
 
 const CLAY_PURPLE = "#6d4c8f";
-const CLAY_TEAL = "#0f766e";
 const INK = "#2b2620";
 const MUTED = "#7a6f5e";
 const PAPER = "#faf6ef";

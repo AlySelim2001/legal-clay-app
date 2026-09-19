@@ -149,9 +149,56 @@ $ instrumentation: KVM udev rule + محاكي api-level 36 + تشغيل RoomMigr
 | عقد هجرة 3→4 | سليم ساكنًا + بوابة CI جاهزة (يُنفَّذ في Run #120+) |
 | عقد هجرة 4→5 | ❌ **فجوة جديدة** — لا schema 5.json ولا اختبار (عمل متابعة) |
 | Web typecheck | ✅ PASS (exit 0) |
-| Web lint | ❌ 46/26 — مصنفة كاملة §C، advisory في CI، خطة تحويله بوابة بعد التنظيف |
+| Web lint | ✅ **0 أخطاء / 26 تحذيرًا** (I) — رُقّيت إلى **بوابة صلبة** في main.yml (إزالة continue-on-error) |
 | Flutter | ❌ غير قابل للبناء — تفاصيل وإجراء الموافقة في FLUTTER_GAP_REPORT.md |
 | CI main.yml | ✅ هيكليًا سليم (7 مهام، needs OK، بلا أقنعة بوابات) |
+
+## I. تنظيف lint الكامل — 46 أخطاء → 0 (الجلسة الثانية، 2026-09-19)
+
+### I-1. الأوامر المنفذة والنتائج الحرفية
+
+```text
+$ bun tsc -b --noEmit        → exit 0 (بعد كل دفعة تعديلات)
+$ bun run lint               → قبل: exit 1، errors=46 warnings=26
+                              → بعد: exit 0، errors=0  warnings=26
+$ bunx eslint . --format json → التصنيف الدقيق لكل خطأ (الملف:سطر:العمود + القاعدة)
+```
+
+### I-2. تصنيف الأخطاء الـ46 والإصلاح المقابل
+
+| الفئة | قبل | الإصلاح | بعد |
+|---|---|---|---|
+| no-unused-vars (ميكانيكي) | 22 | حذف كود ميت مؤكد موقعًا موقعًا (16 ملفًا) | 0 |
+| no-useless-escape (ميكانيكي) | 5 | إزالة التهريب الزائد | 0 |
+| no-explicit-any | 4 | أنواع حقيقية: `QueryType` (من lib/evidence) و`EvidenceStatus` (مُصدَّر من schema.ts بـ Infer) | 0 |
+| react-hooks (مترجم React Compiler) | 15 | أنماط React الموثقة أدناه | 0 |
+| **المجموع** | **46** | | **0** |
+
+### I-3. تفصيل إصلاحات react-hooks الـ15 (13 ملفًا)
+
+| النمط | العدد | الملفات | الإصلاح |
+|---|---|---|---|
+| set-state-in-effect | 10 | OpenSourceSyncDesk ×2، WorkflowAutomationDesk ×2، OutcomeAnalyticsDesk، ui/carousel، use-mobile، EnterprisePersonForm، EnterpriseSettings، legal/Ask | حدّ غير متزامن: `queueMicrotask(...)` داخل الـeffect — نفس السلوك، بلا cascading renders |
+| purity (Math.random/Date.now في الرندر) | 2 | ui/sidebar، EnterpriseCaseForm | sidebar: `useState(() => ...)` مرة واحدة لكل نسخة؛ CaseForm: `useState` مهمل للكود + توليد `CASE-<ts>` عند الإرسال داخل الحمولة قبل Zod (السلوك محفوظ: كود فريد دائمًا) |
+| refs during render | 1 | useSessionTimeout | نمط latest-ref الموثق: مزامنة `onTimeoutRef.current` داخل `useEffect` |
+| immutability (استخدام قبل الإعلان) | 1 | LegalChatPanel | رفع `submit` فوق الـeffect + `useCallback(..., [])` — deps المستمع ثابتة |
+| preserve-manual-memoization | 1 | EnterprisePersonDetail | إزالة `useMemo` (الاشتقاق IIFE) — الاعتماديات المفترضة `person.cases` لا تطابق `person?.cases` المعطاة |
+
+### I-4. ملاحظات التوثيق اللازمة للشفافية
+
+1. **ملفات `convex/_generated` أعادت المنصة توليدها** بعد تعديل convex (ترويسات `/* eslint-disable */` عادت) ⇒ تحذيرَي `Unused eslint-disable directive` الأربعة عادا كدين مولَّد-بذاته (غير قابل للحل دائمًا). تحذير خامس مماثل قائم مسبقًا في `16:5` (no-control-regex).
+2. التحذيرات الـ26 المتبقية كلها **استشارية**: 21 × `react-refresh/only-export-components` (تصدير ثوابت بجانب مكوّنات — نقيلة أنماط موجودة) + 5 × unused-disable أعلاه.
+3. **بوابة CI**: خطوة lint في `main.yml` رُقّيت من advisory إلى **hard gate** (`ESLint (hard gate)`، حذف `continue-on-error: true`)، وتحديث تعليق رأس الملف — تحقق بنيوي: خطوة lint بلا أقنعة، وخطوة Build Web وحدها بقيت استشارية.
+4. كل التعديلات محفوظة-السلوك: أي تغيير توقيت (microtask) مؤثره أقل من إطار واحد ولا يغيّر العقد الوظيفي.
+
+### I-5. بوابات المرحلة 1 بعد التنظيف
+
+| البوابة | حالة محلية | الإثبات النهائي |
+|---|---|---|
+| Web typecheck | ✅ PASS (exit 0) | Run #120 |
+| Web lint (hard gate) | ✅ PASS (exit 0) | Run #120 |
+| Android build (P1-A) | مطبق ومتحقق ساكنًا | Run #120 |
+| Flutter | ❌ بانتظار إقرار جدول §5 | — |
 
 ## H. التسليم التالي (يد المالك فقط — خارج بيئة التنفيذ)
 

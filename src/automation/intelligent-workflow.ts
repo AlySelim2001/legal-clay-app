@@ -274,12 +274,6 @@ const addDaysISO = (days: number): string => {
   return d.toISOString().slice(0, 10);
 };
 
-const isoInDays = (baseISO: string, days: number): string => {
-  const d = new Date(`${baseISO}T00:00:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-};
-
 const daysUntil = (baseISO: string): number => {
   const base = new Date(`${baseISO}T00:00:00`);
   const now = new Date(`${todayISO()}T00:00:00`);
@@ -489,14 +483,14 @@ const RUNNERS: Record<string, Runner> = {
     };
   },
 
-  async classify_document(ctx, file) {
+  async classify_document(ctx) {
     const text = `${ctx.docTitle ?? ""} ${ctx.caseCode ?? ""}`;
     const swarm = getSwarmOrchestrator();
     const c = swarm.classifyQuery(text);
     return { ok: true, detail: `نوع المستند: ${DOMAIN_AR[c.primaryDomain]} (أهم الكلمات: ${c.keywords.slice(0, 4).join("، ") || "—"})` };
   },
 
-  async check_compliance(ctx, file) {
+  async check_compliance(ctx) {
     const text = `${ctx.docTitle ?? ""} ${ctx.caseCode ?? ""}`;
     const swarm = getSwarmOrchestrator();
     const { primaryDomain } = swarm.classifyQuery(text);
@@ -611,10 +605,6 @@ const RUNNERS: Record<string, Runner> = {
 // ============================================================
 // Engine
 // ============================================================
-
-function labelFor(workflowId: WorkflowId): string {
-  return (DEFINITIONS.find((d) => d.id === workflowId)?.labelAr) ?? workflowId;
-}
 
 function stepLabel(stepId: string): string {
   const map: Record<string, string> = {

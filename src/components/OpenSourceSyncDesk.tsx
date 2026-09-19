@@ -212,7 +212,7 @@ function ArkCasePanel() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    queueMicrotask(() => void refresh());
   }, [refresh]);
 
   const handleExport = useCallback(() => {
@@ -367,7 +367,7 @@ function OpenLawOfficePanel() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    queueMicrotask(() => void refresh());
   }, [refresh]);
 
   const addEntry = useCallback(async () => {

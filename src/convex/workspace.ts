@@ -185,11 +185,11 @@ function analyzeText(text: string) {
   const normalized = normalizeArabic(text);
 
   const dateMatches = [
-    ...text.matchAll(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/g),
-    ...text.matchAll(/(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/g),
+    ...text.matchAll(/(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/g),
+    ...text.matchAll(/(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})/g),
   ].map((m) => m[0]);
 
-  const moneyMatches = [...text.matchAll(/(\d[\d,\.]*)\s*(جنيه|مصرى|مصري|EGP)/g)].map((m) => m[0]);
+  const moneyMatches = [...text.matchAll(/(\d[\d,.]*)\s*(جنيه|مصرى|مصري|EGP)/g)].map((m) => m[0]);
 
   const entityCandidates = new Set<string>();
   for (const m of text.matchAll(/(?:السيد|السيدة|السادس|الأستاذ|الاستاذ)\s+([\u0600-\u06FF]{2,}(?:\s+[\u0600-\u06FF]{2,}){1,3})/g)) {

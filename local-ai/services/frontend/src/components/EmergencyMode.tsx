@@ -5,7 +5,6 @@ import {
   speak,
   sttSupport,
   stopSpeaking,
-  useA11y,
 } from "@/a11y/AccessibilityProvider";
 import { Scanner } from "./DocumentScanner";
 import { LegalChatPanel } from "./LegalChatPanel";
@@ -21,7 +20,6 @@ export function EmergencyMode() {
   const [stepsOpen, setStepsOpen] = useState(false);
   const [listening, setListening] = useState(false);
   const stopListenRef = useRef<(() => void) | null>(null);
-  const a11y = useA11y();
 
   const openScan = () => {
     setScanOpen(true);

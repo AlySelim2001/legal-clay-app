@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useParams, Link } from "react-router";
 import { usePerson, useActions } from "@/hooks/useEnterprise";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,11 +24,11 @@ export default function EnterprisePersonDetail() {
   const { data: allActions } = useActions();
   const [activeTab, setActiveTab] = useState("info");
 
-  const personActions = useMemo(() => {
+  const personActions = (() => {
     if (!allActions || !person?.cases) return [];
     const caseIds = new Set(person.cases.map((c) => c.id));
     return allActions.filter((a) => caseIds.has(a.case_id));
-  }, [allActions, person?.cases]);
+  })();
 
   if (loading) {
     return (

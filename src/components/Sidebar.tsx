@@ -13,8 +13,6 @@ import {
   Info,
   ChevronLeft,
   HardHat,
-  Eye,
-  BrainCircuit,
   Landmark,
   MessageCircleQuestion,
   FileSearch,

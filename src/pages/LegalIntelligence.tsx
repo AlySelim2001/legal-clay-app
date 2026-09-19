@@ -1487,7 +1487,7 @@ function SessionRecorderTab() {
         duration: elapsed,
         wordCount: wordCount,
         createdAt: new Date().toISOString(),
-        segments: segments.map((s, i) => ({
+        segments: segments.map((s) => ({
           start: 0,
           end: 0,
           text: s.text,

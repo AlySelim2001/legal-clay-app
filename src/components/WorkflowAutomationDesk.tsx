@@ -71,14 +71,16 @@ export function WorkflowAutomationDesk() {
   }, []);
 
   useEffect(() => {
-    void refreshLog();
+    queueMicrotask(() => void refreshLog());
   }, [refreshLog]);
 
   useEffect(() => {
-    setValues({});
-    setFile(null);
-    setLast(null);
-    setError(null);
+    queueMicrotask(() => {
+      setValues({});
+      setFile(null);
+      setLast(null);
+      setError(null);
+    });
   }, [selected]);
 
   const handleRun = useCallback(async () => {

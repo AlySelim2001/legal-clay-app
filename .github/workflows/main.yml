@@ -13,8 +13,9 @@
 # Stage 3 (gated):     instrumentation — KVM-accelerated emulator, Room 3→4
 # Releases (tag-only): release-android / release-mobile — never run on pushes.
 #
-# Error isolation: no continue-on-error on any gate. The only advisory steps
-# are web lint and npm audit, matching the legacy non-blocking QC policy.
+# Error isolation: no continue-on-error on any gate. Web lint was promoted
+# from advisory to a hard gate after the 46-error debt was cleared
+# (46 → 0 errors, verified locally); the only advisory step left is npm audit.
 # ============================================================================
 
 name: Integrated CI/CD Pipeline
@@ -65,10 +66,9 @@ jobs:
         run: bun tsc -b --noEmit
         timeout-minutes: 5
 
-      - name: Lint (advisory — known debt, must not block the native gate)
+      - name: ESLint (hard gate)
         run: bun run lint
         timeout-minutes: 5
-        continue-on-error: true
 
       - name: Build Web (verification only, advisory)
         run: bun run build
