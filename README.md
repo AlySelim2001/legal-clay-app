@@ -7,11 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/ci.yml">
-    <img src="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/ci.yml/badge.svg" alt="Security CI: Bandit + Flake8 + Compose Validation">
-  </a>
-  <a href="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/android-release.yml">
-    <img src="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/android-release.yml/badge.svg" alt="Android Release Status">
+  <a href="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/main.yml">
+    <img src="https://github.com/AlySelim2001/legal-clay-app/actions/workflows/main.yml/badge.svg" alt="Integrated CI/CD Pipeline">
   </a>
   <a href="docs/ARCHITECTURE.md">
     <img src="https://img.shields.io/badge/Security-Zero--Trust-green.svg" alt="Zero-Trust Architecture">
@@ -249,7 +246,7 @@ cd android
 
 - **على الجهاز (الأندرويد):** SQLCipher بكلمة مرور عشوائية Keystore-wrapped، استبعاد النسخ السحابي، منع Cleartext، قفل بيومتري.
 - **على الخادم المحلي (local-ai):** بوابة PII إغلاقية الفشل، شبكة داخلية بلا إنترنت، استدلال محلي بالكامل، أسرار مولّدة لا قوالب جاهزة.
-- **في CI:** فحص Bandit الأمني + قواعد Ruff + تحقق بنيوي من الـ compose (منافذ loopback فقط، صور مثبتة، حرس الأسرار) — راجع [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+- **في CI:** فحص Bandit الأمني + قواعد Ruff + تحقق بنيوي من الـ compose (منافذ loopback فقط، صور مثبتة، حرس الأسرار) — راجع [`.github/workflows/main.yml`](.github/workflows/main.yml) (job: security-audit).
 
 </p>
 
@@ -305,7 +302,7 @@ cd android
 | [docs/OSS_DECISIONS.md](docs/OSS_DECISIONS.md) | 🧭 سجل قرارات القبول/الرفض مع شروط إعادة النظر |
 | [docs/engineering/skills/README.md](docs/engineering/skills/README.md) | 🛠️ مهارات المراجعة المحلية (12 مهارة TYPE G — بنية تحتية تطويرية) |
 | [sandbox/oss/README.md](sandbox/oss/README.md) | 🧪 بروتوكول الفحص المعزول للمكوّنات قبل الدمج |
-| [.github/workflows/oss-audit.yml](.github/workflows/oss-audit.yml) | ⏱️ تدقيق أسبوعي آلي: بوابة السجل + انحراف SBOM + npm audit |
+| [.github/workflows/main.yml](.github/workflows/main.yml) | ⏱️ الأنبوب المُوحّد: جودة + اختبارات + بناء + قياس + تدقيق أمني أسبوعي (بوابة السجل + انحراف SBOM) + إصدارات موقّعة عند الوسوم |
 | [docs/LAUNCH_STRATEGY.md](docs/LAUNCH_STRATEGY.md) | استراتيجية الإطلاق والتوزيع |
 
 ---

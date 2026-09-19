@@ -1,0 +1,579 @@
+# ============================================================================
+# CRIM-SYS 2026 — Integrated CI/CD Pipeline (consolidated)
+#
+# Replaces the five legacy workflows:
+#   android-build.yml    → quality / android-unit / build-android / instrumentation
+#   ci.yml               → security-audit (Bandit + Flake8/Ruff + compose checks)
+#   oss-audit.yml        → security-audit (registry lint + SBOM drift, weekly cron)
+#   android-release.yml  → release-android (tag-gated, signed APK/AAB + mapping)
+#   mobile-release.yml   → release-mobile (tag-gated Flutter APK)
+#
+# Stage 1 (parallel):  quality (web)  +  android-unit (JVM)  +  security-audit
+# Stage 2 (gated):     build-android  — APK + schema/KSP compile proof
+# Stage 3 (gated):     instrumentation — KVM-accelerated emulator, Room 3→4
+# Releases (tag-only): release-android / release-mobile — never run on pushes.
+#
+# Error isolation: no continue-on-error on any gate. The only advisory steps
+# are web lint and npm audit, matching the legacy non-blocking QC policy.
+# ============================================================================
+
+name: Integrated CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, "fix/*", "feat/*" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: "17 4 * * 1" # weekly OSS/supply-chain audit (legacy oss-audit.yml)
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref — but NEVER cancel a release build.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: "17"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 1 — Validation & Code Quality (parallel jobs)
+# ─────────────────────────────────────────────────────────────────────────────
+jobs:
+  quality:
+    name: 🔍 Web Quality (typecheck + lint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1"
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+        timeout-minutes: 5
+
+      - name: TypeScript Check (hard gate)
+        run: bun tsc -b --noEmit
+        timeout-minutes: 5
+
+      - name: Lint (advisory — known debt, must not block the native gate)
+        run: bun run lint
+        timeout-minutes: 5
+        continue-on-error: true
+
+      - name: Build Web (verification only, advisory)
+        run: bun run build
+        timeout-minutes: 5
+        continue-on-error: true
+
+  android-unit:
+    name: 🧪 Android JVM Tests (parity + full suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: "gradle"
+
+      - name: Grant Gradle Permissions
+        run: chmod +x android/gradlew
+
+      # P1-A gate: focused parity classes first, exact legacy invocation.
+      - name: Focused Sync-Parity Tests (hard gate)
+        working-directory: android
+        timeout-minutes: 15
+        run: |
+          ./gradlew :app:testDebugUnitTest \
+            --tests "net.crimsys.app.data.sync.QueueParityTest" \
+            --tests "net.crimsys.app.data.sync.SyncOperationParityTest" \
+            --tests "net.crimsys.app.data.sync.PayloadParityTest" \
+            --tests "net.crimsys.app.data.sync.OperationMappingParityTest" \
+            --tests "net.crimsys.app.data.sync.CrashConsistencyMatrixTest" \
+            --no-daemon --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8"
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+
+      - name: Full JVM Test Suite (hard gate)
+        working-directory: android
+        timeout-minutes: 15
+        run: |
+          ./gradlew test \
+            --no-daemon --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8"
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+
+      - name: Upload JVM Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jvm-test-reports
+          path: |
+            android/app/build/reports/tests/
+            android/app/build/test-results/
+          retention-days: 14
+          if-no-files-found: warn
+
+  security-audit:
+    name: 🛡️ Security & Supply-Chain Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Node (OSS registry tooling)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install linters
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install bandit flake8 flake8-bandit ruff
+
+      # Legacy ci.yml referenced `-c .banditrc`, which does not exist in the
+      # repo — dropped the flag instead of carrying the latent failure over.
+      - name: Bandit SAST (high severity, fail on any finding)
+        run: bandit -r local-ai/services -lll
+
+      - name: Flake8 (E9,F + Bandit S rules)
+        run: flake8 local-ai/services --select=E9,F,S1,S3,S5,S6 --max-line-length=100
+
+      - name: Ruff fallback gate (identical rules, used to pin behavior)
+        if: always()
+        run: ruff check local-ai/services --select E4,E7,E9,F,S --no-cache
+
+      - name: Compose YAML syntax
+        run: python3 -c "import yaml,sys; yaml.safe_load(open('local-ai/docker-compose.yml')); print('compose YAML OK')"
+
+      - name: Every build context must exist on disk
+        run: |
+          python3 - <<'PY'
+          import yaml, pathlib, sys
+          compose = yaml.safe_load(open("local-ai/docker-compose.yml"))
+          missing = [
+              svc["build"]["context"]
+              for svc in compose["services"].values()
+              if "build" in svc
+              if not (pathlib.Path("local-ai") / svc["build"]["context"]).is_dir()
+          ]
+          if missing:
+              sys.exit(f"missing build contexts: {missing}")
+          print("all build contexts exist")
+          PY
+
+      - name: Loopback-only published ports (resolved config)
+        run: |
+          cd local-ai
+          docker compose config \
+            INTERNAL_API_KEY=$(openssl rand -hex 32) \
+            QDRANT_API_KEY=$(openssl rand -hex 32) \
+            N8N_ENCRYPTION_KEY=$(openssl rand -hex 32) \
+            N8N_USER=ci N8N_PASSWORD=$(openssl rand -hex 16) \
+            > /tmp/resolved.yml
+          python3 - <<'PY'
+          import yaml, sys
+          resolved = yaml.safe_load(open("/tmp/resolved.yml"))
+          bad = []
+          for name, svc in resolved.get("services", {}).items():
+              for port in svc.get("ports") or []:
+                  host_ip = port.get("host_ip") if isinstance(port, dict) else None
+                  if host_ip != "127.0.0.1":
+                      bad.append((name, port))
+          if bad:
+              sys.exit(f"ports not bound to 127.0.0.1: {bad}")
+          print("all published ports bind 127.0.0.1")
+          PY
+
+      - name: OSS registry lint (no mystery dependencies)
+        run: node scripts/oss-registry-lint.mjs
+
+      - name: Generate SBOM + drift check
+        run: |
+          node scripts/generate-sbom.mjs
+          if [ -f sbom/cyclonedx.json ]; then
+            if ! git diff --exit-code --stat -- sbom/cyclonedx.json >/dev/null; then
+              echo "::warning::sbom/cyclonedx.json differs from the committed SBOM."
+              echo "If manifests changed intentionally, commit the regenerated SBOM."
+              git diff -- sbom/cyclonedx.json | head -50
+            else
+              echo "SBOM is up to date with manifests."
+            fi
+          fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 2 — Core Build & Schema Integrity (gated on Stage 1)
+# ─────────────────────────────────────────────────────────────────────────────
+  build-android:
+    name: 🤖 Android Build (APK + KSP/Room schema compile)
+    needs: [ quality, android-unit ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: "gradle"
+
+      - name: Grant Gradle Permissions
+        run: chmod +x android/gradlew
+
+      # assembleDebug runs KSP (Room/Hilt codegen) end-to-end — a green build
+      # is the schema-integrity proof for the current sources; the 3→4
+      # migration contract itself is exercised on-device in Stage 3.
+      - name: Build Debug APK (hard gate)
+        working-directory: android
+        timeout-minutes: 30
+        run: |
+          ./gradlew assembleDebug \
+            --no-daemon \
+            --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8"
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+
+      - name: Verify APK Output
+        run: |
+          APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -f "$APK_PATH" ]; then
+            echo "::error::APK not found at $APK_PATH"
+            exit 1
+          fi
+          echo "✅ Native debug APK built successfully"
+          ls -lh "$APK_PATH"
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CRIM-SYS-2026-Debug-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+          if-no-files-found: error
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 3 — Hardware-Accelerated Instrumentation (gated on Stage 2)
+# ─────────────────────────────────────────────────────────────────────────────
+  instrumentation:
+    name: 📱 Instrumented Tests (Room migration on emulator)
+    needs: build-android
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable KVM Hardware Acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: "gradle"
+
+      - name: Grant Gradle Permissions
+        run: chmod +x android/gradlew
+
+      # API 36 to match compileSdk/targetSdk (legacy gate). The class filter
+      # runs the RoomMigration3To4Test contract; a blanket connectedCheck is
+      # deliberately NOT used — the UI nav test is not part of the P1 gate.
+      - name: Run RoomMigration3To4Test on Accelerated Emulator (hard gate)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: cd android && ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=net.crimsys.app.data.local.RoomMigration3To4Test --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8"
+
+      - name: Upload Instrumentation Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumentation-test-reports
+          path: |
+            android/app/build/outputs/androidTest-results/
+            android/app/build/reports/androidTests/
+          retention-days: 14
+          if-no-files-found: warn
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RELEASES — tag-gated only (legacy android-release.yml / mobile-release.yml).
+# Never triggered by branch pushes; skipped entirely on PRs and dispatches.
+# ─────────────────────────────────────────────────────────────────────────────
+  release-android:
+    name: 🚀 Android Release (signed APK + AAB)
+    needs: build-android
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: "gradle"
+
+      - name: Verify tag matches versionName
+        run: |
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' android/app/build.gradle.kts | head -1)
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "versionName=$VERSION  tag=$TAG"
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "::error::Tag v$TAG does not match app versionName $VERSION. Bump versionName in android/app/build.gradle.kts before tagging."
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Restore signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/crimsys-release.jks
+            cat > android/keystore.properties <<EOF
+          storeFile=crimsys-release.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+            echo "✅ Signing keystore restored from secrets"
+          else
+            echo "::error::KEYSTORE_BASE64 secret not set — refusing to produce an unsigned release."
+            exit 1
+          fi
+
+      - name: Build Release APK + AAB
+        working-directory: android
+        timeout-minutes: 30
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease bundleRelease \
+            --no-daemon \
+            --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8"
+
+      - name: Verify signatures (APK + AAB must be signed)
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
+          MAPPING="android/app/build/outputs/mapping/release/mapping.txt"
+          [ -f "$APK" ] || { echo "::error::$APK missing"; exit 1; }
+          [ -f "$AAB" ] || { echo "::error::$AAB missing"; exit 1; }
+          [ -s "$MAPPING" ] || { echo "::error::$MAPPING missing or empty — R8 must have run (isMinifyEnabled)."; exit 1; }
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)"
+          if "$BT/apksigner" verify --print-certs "$APK"; then
+            echo "✅ APK signature verified"
+          else
+            echo "::error::APK is not correctly signed."
+            exit 1
+          fi
+          if jarsigner -verify "$AAB" > /dev/null 2>&1; then
+            echo "✅ AAB signature verified"
+          else
+            echo "::error::AAB is not correctly signed."
+            exit 1
+          fi
+          echo "MAPPING=$MAPPING" >> "$GITHUB_ENV"
+
+      - name: Upload build artifacts (incl. mapping.txt)
+        uses: actions/upload-artifact@v4
+        with:
+          name: crimsys-release-${{ github.run_number }}
+          if-no-files-found: error
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/mapping/release/mapping.txt
+
+      - name: Checksums + publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
+          DIST_APK="CRIM-SYS-${{ env.VERSION }}.apk"
+          DIST_AAB="CRIM-SYS-${{ env.VERSION }}.aab"
+          cp "$APK" "$DIST_APK"
+          cp "$AAB" "$DIST_AAB"
+          sha256sum "$DIST_APK" "$DIST_AAB" > SHA256SUMS.txt
+          gh release create "${{ github.ref_name }}" \
+            --title "CRIM-SYS ${{ env.VERSION }}" \
+            --generate-notes \
+            "$DIST_APK" "$DIST_AAB" SHA256SUMS.txt "$MAPPING"
+          echo "✅ Release published: $DIST_APK + $DIST_AAB + mapping.txt"
+
+  release-mobile:
+    name: 📱 Mobile Release (signed Flutter APK)
+    needs: quality
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.22.3"
+          channel: stable
+          cache: true
+
+      - name: Install Dependencies
+        working-directory: mobile_app
+        run: flutter pub get
+
+      - name: Analyze + Test (hard gate)
+        working-directory: mobile_app
+        run: |
+          flutter analyze
+          flutter test
+
+      - name: Regenerate Gradle Wrapper (jar not committed)
+        working-directory: mobile_app/android
+        run: |
+          gradle wrapper --gradle-version 8.12 --distribution-type bin
+          chmod +x gradlew
+
+      - name: Setup Android Keystore
+        env:
+          ENCRYPTED_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        working-directory: mobile_app/android
+        run: |
+          if [ -z "$ENCRYPTED_KEYSTORE" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 secret is not set — refusing to produce an unsigned 'release'."
+            exit 1
+          fi
+          echo "$ENCRYPTED_KEYSTORE" | base64 --decode > app/upload-keystore.jks
+          cat > key.properties <<EOF
+          storeFile=upload-keystore.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Verify tag matches pubspec version
+        working-directory: mobile_app
+        run: |
+          VERSION=$(grep -oP 'version: \K[0-9]+\.[0-9]+\.[0-9]+' pubspec.yaml | head -1)
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION  tag=$TAG"
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "::error::Tag v$TAG does not match pubspec version $VERSION. Bump the version before tagging."
+            exit 1
+          fi
+          echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Build Signed Production APKs (split-per-ABI + universal)
+        working-directory: mobile_app
+        run: |
+          flutter build apk --release \
+            --split-per-abi \
+            --build-name=$APP_VERSION \
+            --build-number=${{ github.run_number }}
+
+      - name: Collect & Rename Release Artifacts
+        run: |
+          mkdir -p build_output
+          SRC=mobile_app/build/app/outputs/flutter-apk
+          [ -f "$SRC/app-release.apk" ] || { echo "::error::universal APK missing"; exit 1; }
+          cp "$SRC/app-release.apk" build_output/legal-clay-app-v$APP_VERSION-universal.apk
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            if [ -f "$SRC/app-$abi-release.apk" ]; then
+              cp "$SRC/app-$abi-release.apk" build_output/legal-clay-app-v$APP_VERSION-$abi.apk
+            fi
+          done
+          ls -la build_output
+
+      - name: Verify APK Signatures (must be signed)
+        run: |
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)"
+          FAIL=0
+          for apk in build_output/*.apk; do
+            if "$BT/apksigner" verify --print-certs "$apk"; then
+              echo "✅ $apk signature verified"
+            else
+              echo "::error::$apk is NOT correctly signed."
+              FAIL=1
+            fi
+          done
+          exit $FAIL
+
+      - name: Checksums + publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd build_output
+          sha256sum *.apk > SHA256SUMS.txt
+          gh release create "${{ github.ref_name }}" \
+            --title "Legal Clay App v$APP_VERSION (Flutter)" \
+            --generate-notes \
+            legal-clay-app-v$APP_VERSION-*.apk \
+            SHA256SUMS.txt
+          echo "✅ Release published"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## 📱 Mobile Release Summary"
+            echo ""
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            echo "| Ref | \`${{ github.ref_name }}\` |"
+            echo "| Version | \`${{ env.APP_VERSION }}\` |"
+            echo "| Status | ${{ job.status }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

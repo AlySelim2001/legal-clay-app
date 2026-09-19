@@ -187,9 +187,9 @@ Detailed: [`OSS_SECURITY.md`](OSS_SECURITY.md).
 - Policies per component in the YAML; default `SECURITY_ONLY`.
 - Security advisories override cycles: flag `SECURITY_UPDATE_REQUIRED`,
   evaluate → patch → test → deploy → document.
-- Scheduled audit: `.github/workflows/oss-audit.yml` (weekly registry lint +
-  SBOM regeneration + SBOM drift check + review-staleness report + advisory
-  `npm audit`).
+- Scheduled audit: `security-audit` job in `.github/workflows/main.yml` (weekly
+  registry lint + SBOM regeneration + SBOM drift check + review-staleness
+  report).
 - `candidates:` list in the YAML tracks open evaluations; `rejected:` prevents
   re-proposal churn (full reasoning in DECISIONS).
 
@@ -202,7 +202,7 @@ Everything above is backed by executable checks — the policy is not prose-only
 | Registry lint ("no mystery dependencies") | `bun run oss:lint` → `node scripts/oss-registry-lint.mjs` | exit 1 on: unregistered direct deps (npm, local-ai frontend, Python pins, pub, Gradle), floating git/`latest` refs, banned packages, `LICENSE_UNVERIFIED` in production surfaces |
 | SBOM (CycloneDX 1.5) | `bun run oss:sbom` → `node scripts/generate-sbom.mjs` | regenerates `sbom/cyclonedx.json`; zero-dep; CI fails on drift vs the committed SBOM when manifests change |
 | Combined audit | `bun run oss:audit` | lint + SBOM in one step |
-| CI schedule | `.github/workflows/oss-audit.yml` | weekly + on manifest/registry PRs; staleness report flags components unreviewed > 180 days |
+| CI schedule | `security-audit` job in `.github/workflows/main.yml` | weekly cron + on manifest/registry PRs; staleness report flags components unreviewed > 180 days |
 
 **SBOM license enrichment policy** (current ratio: **192/197 components**).
 Licenses are attached from, in order: registry `components` records →

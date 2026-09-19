@@ -72,7 +72,7 @@ test/               deadline / PII suites (parity with the Kotlin + Python tests
    + `android/key.properties` (both gitignored).
 2. Repo secrets: `ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`,
    `KEY_PASSWORD`.
-3. Tag `v*` (or manual dispatch) → `.github/workflows/mobile-release.yml`:
+3. Tag `v*` (or manual dispatch) → `release-mobile` job in `.github/workflows/main.yml`:
    analyze + tests are a **hard gate**, the keystore is **required** (a missing
    secret fails the job — no debug-signed "release" ever ships), split + universal
    APKs are built, signatures verified with `apksigner`, and the GitHub Release

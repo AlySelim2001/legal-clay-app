@@ -2,7 +2,8 @@
 
 > Status: **CANONICAL**. `local-ai/docker-compose.yml` is the sole approved
 > production topology. Any competing draft is rejected on sight; changes land
-> only through PRs that pass the CI security pipeline (`.github/workflows/ci.yml`).
+> only through PRs that pass the CI security pipeline (`security-audit` job in
+> `.github/workflows/main.yml`).
 
 ## 1. Topology at a glance
 
@@ -227,7 +228,7 @@ triggers (daily Court of Cassation / Official Gazette monitoring) and the
 Telegram delivery window to Cairo time — legal publication timing is part
 of the deadline logic, not a cosmetic setting.
 
-## 6. CI enforcement (`.github/workflows/ci.yml`)
+## 6. CI enforcement (`security-audit` job in `.github/workflows/main.yml`)
 
 | Check | What it proves |
 |---|---|

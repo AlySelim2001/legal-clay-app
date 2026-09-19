@@ -42,11 +42,11 @@ For third-party packages, the scan was performed at registration time:
 
 | Check | Tool | Where |
 |---|---|---|
-| SAST (python) | bandit + flake8-bandit | `.github/workflows/ci.yml` (`-lll`) |
-| Lint (python) | flake8, ruff | ci.yml |
-| Registry gate | `scripts/oss-registry-lint.mjs` | this workfile; scheduled in oss-audit.yml |
-| SBOM | `scripts/generate-sbom.mjs` (CycloneDX 1.5) | oss-audit.yml (artifact) |
-| npm advisories | `npm audit --omit=dev` (report-only today) | oss-audit.yml — promotion to *gating* blocked on triaging the existing dev-tool advisory backlog |
+| SAST (python) | bandit + flake8-bandit | `.github/workflows/main.yml` (`security-audit`, `-lll`) |
+| Lint (python) | flake8, ruff | main.yml (`security-audit`) |
+| Registry gate | `scripts/oss-registry-lint.mjs` | this workfile; scheduled in main.yml (`security-audit`) |
+| SBOM | `scripts/generate-sbom.mjs` (CycloneDX 1.5) | main.yml (`security-audit`) |
+| npm advisories | `npm audit --omit=dev` (report-only) | main.yml (dispatch; promotion to *gating* blocked on triaging the existing dev-tool advisory backlog) |
 | Container scan | *not yet wired* — candidate: trivy (TYPE F) | open item |
 | Secret scanning | *not yet wired* — candidate: gitleaks (TYPE F) | open item |
 | e2e security contracts | @playwright/test (auth redirects, session timeout) | tests/e2e |

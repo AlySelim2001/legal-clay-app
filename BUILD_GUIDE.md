@@ -68,8 +68,8 @@ BT="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)"
 
 ### Automated releases (GitHub Releases)
 
-Pushing a tag `v2026.X.Y` triggers
-[.github/workflows/android-release.yml](.github/workflows/android-release.yml):
+Pushing a tag `v2026.X.Y` triggers the `release-android` job in
+[.github/workflows/main.yml](.github/workflows/main.yml):
 it verifies the tag matches `versionName`, builds the signed APK from CI
 secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`),
 verifies it with `apksigner`, and attaches it to a GitHub Release with SHA256
@@ -102,11 +102,11 @@ bun run test:ui      # interactive UI mode
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| [android-build.yml](.github/workflows/android-build.yml) | push/PR to `main` | web QC (non-blocking) + native `assembleDebug` + debug-APK artifact |
-| [android-release.yml](.github/workflows/android-release.yml) | tag `v*` | signed release APK → GitHub Release + SHA256SUMS |
+| [main.yml](.github/workflows/main.yml) | push/PR to `main`, `fix/*`, `feat/*` | Stage 1: web typecheck + JVM parity/full tests + security audit (parallel) → Stage 2: `assembleDebug` → Stage 3: emulator instrumentation (Room 3→4) |
+| [main.yml](.github/workflows/main.yml) | tag `v*` | `release-android` (signed APK/AAB + mapping.txt) + `release-mobile` (Flutter APK) → GitHub Release + SHA256SUMS |
 
-Access the latest debug build: **Actions → CRIM-SYS 2026 — Android Build &
-Quality Control → latest run → `CRIM-SYS-2026-Debug-APK`**.
+Access the latest debug build: **Actions → Integrated CI/CD Pipeline → latest
+run → `CRIM-SYS-2026-Debug-APK`**.
 
 ---
 

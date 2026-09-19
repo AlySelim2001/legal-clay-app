@@ -22,7 +22,8 @@ Before any lawyer installs anything:
 ## Phase 1 — Closed Beta (weeks 1–4, 10–20 lawyers)
 
 **Distribution: signed APK via GitHub Releases** (this repo already builds one per
-`v*` tag — see [../.github/workflows/android-release.yml](../.github/workflows/android-release.yml)).
+`v*` tag — see the `release-android` job in
+[../.github/workflows/main.yml](../.github/workflows/main.yml)).
 
 | Item | How |
 |---|---|

@@ -141,7 +141,7 @@ Governance docs: [docs/OSS_REGISTRY.md](docs/OSS_REGISTRY.md) ·
 [docs/OSS_LICENSES.md](docs/OSS_LICENSES.md) ·
 [docs/OSS_SECURITY.md](docs/OSS_SECURITY.md) ·
 [docs/OSS_DECISIONS.md](docs/OSS_DECISIONS.md). A weekly scheduled audit
-([.github/workflows/oss-audit.yml](.github/workflows/oss-audit.yml)) re-runs
+(`security-audit` job in [.github/workflows/main.yml](.github/workflows/main.yml)) re-runs
 the gate, checks SBOM drift, and reports stale reviews.
 
 Or one-liner via npm scripts: `bun run oss:audit` (lint + SBOM).
