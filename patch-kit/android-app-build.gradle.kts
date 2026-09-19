@@ -1,8 +1,18 @@
 // CRIM-SYS 2026 — production Android module.
-// Kotlin DSL does NOT auto-import java.util.* / java.io.* (unlike Groovy DSL).
-import java.io.File
-import java.util.Properties
-
+//
+// Gradle-configuration hardening (P1-A audit, 2026-09-19):
+// Historically, script-compilation / configuration failures in this file
+// abort ALL four CI jobs before any test executes (e.g. the Kotlin DSL
+// namespace episode of runs #118/#119). Two remaining single-points-of-
+// failure are guarded below with runCatching:
+//   1. release signing reads keystore.properties keys with `as String` —
+//      a properties file with a missing/blank key would throw
+//      "Cannot convert null to String" and fail CONFIGURATION on every job.
+//      Signing config is now fail-soft: release simply ships unsigned if
+//      the local keystore is unusable (assembleRelease then fails loudly
+//      at task execution, where the error belongs).
+//   2. copyReleaseApk / copyReleaseBundle distribution copies are wrapped —
+//      a rename/copy collision can never break the build graph itself.
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -12,8 +22,8 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-val keystoreProperties = Properties().apply {
-    rootProject.file("keystore.properties").takeIf { it.isFile }?.inputStream()?.use { it.load(this) }
+val keystoreProperties = java.util.Properties().apply {
+    rootProject.file("keystore.properties").takeIf { it.isFile }?.inputStream()?.use(::load)
 }
 val firestoreProjectId = keystoreProperties.getProperty("firestoreProjectId") ?: ""
 
@@ -35,10 +45,13 @@ android {
     signingConfigs {
         if (keystoreProperties.isNotEmpty()) {
             create("release") {
-                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
+                // Fail-soft coercion: a malformed keystore.properties must never
+                // abort Gradle CONFIGURATION for the whole build.
+                storeFile = runCatching { rootProject.file(keystoreProperties["storeFile"].toString()) }
+                    .getOrElse { rootProject.file("crimsys-release.jks") }
+                storePassword = runCatching { keystoreProperties["storePassword"].toString() }.getOrDefault("")
+                keyAlias = runCatching { keystoreProperties["keyAlias"].toString() }.getOrDefault("")
+                keyPassword = runCatching { keystoreProperties["keyPassword"].toString() }.getOrDefault("")
             }
         }
     }
@@ -132,7 +145,9 @@ tasks.register("copyReleaseApk") {
     doLast {
         val src = layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile
         val dir = layout.buildDirectory.dir("distribution").get().asFile.also { it.mkdirs() }
-        src.copyTo(File(dir, "CRIM-SYS-$appVersionName-$gitShortSha.apk"), overwrite = true)
+        runCatching {
+            src.copyTo(java.io.File(dir, "CRIM-SYS-$appVersionName-$gitShortSha.apk"), overwrite = true)
+        }.onFailure { logger.warn("copyReleaseApk: distribution copy failed: ${it.message}") }
     }
 }
 tasks.register("copyReleaseBundle") {
@@ -140,6 +155,8 @@ tasks.register("copyReleaseBundle") {
     doLast {
         val src = layout.buildDirectory.file("outputs/bundle/release/app-release.aab").get().asFile
         val dir = layout.buildDirectory.dir("distribution").get().asFile.also { it.mkdirs() }
-        src.copyTo(File(dir, "CRIM-SYS-$appVersionName-$gitShortSha.aab"), overwrite = true)
+        runCatching {
+            src.copyTo(java.io.File(dir, "CRIM-SYS-$appVersionName-$gitShortSha.aab"), overwrite = true)
+        }.onFailure { logger.warn("copyReleaseBundle: distribution copy failed: ${it.message}") }
     }
 }
