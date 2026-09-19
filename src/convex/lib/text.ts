@@ -13,7 +13,6 @@
 export function normalizeArabic(text: string): string {
   return text
     .toLowerCase()
-    // eslint-disable-next-line no-control-regex -- intentional unicode ranges
     .replace(/[\u064B-\u0652\u0670\u0640]/g, "")
     .replace(/[أإآٱ]/g, "ا")
     .replace(/ى/g, "ي")
