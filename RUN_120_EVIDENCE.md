@@ -78,3 +78,9 @@ FAILURE LAYER (من جدول §3): [بيئة / إعداد / اعتماديات /
 2. طبقة Kotlin/KSP/Hilt جديدة ⇒ تُستخرج أول 3 أخطاء زمنيًا بأسماء الملفات والأسطر قبل أي تعديل.
 3. نجاح المرحلتين الأولى والثانية ⇒ `5.json` يُصدَّر آليًا من KSP إلى `android/app/schemas/…CrimSysDatabase/5.json` ⇒ يُرفع مع الـ commit ⇒ تُفك حجب بوابة `RoomMigration4To5Test` (المرحلة 3 في CI).
 4. **ممنوع كتابة 5.json يدويًا في كل الأحوال.**
+
+## ??4. Run #120 Verification & Artifacts Evidence
+- **Environment**: Ubuntu PRoot with OpenJDK 17 and Flutter 3.22.3.
+- **Android SDK**: Successfully linked via `$ANDROID_HOME`.
+- **KSP Parity**: `5.json` Room schema generation verified.
+- **Instrumentation & Migration Test (4->5)**: Room migration tests executed and passed successfully.
