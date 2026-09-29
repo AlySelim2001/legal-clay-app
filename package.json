@@ -20,9 +20,11 @@
     "@capacitor/app": "^7.0.0",
     "@capacitor/core": "^7.0.0",
     "@capacitor/device": "^7.0.0",
+    "@capacitor/filesystem": "^7.1.8",
     "@capacitor/haptics": "^7.0.0",
     "@capacitor/keyboard": "^7.0.0",
     "@capacitor/preferences": "^7.0.0",
+    "@capacitor/push-notifications": "^7.0.7",
     "@capacitor/status-bar": "^7.0.0",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "^1.2.2",
@@ -96,6 +98,6 @@
     "vite": "^6.1.0"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-arm64-gnu": "^4.34.6"
+    "@rollup/rollup-linux-arm64-gnu": "^4.63.5"
   }
 }
