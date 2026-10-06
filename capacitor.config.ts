@@ -17,14 +17,6 @@ const config: CapacitorConfig = {
     captureInput: true,
   },
 
-  // Server configuration for live reload during development
-  server: {
-    androidScheme: 'https',
-    // For development, point to your dev server:
-    // url: 'http://10.0.2.2:5173',
-    // cleartext: true,
-  },
-
   // Plugin configuration
   plugins: {
     PushNotifications: {
