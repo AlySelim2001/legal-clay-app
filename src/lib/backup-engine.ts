@@ -10,6 +10,7 @@ import {
   getAllSyncMeta,
   clearStore,
 } from "@/lib/open-source/offline-sync";
+import { sanitizeForLocalStorage } from "@/lib/sanitize";
 
 type OfflineStoreName =
   | "cases"
@@ -87,7 +88,7 @@ export async function createFullBackup(): Promise<Blob> {
   for (const storeName of STORES_TO_BACKUP) {
     try {
       const allRecords = await db.getAll(storeName);
-      data[storeName] = allRecords;
+      data[storeName] = sanitizeForLocalStorage(allRecords);
       recordCounts[storeName] = allRecords.length;
     } catch {
       data[storeName] = [];
