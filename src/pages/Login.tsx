@@ -58,7 +58,7 @@ export default function Login() {
 
         {/* Login form */}
         <div className="clay-card p-8">
-          <h2 className="text-lg font-bold text-foreground mb-1">تسجيل الدخول</h2>
+          <h2 className="text-lg font-bold text-foreground mb-1">بيانات الحساب</h2>
           <p className="text-sm text-muted-foreground mb-6">
             أدخل بياناتك للوصول إلى النظام
           </p>

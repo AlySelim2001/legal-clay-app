@@ -1,14 +1,29 @@
-import { api } from "@/convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useQuery } from "convex/react";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
+/** Compatibility adapter for the legacy email-OTP screen. */
 export function useAuth() {
-  const { isLoading: isAuthLoading, isAuthenticated } = useConvexAuth();
-  const user = useQuery(api.users.currentUser);
-  const { signIn, signOut } = useAuthActions();
-
-  // Derive isLoading directly from the dependencies instead of managing separate state
-  const isLoading = isAuthLoading || user === undefined;
+  const { isLoading, isAuthenticated, user, signOut } = useSupabaseAuth();
+  const signIn = async (
+    provider: "email-otp" | "anonymous",
+    formData?: FormData,
+  ): Promise<void> => {
+    const { supabase } = await import("@/lib/supabase");
+    if (provider === "anonymous") {
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) throw new Error(error.message);
+      return;
+    }
+    const email = String(formData?.get("email") ?? "").trim();
+    const code = String(formData?.get("code") ?? "").trim();
+    if (!email) throw new Error("البريد الإلكتروني مطلوب");
+    if (!code) {
+      const { error } = await supabase.auth.signInWithOtp({ email });
+      if (error) throw new Error(error.message);
+      return;
+    }
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
+    if (error) throw new Error(error.message);
+  };
 
   return {
     isLoading,

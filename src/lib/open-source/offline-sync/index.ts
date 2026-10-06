@@ -6,6 +6,7 @@
 
 import { openDB, type IDBPDatabase } from "idb";
 import type { OfflineStoreName } from "@/lib/open-source";
+import { sanitizeForLocalStorage } from "@/lib/sanitize";
 
 // ---- Database Constants ----
 
@@ -85,10 +86,10 @@ export async function cacheData<T extends { id: string }>(
 
   if (Array.isArray(data)) {
     for (const item of data) {
-      await store.put(item);
+      await store.put(sanitizeForLocalStorage(item));
     }
   } else {
-    await store.put(data);
+    await store.put(sanitizeForLocalStorage(data));
   }
 
   await tx.done;

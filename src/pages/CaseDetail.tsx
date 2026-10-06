@@ -65,7 +65,6 @@ export default function CaseDetail() {
 
   // Fetch appeal deadlines when procedural tab is active
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     if (activeTab === "deadlines" || activeTab === "procedural") {
       let cancelled = false;
       setLoadingAppeals(true);
@@ -77,7 +76,6 @@ export default function CaseDetail() {
         });
       return () => { cancelled = true; };
     }
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [activeTab, caseData?.id]);
 
   if (loading) {

@@ -39,7 +39,6 @@ export function PrecedentSearch() {
 
   // Initial load of all precedents
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     let cancelled = false;
     setLoading(true);
     void (async () => {
@@ -49,7 +48,6 @@ export function PrecedentSearch() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   return (

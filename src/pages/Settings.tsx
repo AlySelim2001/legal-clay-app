@@ -167,7 +167,7 @@ export default function Settings() {
                   </label>
                   <input
                     type="tel"
-                    defaultValue="01012345678"
+                    defaultValue=""
                     className="clay-input w-full px-4 py-3 text-sm bg-background"
                     dir="ltr"
                   />

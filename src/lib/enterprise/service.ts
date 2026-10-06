@@ -5,6 +5,7 @@
 // ============================================================
 
 import { supabase } from "@/lib/supabase";
+import { sanitizeForLocalStorage } from "@/lib/sanitize";
 import type {
   PersonRow,
   PersonInsert,
@@ -33,7 +34,7 @@ export async function fetchPersons(): Promise<PersonRow[]> {
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return data as PersonRow[];
+  return sanitizeForLocalStorage(data as PersonRow[]);
 }
 
 export async function fetchPerson(personCode: string): Promise<PersonWithCases> {
@@ -43,7 +44,7 @@ export async function fetchPerson(personCode: string): Promise<PersonWithCases> 
     .eq("person_code", personCode)
     .single();
   if (error) throw new Error(error.message);
-  return data as PersonWithCases;
+  return sanitizeForLocalStorage(data as PersonWithCases);
 }
 
 export async function createPerson(input: PersonInsert): Promise<PersonRow> {
@@ -82,7 +83,7 @@ export async function searchPersons(query: string): Promise<PersonRow[]> {
     .or(`legal_full_name.ilike.%${query}%,person_code.ilike.%${query}%,national_id_display.ilike.%${query}%`)
     .limit(20);
   if (error) throw new Error(error.message);
-  return data as PersonRow[];
+  return sanitizeForLocalStorage(data as PersonRow[]);
 }
 
 // ============================================================
@@ -95,7 +96,7 @@ export async function fetchCases(): Promise<CaseWithPerson[]> {
     .select("*, person:persons(*)")
     .order("updated_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return data as CaseWithPerson[];
+  return sanitizeForLocalStorage(data as CaseWithPerson[]);
 }
 
 export async function fetchCase(caseCode: string): Promise<CaseWithAll> {
@@ -111,7 +112,7 @@ export async function fetchCase(caseCode: string): Promise<CaseWithAll> {
     .eq("case_code", caseCode)
     .single();
   if (error) throw new Error(error.message);
-  return data as CaseWithAll;
+  return sanitizeForLocalStorage(data as CaseWithAll);
 }
 
 export async function createCase(input: CaseInsert): Promise<CaseRow> {
@@ -150,7 +151,7 @@ export async function searchCases(query: string): Promise<CaseWithPerson[]> {
     .or(`case_number.ilike.%${query}%,case_code.ilike.%${query}%,court_name.ilike.%${query}%`)
     .limit(30);
   if (error) throw new Error(error.message);
-  return data as CaseWithPerson[];
+  return sanitizeForLocalStorage(data as CaseWithPerson[]);
 }
 
 // ============================================================

@@ -57,11 +57,9 @@ export default function Dashboard() {
 
   // Initial fetch + auto-refresh every 60 seconds
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     fetchStats();
     const interval = setInterval(fetchStats, 60_000);
     return () => clearInterval(interval);
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [fetchStats]);
 
   if (statsLoading || hearingsLoading) {

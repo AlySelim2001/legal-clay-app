@@ -1,4 +1,3 @@
-import "@vly-ai/integrations";
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
@@ -29,7 +28,6 @@ const Defenses = lazy(() => import("./pages/Defenses.tsx"));
 const Archive = lazy(() => import("./pages/Archive.tsx"));
 const LegalFramework = lazy(() => import("./pages/LegalFramework.tsx"));
 const AdminTeam = lazy(() => import("./pages/AdminTeam.tsx"));
-const Settings = lazy(() => import("./pages/Settings.tsx"));
 const AIAgent = lazy(() => import("./pages/AIAgent.tsx"));
 const AIAgents = lazy(() => import("./pages/AIAgents.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));

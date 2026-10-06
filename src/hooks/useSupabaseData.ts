@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { sanitizeForLocalStorage } from '@/lib/sanitize';
 import type {
   CaseRow,
   CaseWithClient,
@@ -118,7 +119,7 @@ export function useClients() {
         .select('*')
         .order('created_at', { ascending: false });
       if (err) throw new Error(err.message);
-      return rows as ClientRow[];
+      return sanitizeForLocalStorage(rows as ClientRow[]);
     },
   });
 
@@ -135,7 +136,7 @@ export function useClient(clientCode: string) {
         .eq('client_code', clientCode)
         .single();
       if (err) throw new Error(err.message);
-      return row as ClientRow & { cases: CaseRow[] };
+      return sanitizeForLocalStorage(row as ClientRow & { cases: CaseRow[] });
     },
     enabled: !!clientCode,
   });

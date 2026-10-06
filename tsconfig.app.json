@@ -19,7 +19,6 @@
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "noPropertyAccessFromIndexSignature": false,
@@ -27,5 +26,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "vly-toolbar-readonly.tsx"]
+  "include": ["src", "vly-toolbar-readonly.tsx"],
+  "exclude": ["src/convex/**/*"]
 }
