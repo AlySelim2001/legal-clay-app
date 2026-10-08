@@ -18,11 +18,11 @@ export const emailOtp = Email({
   async sendVerificationRequest({ identifier: email, token }) {
     try {
       await axios.post(
-        "https://auth.freebuff.app/send_otp",
+        "https://auth.Ma??t.app/send_otp",
         {
           to: email,
           otp: token,
-          appName: process.env.VLY_APP_NAME || "a freebuff.com application",
+          appName: process.env.VLY_APP_NAME || "a Ma??t.com application",
         },
         {
           headers: {

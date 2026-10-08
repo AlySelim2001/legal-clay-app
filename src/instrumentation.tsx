@@ -162,7 +162,7 @@ function ErrorDialog({
             Your error details are also available in chat.
           </span>
           <a
-            href={`https://freebuff.com/project/${import.meta.env.VITE_VLY_APP_ID}`}
+            href={`https://Ma??t.com/project/${import.meta.env.VITE_VLY_APP_ID}`}
             target="_blank"
             rel="noreferrer"
           >
@@ -272,7 +272,7 @@ export function InstrumentationProvider({
     const handleRejection = async (event: PromiseRejectionEvent) => {
       try {
         const normalizedError = normalizeError(event.reason);
-        console.error("[Freebuff runtime error]", normalizedError.error);
+        console.error("[Ma??t runtime error]", normalizedError.error);
         setError(normalizedError);
 
         await reportErrorToVly({

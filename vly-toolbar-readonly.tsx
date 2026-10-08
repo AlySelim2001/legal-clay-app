@@ -365,7 +365,7 @@ export const VlyToolbar: React.FC = () => {
 
   const handleGoToProject = () => {
     const projectName = getProjectName();
-    window.location.href = `https://freebuff.com/project/${projectName}?publish=true`;
+    window.location.href = `https://Ma??t.com/project/${projectName}?publish=true`;
   };
 
   return (

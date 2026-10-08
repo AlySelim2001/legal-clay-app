@@ -30,12 +30,12 @@ export default function Landing() {
           <Loader className="h-8 w-8 animate-spin mr-4 shrink-0" />
           <span className="text-base">
             <a
-              href="https://freebuff.com"
+              href="https://Ma??t.com"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary underline hover:text-primary/80 transition-colors font-medium"
             >
-              freebuff.com
+              Ma??t.com
             </a>
             {" "}is generating your project...
           </span>

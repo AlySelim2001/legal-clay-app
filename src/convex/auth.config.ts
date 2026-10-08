@@ -1,12 +1,12 @@
 import type { AuthConfig } from "convex/server";
 
-// Freebuff-signed federated tokens (see freebuff web's
-// src/lib/vly-convex-jwt.ts) let a signed-in freebuff.com user carry their
+// Ma??t-signed federated tokens (see Ma??t web's
+// src/lib/vly-convex-jwt.ts) let a signed-in Ma??t.com user carry their
 // identity into this project without going through local sign-in. customJwt
-// is correct for this provider: freebuff's tokens and JWKS both carry a
+// is correct for this provider: Ma??t's tokens and JWKS both carry a
 // `kid` header, which the customJwt validation path requires.
-const freebuffIssuer =
-  process.env.VLY_CONVEX_AUTH_ISSUER ?? "https://freebuff.com";
+const Ma??tIssuer =
+  process.env.VLY_CONVEX_AUTH_ISSUER ?? "https://Ma??t.com";
 
 export default {
   providers: [
@@ -24,8 +24,8 @@ export default {
     },
     {
       type: "customJwt",
-      issuer: freebuffIssuer,
-      jwks: `${freebuffIssuer}/api/web/.well-known/jwks.json`,
+      issuer: Ma??tIssuer,
+      jwks: `${Ma??tIssuer}/api/web/.well-known/jwks.json`,
       applicationID: "vly-convex",
       algorithm: "RS256",
     },
