@@ -194,6 +194,7 @@
   }
   html {
     font-family: "Noto Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+    scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground;
@@ -205,8 +206,32 @@
   }
 }
 
-/* Claymorphism utility classes */
+/* ============================================================
+   WCAG 2.5.5 AAA Touch Target Sizing (56dp minimum)
+   All interactive elements must meet or exceed 56×56px
+   ============================================================ */
 @layer utilities {
+  /* Minimum touch target size 56×56px */
+  .touch-target-min {
+    @apply min-h-[56px] min-w-[56px];
+  }
+
+  /* Medium touch target 64×64px */
+  .touch-target-md {
+    @apply min-h-[64px] min-w-[64px];
+  }
+
+  /* Large touch target 72×72px */
+  .touch-target-lg {
+    @apply min-h-[72px] min-w-[72px];
+  }
+
+  /* Padding helper to ensure touch zones around small elements */
+  .touch-padding {
+    @apply p-3;
+  }
+
+  /* Claymorphism utility classes */
   .clay-card {
     background: var(--card);
     border-radius: var(--radius-2xl);
@@ -236,6 +261,7 @@
   }
 
   .clay-button {
+    @apply min-h-[56px] min-w-[56px] touch-padding;
     border-radius: var(--radius-xl);
     box-shadow:
       4px 4px 8px rgba(44, 36, 25, 0.1),
@@ -253,9 +279,14 @@
   }
 
   .clay-button:active {
+    @apply scale-[0.98];
     box-shadow:
       inset 2px 2px 4px rgba(44, 36, 25, 0.08),
       inset -1px -1px 3px rgba(255, 255, 255, 0.4);
+  }
+
+  .clay-button:focus-visible {
+    @apply ring-2 ring-amber-500 outline-none;
   }
 
   .clay-input {
@@ -266,6 +297,7 @@
       inset -1px -1px 3px rgba(255, 255, 255, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.3);
     transition: all 0.2s ease;
+    @apply min-h-[56px];
   }
 
   .clay-input:focus {
@@ -304,12 +336,17 @@
   }
 
   .clay-nav-item {
+    @apply min-h-[56px] min-w-[56px] touch-padding;
     border-radius: var(--radius-lg);
     transition: all 0.2s ease;
   }
 
   .clay-nav-item:hover {
     background: var(--sidebar-accent);
+  }
+
+  .clay-nav-item:focus-visible {
+    @apply ring-2 ring-amber-500 outline-none;
   }
 
   .clay-nav-item.active {
@@ -372,6 +409,64 @@
 
 .animate-pulse-glow {
   animation: pulseGlow 2s infinite;
+}
+
+/* ============================================================
+   Maât Ease Mode: Accessibility & Readability Boost
+   Activate with: html.ma-at-ease or data-ma-at-ease="true"
+   ============================================================ */
+.ma-at-ease,
+[data-ma-at-ease="true"] {
+  --foreground: #1a1410;
+  --card-foreground: #1a1410;
+  --muted-foreground: #5a4a3d;
+  font-size: 1.125rem; /* 18px base */
+  line-height: 1.6;
+}
+
+.ma-at-ease *,
+[data-ma-at-ease="true"] * {
+  font-size: 1.1em;
+}
+
+/* Enhanced contrast for buttons & interactive elements in Ease Mode */
+.ma-at-ease .clay-button,
+[data-ma-at-ease="true"] .clay-button {
+  @apply min-h-[64px] min-w-[64px];
+  font-weight: 600;
+  font-size: 1.0625rem; /* 17px */
+  box-shadow:
+    6px 6px 12px rgba(44, 36, 25, 0.15),
+    -3px -3px 8px rgba(255, 255, 255, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.ma-at-ease .clay-input,
+[data-ma-at-ease="true"] .clay-input {
+  @apply min-h-[64px];
+  font-size: 1.0625rem; /* 17px */
+  font-weight: 500;
+}
+
+.ma-at-ease .clay-card,
+[data-ma-at-ease="true"] .clay-card {
+  box-shadow:
+    12px 12px 24px rgba(44, 36, 25, 0.12),
+    -6px -6px 18px rgba(255, 255, 255, 0.95),
+    inset 0 2px 0 rgba(255, 255, 255, 0.8);
+}
+
+.ma-at-ease .clay-topbar,
+[data-ma-at-ease="true"] .clay-topbar {
+  background: rgba(245, 240, 235, 0.95);
+  backdrop-filter: blur(16px);
+  border-bottom: 2px solid rgba(212, 197, 181, 0.7);
+}
+
+/* Increased focus ring width for Ease Mode */
+.ma-at-ease *:focus-visible,
+[data-ma-at-ease="true"] *:focus-visible {
+  @apply ring-4 ring-clay-blue ring-offset-2;
 }
 
 /* ============================================================
