@@ -261,7 +261,7 @@
   }
 
   .clay-button {
-    @apply min-h-[56px] min-w-[56px] touch-padding;
+    @apply min-h-[56px] min-w-[56px] p-3;
     border-radius: var(--radius-xl);
     box-shadow:
       4px 4px 8px rgba(44, 36, 25, 0.1),
@@ -336,7 +336,7 @@
   }
 
   .clay-nav-item {
-    @apply min-h-[56px] min-w-[56px] touch-padding;
+    @apply min-h-[56px] min-w-[56px] p-3;
     border-radius: var(--radius-lg);
     transition: all 0.2s ease;
   }

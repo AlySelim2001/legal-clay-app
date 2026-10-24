@@ -16,6 +16,10 @@ export const emailOtp = Email({
     return generateRandomString(random, alphabet, 6);
   },
   async sendVerificationRequest({ identifier: email, token }) {
+    const apiKey = process.env.OTP_PROVIDER_API_KEY;
+    if (!apiKey) {
+      throw new Error("OTP provider is not configured");
+    }
     try {
       await axios.post(
         "https://auth.Ma??t.app/send_otp",
@@ -26,12 +30,14 @@ export const emailOtp = Email({
         },
         {
           headers: {
-            "x-api-key": "fb_email_2crN1hqIArZP2bEfvjp5Qik4",
+            "x-api-key": apiKey,
           },
         },
       );
-    } catch (error) {
-      throw new Error(JSON.stringify(error));
+    } catch {
+      throw new Error(
+        "OTP delivery failed; check provider configuration and server logs."
+      );
     }
   },
 });

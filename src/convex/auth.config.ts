@@ -5,7 +5,7 @@ import type { AuthConfig } from "convex/server";
 // identity into this project without going through local sign-in. customJwt
 // is correct for this provider: Ma??t's tokens and JWKS both carry a
 // `kid` header, which the customJwt validation path requires.
-const Ma??tIssuer =
+const vlyIssuer =
   process.env.VLY_CONVEX_AUTH_ISSUER ?? "https://Ma??t.com";
 
 export default {
@@ -24,8 +24,8 @@ export default {
     },
     {
       type: "customJwt",
-      issuer: Ma??tIssuer,
-      jwks: `${Ma??tIssuer}/api/web/.well-known/jwks.json`,
+      issuer: vlyIssuer ,
+      jwks: `${vlyIssuer}/api/web/.well-known/jwks.json`,
       applicationID: "vly-convex",
       algorithm: "RS256",
     },
