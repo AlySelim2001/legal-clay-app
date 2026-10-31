@@ -1,0 +1,66 @@
+name: Maât Legal Clay - Android CI/CD Release
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-mobile-app:
+    name: Build & Release Android APK/AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛑 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🔍 Run Static Audit & TypeScript Check
+        run: npx tsc --noEmit
+
+      - name: 🏗️ Build Web Production Bundle (Vite)
+        run: npm run build
+
+      - name: ☕ Setup Java Development Kit (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📱 Sync Capacitor Android Assets
+        run: npx cap sync android
+
+      - name: 🔨 Build Android Debug/Release APK via Gradle
+        working-directory: ./android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: 📤 Upload Build Artifacts (APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: legal-clay-app-debug-artifact
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: 🚀 Publish GitHub Release (On Tag Push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
