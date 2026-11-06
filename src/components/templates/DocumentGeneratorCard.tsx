@@ -1,11 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   FileText,
-  ChevronDown,
-  Plus,
   Trash2,
-  Eye,
-  Download,
   Loader2,
   CheckCircle,
 } from "lucide-react";
@@ -63,7 +59,6 @@ export function DocumentGeneratorCard({
     author: "",
     notes: "",
   });
-  const [expandedFormat, setExpandedFormat] = useState<DocumentFormat | null>(null);
 
   const handleFormatSelect = (format: DocumentFormat) => {
     setSelectedFormat(format);
@@ -93,8 +88,6 @@ export function DocumentGeneratorCard({
       setIsGenerating(false);
     }
   };
-
-  const selectedFormatConfig = documentFormats[selectedFormat];
 
   return (
     <div className={cn("clay-card p-6 space-y-6", className)}>

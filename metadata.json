@@ -1,0 +1,8 @@
+{
+  "name": "CRIM-SYS",
+  "description": "نظام متكامل لإدارة القضايا الجنائية في الممارسات القانونية المصرية",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

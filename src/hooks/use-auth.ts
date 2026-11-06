@@ -1,16 +1,29 @@
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 /** Compatibility adapter for the legacy email-OTP screen. */
 export function useAuth() {
-  const { isLoading, isAuthenticated, user, signOut } = useSupabaseAuth();
+  const { isLoading, isAuthenticated, user, signOut, signIn: ctxSignIn } = useSupabaseAuth();
   const signIn = async (
     provider: "email-otp" | "anonymous",
     formData?: FormData,
   ): Promise<void> => {
+    if (!isSupabaseConfigured) {
+      const email = String(formData?.get("email") ?? "guest@crimsys.com").trim() || "guest@crimsys.com";
+      await ctxSignIn(email, "demo-password");
+      return;
+    }
+
     const { supabase } = await import("@/lib/supabase");
     if (provider === "anonymous") {
-      const { error } = await supabase.auth.signInAnonymously();
-      if (error) throw new Error(error.message);
+      try {
+        const { error } = await supabase.auth.signInAnonymously();
+        if (error) {
+          await ctxSignIn("guest@crimsys.com", "demo-password");
+        }
+      } catch {
+        await ctxSignIn("guest@crimsys.com", "demo-password");
+      }
       return;
     }
     const email = String(formData?.get("email") ?? "").trim();

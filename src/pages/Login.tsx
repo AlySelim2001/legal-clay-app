@@ -141,6 +141,19 @@ export default function Login() {
                 "تسجيل الدخول"
               )}
             </button>
+
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={async () => {
+                setIsLoading(true);
+                await signIn("admin@crimsys.com", "demo123");
+                navigate(returnTo);
+              }}
+              className="clay-button w-full py-2.5 bg-secondary text-secondary-foreground font-medium text-xs rounded-xl hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
+            >
+              الدخول السريع بالحساب التجريبي
+            </button>
           </form>
         </div>
 
